@@ -34,6 +34,7 @@
    - [4.7 S_DATASET — Objeto de Autorização](#47-s_dataset--objeto-de-autorização)
    - [4.8 S_PROGRAM — Objeto de Autorização](#48-s_program--objeto-de-autorização)
 5. [Nível Geral da Solução](#5-nível-geral-da-solução)
+   - [5.1 Impacto da Substituição do SUBMIT pela API](#51-impacto-da-substituição-se-chamarmos-a-api-ao-invés-do-submit-vira-nível-c)
 6. [Recomendações Técnicas e Alternativas Clean Core](#6-recomendações-técnicas-e-alternativas-clean-core)
 7. [Justificativas para Impossibilidade de Nível A](#7-justificativas-para-impossibilidade-de-nível-a)
 8. [Arquitetura Alvo Recomendada](#8-arquitetura-alvo-recomendada)
@@ -585,6 +586,64 @@ Autorização de programa (S_PROGRAM) [B] ⚠️      [C] ⚠️     Baixo risco
 NÍVEL ON-PREMISE:  C/D  (principal bloqueador: SUBMIT RFEBKA00)
 NÍVEL CLOUD:       D    (6 bloqueantes — incompatível sem redesenho)
 ```
+
+---
+
+### 5.1 Impacto da Substituição: se chamarmos a API ao invés do SUBMIT, vira Nível C?
+
+> **Resposta direta: Não — vira Nível A. ✅**
+
+Quando o `SUBMIT RFEBKA00` é substituído por uma chamada à API OData `API_BANKSTATEMENT_SRV`, o resultado **não é Nível C — é Nível A**, porque a API possui **contrato de liberação C1** (Released API).
+
+#### Por que Nível A e não Nível C?
+
+O critério que define cada nível é o **tipo de contrato do objeto utilizado**:
+
+| Nível | Critério determinante |
+|:-----:|-----------------------|
+| **A** ✅ | O objeto usado possui **contrato C1** (Released API, CDS View Released, RAP) |
+| **B** ⚠️ | BAdI clássico, API parcialmente liberada, objeto customizado bem estruturado |
+| **C** 🔶 | FM **sem** contrato C1, acesso direto a tabela SAP sem CDS View |
+| **D** ❌ | Objeto proibido em ABAP Cloud (SUBMIT, modificação de padrão) |
+
+A API `API_BANKSTATEMENT_SRV` é uma **Released API com contrato C1**, publicada no SAP Business Accelerator Hub e com garantia de estabilidade entre upgrades. Chamá-la via `CL_WEB_HTTP_CLIENT` é o padrão recomendado em ABAP Cloud. Por isso, a chamada vai direto para **Nível A**.
+
+```
+SUBMIT RFEBKA00     →   [D] ❌  (programa não liberado; SUBMIT proibido em ABAP Cloud)
+         ⬇ substituir por
+HTTP POST para        →   [A] ✅  (C1 contract; Released API; estável entre upgrades)
+API_BANKSTATEMENT_SRV
+```
+
+#### Antes vs. Depois (On-Premise)
+
+| Componente | Nível ATUAL | Nível APÓS substituição | Mudança |
+|------------|:-----------:|:-----------------------:|:-------:|
+| `SUBMIT RFEBKA00` | **D** ❌ | **eliminado** | ✅ |
+| `FF.5 / RFEBKA00` (via SUBMIT) | **D** ❌ | **eliminado** | ✅ |
+| Chamada HTTP → `API_BANKSTATEMENT_SRV` | — | **A** ✅ | ✅ novo |
+| `AL11` / `EPS_GET_DIRECTORY_LISTING` | **C** 🔶 | **C** 🔶 | sem mudança |
+| `SELECT FROM FEBKO` | **C** 🔶 | **C** 🔶 | sem mudança |
+| `Tabela Z` | **A** ✅ | **A** ✅ | sem mudança |
+| `S_PROGRAM` | **B** ⚠️ | **B** ⚠️ | sem mudança |
+
+```
+─── ON-PREMISE — Distribuição ANTES ──────────────────────────
+Nível A: 1 obj (11%)  → Tabela Z
+Nível B: 1 obj (11%)  → S_PROGRAM
+Nível C: 4 obj (44%)  → AL11, EPS, FEBKO, S_DATASET
+Nível D: 3 obj (34%)  → FF.5/RFEBKA00, SUBMIT (← bloqueadores)
+
+─── ON-PREMISE — Distribuição APÓS substituição do SUBMIT ────
+Nível A: 2 obj (25%)  → Tabela Z + API_BANKSTATEMENT_SRV      ← +1
+Nível B: 1 obj (12%)  → S_PROGRAM
+Nível C: 4 obj (50%)  → AL11, EPS, FEBKO, S_DATASET
+Nível D: 0 obj  (0%)  → ELIMINADOS                            ← -3 ⭐
+
+NÍVEL GERAL DA SOLUÇÃO: C (nenhum objeto D restante)
+```
+
+> ⭐ **Substituir o SUBMIT pela API é a única mudança necessária para eliminar todos os objetos Nível D da solução em on-premise.** O nível geral passa de C/D para **C**, com caminho claro para atingir B/A nas demais melhorias.
 
 ---
 

@@ -187,7 +187,7 @@ Método: POST (para criar/importar novo extrato)
 ```
 
 Adicionalmente, o **RAP Business Object** para processamento bancário pode ser consultado via:
-- **SAP API Business Hub**: [Bank Statement API](https://api.sap.com/api/API_BANKSTATEMENT_SRV/overview)
+- **SAP Business Accelerator Hub**: [Bank Statement API](https://api.sap.com/api/API_BANKSTATEMENT_SRV/overview)
 - Pesquisar no **SAP Business Accelerator Hub**: `Electronic Bank Statement`
 
 #### Alternativa Clean Core (Nível A)

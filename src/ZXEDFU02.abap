@@ -23,13 +23,17 @@ TYPES: tt_tvarv_values TYPE STANDARD TABLE OF tvarv WITH DEFAULT KEY.
 "          QUALF = '002' identifies the PO reference qualifier;
 "          BELNR carries the actual PO number.
 " -----------------------------------------------------------------------
-DATA(lv_ebeln) = VALUE ebeln( ).
+DATA(lv_ebeln)  = VALUE ebeln( ).
+DATA ls_e1edk02 TYPE e1edk02.
 
 LOOP AT int_edidd INTO DATA(ls_idoc_data)
      WHERE segnam = 'E1EDK02'.
 
-  " Cast raw SDATA string directly into the typed segment structure
-  DATA(ls_e1edk02) = CORRESPONDING e1edk02( ls_idoc_data-sdata ).
+  " Overlay the raw SDATA character field onto the typed segment structure.
+  " MOVE performs a flat copy (byte-by-byte), which is the correct approach
+  " for EDIDD-SDATA because both share the same positional field layout.
+  CLEAR ls_e1edk02.
+  MOVE ls_idoc_data-sdata TO ls_e1edk02.
 
   IF ls_e1edk02-qualf = '002'.
     lv_ebeln = ls_e1edk02-belnr.
@@ -51,7 +55,7 @@ IF lv_ebeln IS NOT INITIAL.
   SELECT SINGLE lifnr, ekorg
     FROM ekko
     WHERE ebeln = @lv_ebeln
-    INTO  @DATA(ls_ekko).                         "#EC CI_GENBUFF
+    INTO  @DATA(ls_ekko).
 
   IF sy-subrc = 0.
     lv_lifnr = ls_ekko-lifnr.
@@ -74,12 +78,14 @@ ENDIF.
 SELECT *
   FROM tvarv
   WHERE name = 'ZEDI_SG11_PARTN'
-  INTO TABLE @DATA(lt_partn_cfg).                  "#EC CI_NOFIRST
+    AND type = 'S'
+  INTO TABLE @DATA(lt_partn_cfg).
 
 SELECT *
   FROM tvarv
   WHERE name = 'ZEDI_SG11_EKORG'
-  INTO TABLE @DATA(lt_ekorg_cfg).                  "#EC CI_NOFIRST
+    AND type = 'S'
+  INTO TABLE @DATA(lt_ekorg_cfg).
 
 " -----------------------------------------------------------------------
 " Step 4 – Loop over all E1EDKA1 segments and apply partner replacement.
@@ -87,11 +93,16 @@ SELECT *
 "   ASSIGNING FIELD-SYMBOL enables direct in-place modification of the
 "   SDATA field inside INT_EDIDD, avoiding a separate MODIFY statement.
 " -----------------------------------------------------------------------
+DATA ls_e1edka1 TYPE e1edka1.
+
 LOOP AT int_edidd ASSIGNING FIELD-SYMBOL(<ls_edidd>)
      WHERE segnam = 'E1EDKA1'.
 
-  " Cast raw SDATA directly into the typed segment structure
-  DATA(ls_e1edka1) = CORRESPONDING e1edka1( <ls_edidd>-sdata ).
+  " Overlay the raw SDATA character field onto the typed segment structure.
+  " MOVE performs a flat copy (byte-by-byte), which is the correct approach
+  " for EDIDD-SDATA because both share the same positional field layout.
+  CLEAR ls_e1edka1.
+  MOVE <ls_edidd>-sdata TO ls_e1edka1.
 
   " Only process partner role 'RS' (Ordering Address / Ship-from)
   IF ls_e1edka1-parvw = 'RS'.

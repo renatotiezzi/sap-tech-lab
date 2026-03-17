@@ -2,7 +2,7 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Accounts Receivable Position'
 @Metadata.ignorePropagatedAnnotations: true
-//@Search.searchable: false
+// @Search.searchable annotation removed — search capability not required for this AR position view.
 
 // ============================================================
 // FIX SUMMARY (see docs/ZI_R2R_AR_POSITION_duplicate_analysis.md)
@@ -411,9 +411,10 @@ where
       and Doc.FiscalYear           <> Doc.ClearingJournalEntryFiscalYear
     )
   )
-  // ⚠️ WARNING: Hardcoded customer filter — appears to be a
-  // development/debugging filter. MUST be removed before
-  // transporting to the production system.
-  and     Customer.Customer        =  '0040000361'
+  // ⚠️ TODO: Remove hardcoded customer filter before transporting to production.
+  // This filter ('0040000361') was left by a developer during testing and must NOT
+  // reach production — it would silently restrict the report to a single customer.
+  // Uncomment the line below only during local development/debugging.
+  // and     Customer.Customer        =  '0040000361'
   // Filter to the configured financial account type only
   and     Doc.FinancialAccountType =  TvarvFinAcc.Low

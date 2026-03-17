@@ -256,6 +256,79 @@ and AccDocText.Language = 'P'
 and AccDocText.Language = TvarvLang.Low
 ```
 
+### Pattern 5: Fix field value returning zero instead of actual FI balance
+
+```cds
+-- BEFORE: ResidualAmount is 0 for any non-residual item
+case
+  when Doc.InvoiceReference is not initial and Doc.FollowOnDocumentType = 'V'
+  then Doc.AmountInCompanyCodeCurrency
+  else cast( 0 as abap.curr( 23, 2 ) )
+end as ResidualAmount
+
+-- AFTER: always the real FI open item balance
+Doc.AmountInCompanyCodeCurrency as ResidualAmount
+```
+
+---
+
+## FIX #9 — Wrong Amount Displayed: `ResidualAmount` Field
+
+> ⚠️ **Pending functional team validation** — see section below.
+
+**Symptom:** For a specific document (e.g. `9400000027 / 2025 / 2477`), the RAP Fiori application displayed **R$ 164.136,91** but FB03 showed **R$ 24.445,93-** for the same item.
+
+**Root cause:**
+
+The field `ResidualAmount` was computed by a `CASE` expression:
+
+```cds
+case
+  when Doc.InvoiceReference is not initial and Doc.FollowOnDocumentType = 'V'
+  then Doc.AmountInCompanyCodeCurrency
+  else cast( 0 as abap.curr( 23, 2 ) )
+end as ResidualAmount
+```
+
+The intent was apparently to show the balance only for **residual items** (those created by partial payment, identified by `FollowOnDocumentType = 'V'`). For all other items, the field returned **zero**.
+
+When `ResidualAmount = 0`, the RAP application fell back to `OriginalAmount` (sourced from `ZI_R2R_AR_ORIGIN_VALUE.OriginalInvoiceAmount` = R$ 164.136,91 — the face value of the original invoice). This is the wrong value: the actual open balance per FI is R$ 24.445,93-.
+
+**The value `AmountInCompanyCodeCurrency` from `I_OperationalAcctgDocItem` is the correct open item balance** for all FI document item types:
+
+| Item type | `AmountInCompanyCodeCurrency` | `OriginalInvoiceAmount` |
+|---|---|---|
+| Regular open invoice | Invoice amount | Same — no difference |
+| Residual item (`FollowOnDocumentType = 'V'`) | **Remaining balance** | Original invoice amount |
+| Credit memo | Credit amount (negative) | Original credit amount |
+| Down payment | Down payment amount | Original amount |
+
+**Fix applied:**
+
+```cds
+@Semantics: { amount : {currencyCode: 'Currency'} }
+Doc.AmountInCompanyCodeCurrency as ResidualAmount
+```
+
+The field `OriginalAmount` (`Origin.OriginalInvoiceAmount`) is preserved as a separate column for reference to the original invoice face value.
+
+---
+
+## Functional Team Validation Checklist
+
+Before transporting the corrected `ZI_R2R_AR_POSITION` to production, the functional/business team must validate the following points:
+
+| # | Item | What to check | Risk if skipped |
+|---|------|--------------|-----------------|
+| 1 | **`ResidualAmount` fix** | Confirm that `AmountInCompanyCodeCurrency` from `I_OperationalAcctgDocItem` is the correct field to use as the open item balance in the AR Position report. Verify a sample of documents of each type (open invoice, residual item, credit memo) in the Fiori app vs. FB03. | Report shows incorrect amounts |
+| 2 | **`ZI_R2R_DUEDATEHISTORY`** | Confirm that `ZI_R2R_DUEDATEHISTORY` returns **at most one row** per `(CompanyCode, AccountingDocument, FiscalYear, DocumentItem)`. If it returns multiple rows (one per change event), the underlying view must aggregate with `MAX(ChangeDate)` before this view can rely on `to one`. | Duplicate rows in output |
+| 3 | **`ZI_R2R_AR_ORIGIN_VALUE`** | Verify that `ZI_R2R_AR_ORIGIN_VALUE` returns exactly one row per `(CompanyCode, AccountingDocument, FiscalYear, AccountingDocumentItem)`. | Duplicate rows in output |
+| 4 | **`ZI_R2R_AR_SALES_AUX_TXT`** | Verify that `ZI_R2R_AR_SALES_AUX_TXT` returns exactly one row per `(Customer, CompanyCode, FiscalYear, AccountingDocument)`. | Duplicate rows in output |
+| 5 | **`ZI_R2R_AR_DOCTYPE_FLAG`** | Verify that `ZI_R2R_AR_DOCTYPE_FLAG` has `AccountingDocumentType` as a unique key. | Duplicate rows in output |
+| 6 | **`I_Businesspartnertaxnumber` (CNPJ/CPF)** | Run `SELECT partner, taxtype, COUNT(*) FROM but0bew GROUP BY partner, taxtype HAVING COUNT(*) > 1` to confirm no partner has more than one CNPJ (`BR1`) or CPF (`BR2`). | Duplicate rows in output |
+| 7 | **`I_BillingDocument` join condition** | Confirm that one FI accounting document maps to at most one billing document in your data set (the join uses `AccountingDocument`, not the PK). Run: `SELECT accountingdocument, COUNT(*) FROM vbrk GROUP BY accountingdocument HAVING COUNT(*) > 1`. | Duplicate rows in output |
+| 8 | **Hardcoded customer filter** | Confirm that the line `and Customer.Customer = '0040000361'` in the WHERE clause has been commented out (it was a debug filter — currently commented in the view). Verify it is not active before transporting. | View restricted to one customer in production |
+
 ---
 
 ## Debugging Recommendations

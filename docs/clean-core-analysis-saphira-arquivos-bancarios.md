@@ -91,17 +91,19 @@ A SAP define o **Clean Core** como a prática de manter o núcleo SAP limpo, sem
 
 ## 3. Tabela de Classificação — Resumo Executivo
 
-| # | Objeto | Tipo | Nível Clean Core | Liberado p/ ABAP Cloud | Sucessor / Alternativa Clean Core |
-|---|--------|------|:----------------:|:---------------------:|-----------------------------------|
-| 1 | **AL11** | Transação | **C** 🔶 (on-premise) / **D** ❌ (Cloud) | ❌ Não | Diretórios lógicos via transação FILE (on-premise); DMS/SFTP (Cloud) |
-| 2 | **FF.5** | Transação | **D** ❌ | ❌ Não | OData API `C_BankStatementInbound` |
-| 3 | **RFEBKA00** | Programa ABAP | **D** ❌ | ❌ Não | API Inbound Bank Statement (OData V4) |
-| 4 | **EPS_GET_DIRECTORY_LISTING** | Function Module | **C** 🔶 (on-premise) / **D** ❌ (Cloud) | ❌ Não | LOGICAL FILE PATH + OPEN DATASET (on-premise); Integration Suite SFTP (Cloud) |
-| 5 | **FEBKO** | Tabela Interna SAP | **C** 🔶 | ❌ Direto não | CDS View `I_BankStatementItem` / `C_BankStmtHdr` |
-| 6 | **SUBMIT ... AND RETURN** | Statement ABAP | **D** ❌ | ❌ Proibido | Application Job Framework (`CL_APJ_DT_CREATE_IN`) |
-| 7 | **Tabela Z customizada** | Objeto Customizado | **A** ✅ | ✅ Sim | Própria tabela — seguir diretrizes de design |
-| 8 | **S_DATASET** | Objeto de Autorização | **C** 🔶 | ⚠️ Restrito | Substituído pelo modelo de Cloud Storage |
-| 9 | **S_PROGRAM** | Objeto de Autorização | **B** ⚠️ | ⚠️ Parcial | Mantido para jobs clássicos em sistemas on-premise gerenciados |
+> 📌 **Legenda de deployment:** `On-Prem` = S/4HANA On-Premise (contexto atual) | `Cloud PE` = S/4HANA Cloud Public Edition (cenário futuro hipotético)
+
+| # | Objeto | Tipo | Nível On-Prem | Nível Cloud PE | Liberado p/ ABAP Cloud | Sucessor / Alternativa Clean Core |
+|---|--------|------|:-------------:|:--------------:|:---------------------:|-----------------------------------|
+| 1 | **AL11** | Transação | **C** 🔶 | **D** ❌ | ❌ Não | Diretórios lógicos via transação FILE (on-premise); DMS/SFTP (Cloud) |
+| 2 | **FF.5** | Transação | **D** ❌ | **D** ❌ | ❌ Não | OData API `C_BankStatementInbound` |
+| 3 | **RFEBKA00** | Programa ABAP | **D** ❌ | **D** ❌ | ❌ Não | API Inbound Bank Statement (OData V4) |
+| 4 | **EPS_GET_DIRECTORY_LISTING** | Function Module | **C** 🔶 | **D** ❌ | ❌ Não | LOGICAL FILE PATH + OPEN DATASET (on-premise); Integration Suite SFTP (Cloud) |
+| 5 | **FEBKO** | Tabela Interna SAP | **C** 🔶 | **C** 🔶 | ❌ Direto não | CDS View `I_BankStatementItem` / `C_BankStmtHdr` |
+| 6 | **SUBMIT ... AND RETURN** | Statement ABAP | **D** ❌ | **D** ❌ | ❌ Proibido | API OData `API_BANKSTATEMENT_SRV` via HTTP Client |
+| 7 | **Tabela Z customizada** | Objeto Customizado | **A** ✅ | **A** ✅ | ✅ Sim | Própria tabela — seguir diretrizes de design |
+| 8 | **S_DATASET** | Objeto de Autorização | **C** 🔶 | **D** ❌ | ⚠️ Restrito | Substituído pelo modelo de Cloud Storage |
+| 9 | **S_PROGRAM** | Objeto de Autorização | **B** ⚠️ | **C** ⚠️ | ⚠️ Parcial | Mantido para jobs clássicos em sistemas on-premise gerenciados |
 
 ### Distribuição por Nível
 

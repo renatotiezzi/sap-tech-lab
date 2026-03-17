@@ -8,6 +8,15 @@
 > **SAP Note de Referência:** [3578329](https://launchpad.support.sap.com/#/notes/3578329)  
 > **Ferramenta de Referência:** [Cloudification Repository Viewer](https://help.sap.com/docs/abap-cloud/abap-cloud/released-apis)
 
+> **Tipo de Deployment:** S/4HANA On-Premise (Implantação Nova)
+
+> ⚠️ **NOTA IMPORTANTE — Sensibilidade ao Modelo de Deployment:**  
+> As classificações de nível Clean Core neste documento consideram **dois cenários**:  
+> - **On-Premise** (contexto atual do projeto SAPHIRA/ACHÉ): acesso ao filesystem do servidor de aplicação é **funcional e permitido**  
+> - **Cloud Public Edition** (cenário futuro hipotético): mesmo código seria **bloqueado por design**  
+> Objetos como `AL11` e `EPS_GET_DIRECTORY_LISTING` têm classificações **diferentes dependendo do deployment**.  
+> A arquitetura alvo recomendada neste documento é otimizada para **on-premise com caminho evolutivo para Cloud**.
+
 ---
 
 ## Sumário
@@ -84,10 +93,10 @@ A SAP define o **Clean Core** como a prática de manter o núcleo SAP limpo, sem
 
 | # | Objeto | Tipo | Nível Clean Core | Liberado p/ ABAP Cloud | Sucessor / Alternativa Clean Core |
 |---|--------|------|:----------------:|:---------------------:|-----------------------------------|
-| 1 | **AL11** | Transação | **D** ❌ | ❌ Não | BTP Document Management / SFTP Integration |
+| 1 | **AL11** | Transação | **C** 🔶 (on-premise) / **D** ❌ (Cloud) | ❌ Não | Diretórios lógicos via transação FILE (on-premise); DMS/SFTP (Cloud) |
 | 2 | **FF.5** | Transação | **D** ❌ | ❌ Não | OData API `C_BankStatementInbound` |
 | 3 | **RFEBKA00** | Programa ABAP | **D** ❌ | ❌ Não | API Inbound Bank Statement (OData V4) |
-| 4 | **EPS_GET_DIRECTORY_LISTING** | Function Module | **D** ❌ | ❌ Não | Cloud Storage API / BTP Integration Suite |
+| 4 | **EPS_GET_DIRECTORY_LISTING** | Function Module | **C** 🔶 (on-premise) / **D** ❌ (Cloud) | ❌ Não | LOGICAL FILE PATH + OPEN DATASET (on-premise); Integration Suite SFTP (Cloud) |
 | 5 | **FEBKO** | Tabela Interna SAP | **C** 🔶 | ❌ Direto não | CDS View `I_BankStatementItem` / `C_BankStmtHdr` |
 | 6 | **SUBMIT ... AND RETURN** | Statement ABAP | **D** ❌ | ❌ Proibido | Application Job Framework (`CL_APJ_DT_CREATE_IN`) |
 | 7 | **Tabela Z customizada** | Objeto Customizado | **A** ✅ | ✅ Sim | Própria tabela — seguir diretrizes de design |
@@ -97,15 +106,24 @@ A SAP define o **Clean Core** como a prática de manter o núcleo SAP limpo, sem
 ### Distribuição por Nível
 
 ```
+─── Contexto ON-PREMISE (atual) ──────────────────────────────
 Nível A (Clean Core Ready):  1 objeto  (11%)  → Tabela Z
 Nível B (Compatível):        1 objeto  (11%)  → S_PROGRAM
-Nível C (Risco Moderado):    2 objetos (22%)  → FEBKO, S_DATASET
-Nível D (Crítico/Proibido):  5 objetos (56%)  → AL11, FF.5, RFEBKA00,
-                                                  EPS_GET_DIRECTORY_LISTING,
-                                                  SUBMIT...AND RETURN
+Nível C (Risco Moderado):    4 objetos (44%)  → AL11, EPS_GET_DIRECTORY_LISTING,
+                                                  FEBKO, S_DATASET
+Nível D (Crítico/Proibido):  3 objetos (34%)  → FF.5/RFEBKA00, SUBMIT...AND RETURN
+
+─── Contexto S/4HANA CLOUD (hipotético futuro) ──────────────
+Nível A (Clean Core Ready):  1 objeto  (11%)  → Tabela Z
+Nível B (Compatível):        1 objeto  (11%)  → S_PROGRAM
+Nível C (Risco Moderado):    1 objeto  (11%)  → FEBKO
+Nível D (Crítico/Proibido):  6 objetos (67%)  → AL11, EPS_GET_DIRECTORY_LISTING,
+                                                  FF.5/RFEBKA00, SUBMIT...AND RETURN,
+                                                  S_DATASET
 ```
 
-> ⚠️ **56% dos objetos técnicos estão no nível D — a solução atual NÃO está alinhada com Clean Core.**
+> ⚠️ **Em on-premise: 34% dos objetos no nível D. O principal bloqueador é o `SUBMIT RFEBKA00` — não AL11/EPS.**  
+> ❌ **Em S/4HANA Cloud: 67% dos objetos seriam bloqueantes. A solução NÃO seria compatível sem redesenho completo.**
 
 ---
 
@@ -118,16 +136,21 @@ Nível D (Crítico/Proibido):  5 objetos (56%)  → AL11, FF.5, RFEBKA00,
 | Atributo | Valor |
 |----------|-------|
 | **Tipo** | Transação SAP Padrão |
-| **Nível Clean Core** | **D** ❌ |
+| **Nível Clean Core** | **C** 🔶 (on-premise) / **D** ❌ (Cloud PE) |
 | **Liberado para ABAP Cloud** | ❌ Não |
 | **Uso na Solução** | Configuração de caminhos de diretórios no servidor de aplicação |
-| **Disponível em S/4HANA Cloud PE** | ❌ Não disponível |
+| **Disponível em S/4HANA Cloud PE** | ❌ Não disponível (bloqueado) |
+| **Disponível em S/4HANA On-Premise** | ✅ Sim — funcional como ferramenta de administração |
 
 #### Análise
 
-A transação **AL11** (e seu equivalente programático via `CL_SPFL_PROFILE_DIR`) acessa diretamente o **filesystem do servidor de aplicação SAP (SAP Application Server)**. Em ambientes **S/4HANA Cloud** (Public e Private Edition gerenciados pela SAP), o acesso ao filesystem do servidor de aplicação é **bloqueado por design**, pois viola o princípio de isolamento de camadas da nuvem.
+A transação **AL11** é uma ferramenta de administração SAP que exibe e gerencia os diretórios do **filesystem do servidor de aplicação SAP (SAP Application Server — ASFS)**.
 
-Mesmo em sistemas **S/4HANA on-premise**, o uso de AL11 para configuração de caminhos de diretórios em tabelas de parâmetros representa um forte acoplamento com a infraestrutura do servidor, criando dependência operacional que dificulta migrações e upgrades.
+**Em S/4HANA on-premise** (contexto atual do projeto SAPHIRA), AL11 é **totalmente funcional**. O ABAP pode perfeitamente ler, listar e manipular arquivos no filesystem do próprio servidor de aplicação usando `OPEN DATASET`, `EPS_GET_DIRECTORY_LISTING` e statements relacionados. Isso é uma prática estabelecida para processamento de arquivos em lote (batch) em sistemas on-premise.
+
+**Classificação C (não D) para on-premise:** A classificação C se justifica porque AL11 não possui contrato de API C1 e o uso de caminhos físicos absolutos cria acoplamento com a infraestrutura. A boa prática é usar **diretórios lógicos** (transação `FILE` / `FILEPATH`) em vez de caminhos físicos codificados diretamente.
+
+**Em S/4HANA Cloud Public Edition**, o acesso ao filesystem do servidor de aplicação é **bloqueado por design** — nesse cenário AL11 seria Nível D (bloqueante absoluto).
 
 #### Riscos Identificados
 
@@ -138,14 +161,17 @@ Mesmo em sistemas **S/4HANA on-premise**, o uso de AL11 para configuração de c
 #### Alternativa Clean Core
 
 ```
-OPÇÃO 1 — Para S/4HANA Cloud / BTP:
-  ✅ SAP Document Management Service (DMS) via BTP
-  ✅ SAP Integration Suite com adaptador SFTP
-  ✅ SAP Business Technology Platform (BTP) File System Services
+PARA S/4HANA ON-PREMISE (contexto atual — recomendado):
+  ✅ Usar LOGICAL FILE PATH via transação FILE (FILEPATH) — em vez de caminhos físicos absolutos
+     → Parametrizar o diretório lógico em FILE, não hardcodar '/usr/sap/...' na tabela Z
+     → Chamar FILE_GET_NAME para resolver o caminho lógico em tempo de execução
+  ✅ Manter AL11 como ferramenta de administração/configuração (uso operacional normal)
 
-OPÇÃO 2 — Para S/4HANA On-Premise (solução transitória):
-  ⚠️ Manter diretórios logicos (AL11) somente em camada de middleware
-  ⚠️ Usar LOGICAL FILE PATH (transação FILE) em vez de caminhos físicos
+PARA S/4HANA CLOUD (cenário futuro hipotético — se migrar):
+  ✅ SAP Integration Suite com adaptador SFTP (busca arquivos de servidor externo)
+  ✅ SAP Document Management Service (DMS) via BTP
+  ⚠️ NOTA: Integration Suite NÃO faz sentido para o cenário atual on-premise,
+     pois o JOB é interno e a VAN deposita diretamente no filesystem do servidor SAP
 ```
 
 #### Referência SAP
@@ -223,7 +249,7 @@ DATA(lo_response) = lo_http_client->execute( i_method = if_web_http_client=>post
 |----------|-------|
 | **Tipo** | Function Module SAP Interno |
 | **Pacote ABAP** | `SEPS` (Servidor de Aplicação — não liberado) |
-| **Nível Clean Core** | **D** ❌ |
+| **Nível Clean Core** | **C** 🔶 (on-premise) / **D** ❌ (Cloud PE) |
 | **Liberado para ABAP Cloud** | ❌ Não (não possui contrato C1) |
 | **Uso na Solução** | Listar arquivos em diretório do servidor de aplicação |
 
@@ -231,11 +257,15 @@ DATA(lo_response) = lo_http_client->execute( i_method = if_web_http_client=>post
 
 O function module **EPS_GET_DIRECTORY_LISTING** pertence ao grupo de funções para manipulação de arquivos no **Application Server File System** (ASFS). Este FM:
 
-- **Não possui contrato de liberação C1** — pode ser removido ou alterado a qualquer upgrade
-- **Acessa o filesystem físico do servidor** — operação bloqueada em S/4HANA Cloud
-- **Não está disponível no ABAP Cloud restrito** — o ambiente de desenvolvimento ABAP Cloud restringe o uso de FMs sem contrato C1
+- **Não possui contrato de liberação C1** — pode ser removido ou alterado a qualquer upgrade (justificativa para Nível C)
+- **Funciona normalmente em S/4HANA on-premise** — o filesystem do servidor de aplicação é acessível em on-premise
+- **Não está disponível no ABAP Cloud restrito** — em Cloud PE o uso de FMs sem contrato C1 é bloqueado
 
-Ao verificar no **Cloudification Repository Viewer** ou via transação `SE80` com filtro de "Released API", este FM **não aparece como liberado**. A SAP não documenta este FM como parte do contrato público de APIs.
+**Classificação C para on-premise:** A ausência de contrato C1 significa que o FM pode mudar entre upgrades sem aviso, mas em um sistema on-premise gerenciado pelo cliente, ele é funcional e utilizado amplamente para processamento de arquivos em batch. A alternativa mais robusta e sustentável para on-premise é usar `LOGICAL FILE PATH` com a transação `FILE`, que abstrai o caminho físico.
+
+**Classificação D para Cloud:** Em S/4HANA Cloud Public Edition, este FM é bloqueado porque o filesystem do servidor não está acessível para código customizado.
+
+Ao verificar no **Cloudification Repository Viewer** ou via transação `SE80` com filtro de "Released API", este FM **não aparece como liberado** — isso confirma o risco de upgrade (Nível C), mas não implica que seja bloqueado em on-premise.
 
 #### Riscos Específicos
 
@@ -243,23 +273,34 @@ Ao verificar no **Cloudification Repository Viewer** ou via transação `SE80` c
 EPS_GET_DIRECTORY_LISTING usa internamente:
 - SPFL (SAP Profile Library) para acesso a diretórios
 - Chamadas de sistema operacional via kernel ABAP
-→ Ambos bloqueados em S/4HANA Cloud (qualquer edição)
+
+ON-PREMISE: Ambos funcionam normalmente → Nível C (risco de upgrade, sem bloqueio funcional)
+CLOUD PE:   Ambos bloqueados por design  → Nível D (bloqueante absoluto)
 ```
 
-#### Alternativa Clean Core (Nível A)
+#### Alternativa Recomendada para On-Premise
 
 ```
-PARA S/4HANA Cloud / BTP Side-by-Side:
-  ✅ SAP Integration Suite (Cloud Integration) com adaptador de SFTP
-     - Busca arquivos via SFTP em servidor externo
-     - Processa e envia via API OData para S/4HANA
-
-PARA S/4HANA On-Premise (transição):
-  ⚠️ FILE_GET_DIRECTORY (liberado para uso clássico, mas não ABAP Cloud)
-  ⚠️ Usar LOGICAL FILE PATH em vez de físico
+PARA S/4HANA ON-PREMISE (contexto atual):
+  ✅ OPÇÃO PREFERIDA: Usar LOGICAL FILE PATH (transação FILE) + OPEN DATASET
+     → Definir diretório lógico em FILE (ex: Z_NEXXERA_IN, Z_NEXXERA_OUT)
+     → Resolver nome físico com: CALL FUNCTION 'FILE_GET_NAME'
+     → Listar conteúdo com: EPS_GET_DIRECTORY_LISTING (ou alternativa abaixo)
   
-ARQUITETURA RECOMENDADA:
-  Banco → SFTP Server → SAP Integration Suite → API OData → S/4HANA
+  ✅ OPÇÃO ALTERNATIVA: Usar CL_GUI_FRONTEND_SERVICES (para listar no servidor)
+     ou implementar lógica própria com OPEN DATASET e controle de diretório
+
+  ⚠️ EVITAR: Caminhos físicos hardcodados (ex: '/usr/sap/PRD/files/nexxera/')
+             → Usar diretório lógico resolve o problema de portabilidade
+
+PARA S/4HANA CLOUD (cenário futuro — se migrar):
+  ✅ SAP Integration Suite com adaptador SFTP
+     → A VAN precisaria entregar arquivos em servidor SFTP externo (não no app server SAP)
+  ✅ SAP Document Management Service (BTP)
+  
+  ⚠️ NOTA IMPORTANTE: Integration Suite para este caso SOMENTE faz sentido em Cloud.
+     No cenário on-premise atual, Integration Suite seria sobreengenharia desnecessária
+     e incompatível com o fluxo de JOB interno que lê o próprio filesystem do servidor.
 ```
 
 #### Referência SAP
@@ -513,30 +554,34 @@ O risco principal é que S_PROGRAM nesta solução **serve para autorizar a exec
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║          NÍVEL GERAL DA SOLUÇÃO: D (CRÍTICO)                    ║
+║     NÍVEL GERAL DA SOLUÇÃO: C/D — com contexto de deployment    ║
 ║                                                                  ║
-║  5 de 9 objetos estão em Nível D — incluindo o coração          ║
-║  da solução (SUBMIT RFEBKA00 + filesystem via AL11/EPS)         ║
+║  ON-PREMISE (atual):                                             ║
+║    → Nível C/D: principal bloqueador é SUBMIT RFEBKA00           ║
+║    → AL11 + EPS são Nível C (funcionam, mas sem contrato C1)     ║
+║    → 3 de 9 objetos em Nível D                                   ║
 ║                                                                  ║
-║  A solução NÃO é compatível com S/4HANA Cloud                   ║
-║  e apresenta riscos significativos mesmo em on-premise          ║
+║  S/4HANA CLOUD (futuro hipotético):                              ║
+║    → Nível D: solução seria incompatível sem redesenho completo  ║
+║    → 6 de 9 objetos seriam bloqueantes                           ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
 ### Mapa de Risco por Componente
 
 ```
-COMPONENTE                          NÍVEL   IMPACTO
-─────────────────────────────────────────────────────
-Processamento de arquivos (AL11)    [D] ❌  BLOQUEANTE para Cloud
-Importação bancária (SUBMIT)        [D] ❌  BLOQUEANTE para Cloud
-Listagem de diretório (EPS_FM)      [D] ❌  BLOQUEANTE para Cloud
-Verificação de dados (FEBKO)        [C] 🔶  Alto risco de upgrade
-Autorização de arquivo (S_DATASET)  [C] 🔶  Alto risco de Cloud
-Tabela de parâmetros (Tabela Z)     [A] ✅  Seguro
-Autorização de programa (S_PROGRAM) [B] ⚠️  Baixo risco
-─────────────────────────────────────────────────────
-NÍVEL MÉDIO PONDERADO: D (Predominância de objetos críticos)
+COMPONENTE                          ON-PREMISE  CLOUD PE   IMPACTO
+──────────────────────────────────────────────────────────────────
+Processamento de arquivos (AL11)    [C] 🔶      [D] ❌     Risco upgrade; BLOQUEANTE Cloud
+Importação bancária (SUBMIT)        [D] ❌      [D] ❌     BLOQUEANTE — principal problema
+Listagem de diretório (EPS_FM)      [C] 🔶      [D] ❌     Risco upgrade; BLOQUEANTE Cloud
+Verificação de dados (FEBKO)        [C] 🔶      [C] 🔶     Risco de upgrade em ambos
+Autorização de arquivo (S_DATASET)  [C] 🔶      [D] ❌     Funcional on-premise; Cloud bloqueado
+Tabela de parâmetros (Tabela Z)     [A] ✅      [A] ✅     Seguro em ambos
+Autorização de programa (S_PROGRAM) [B] ⚠️      [C] ⚠️     Baixo risco on-premise
+──────────────────────────────────────────────────────────────────
+NÍVEL ON-PREMISE:  C/D  (principal bloqueador: SUBMIT RFEBKA00)
+NÍVEL CLOUD:       D    (6 bloqueantes — incompatível sem redesenho)
 ```
 
 ---
@@ -547,31 +592,38 @@ NÍVEL MÉDIO PONDERADO: D (Predominância de objetos críticos)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    ARQUITETURA ATUAL (Nível D)                  │
+│              ARQUITETURA ATUAL (On-Premise — Nível C/D)         │
 │                                                                  │
-│  [Banco] → [Arquivo no ASFS] → [AL11/EPS_FM] → [SUBMIT RFEBKA] │
+│  [VAN Nexxera] → deposita → [Filesystem SAP via AL11]           │
+│  [JOB SM36/SM37] → [Prog Z: EPS_FM lista arqs] → [SUBMIT RFEBKA]│
 │                                                                  │
+│  Principal problema: SUBMIT RFEBKA00 (Nível D)                  │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
                     TRANSFORMAR PARA:
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                 ARQUITETURA ALVO (Nível A / Clean Core)         │
+│           ARQUITETURA ALVO ON-PREMISE (Nível B/C)               │
 │                                                                  │
-│  [Banco] → [SFTP Server] → [SAP Integration Suite]             │
-│                                    ↓                            │
-│              [API OData: Bank Statement Import]                 │
-│                                    ↓                            │
-│              [S/4HANA: Processamento Padrão via API]            │
+│  [VAN Nexxera] → deposita → [Filesystem SAP]                    │
+│  [diretório lógico via FILE/FILEPATH]                           │
+│  [JOB SM36/SM37] → [Prog Z: OPEN DATASET + LOGICAL FILE PATH]  │
+│        ↓                                                         │
+│  [HTTP_CLIENT → API OData: API_BANKSTATEMENT_SRV]               │  
+│        ↓                                                         │
+│  [S/4HANA: Processamento Padrão via API]                        │
 └─────────────────────────────────────────────────────────────────┘
+
+  ⚠️ SAP Integration Suite SOMENTE seria necessário em migração futura para Cloud
+     No cenário on-premise atual, o JOB interno + OPEN DATASET é a abordagem correta
 ```
 
 ### 6.2 Tabela de Alternativas por Objeto
 
 | Objeto Atual | Nível | Alternativa Clean Core | Nível Alvo | Esforço |
 |--------------|:-----:|------------------------|:----------:|---------|
-| AL11 + caminhos físicos | D | Communication Arrangement + SFTP via Integration Suite | A | Alto |
-| EPS_GET_DIRECTORY_LISTING | D | SAP Integration Suite (File Adapter/SFTP) | A | Alto |
+| AL11 + caminhos físicos | C (on-premise) | Diretórios lógicos via transação FILE + FILE_GET_NAME | B | Baixo |
+| EPS_GET_DIRECTORY_LISTING | C (on-premise) | OPEN DATASET com LOGICAL FILE PATH (transação FILE) | B | Baixo |
 | SUBMIT RFEBKA00 | D | API OData `API_BANKSTATEMENT_SRV` via HTTP Client | A | Médio |
 | FF.5 / RFEBKA00 direto | D | API REST: `/sap/opu/odata/sap/API_BANKSTATEMENT_SRV` | A | Médio |
 | SELECT FROM FEBKO | C | `SELECT FROM I_BankStatementItem` (CDS View liberada) | A | Baixo |
@@ -628,30 +680,50 @@ ENDCLASS.
 #### Fase 3 — Arquitetura Side-by-Side (Alto Esforço / Total Clean Core)
 
 ```
-Para solução totalmente Clean Core em S/4HANA Cloud:
+FASE 3A — Otimização On-Premise (Médio Esforço / Resultado Nível B):
+  1. Substituir caminhos físicos por LOGICAL FILE PATH (transação FILE)
+  2. Manter JOB via SM36/SM37 (correto para on-premise)
+  3. Substituir SUBMIT RFEBKA00 por chamada HTTP à API_BANKSTATEMENT_SRV
+  4. Substituir SELECT FROM FEBKO por CDS View I_BankStatementItem
 
-1. REMOVER acesso ao filesystem do servidor de aplicação SAP
-2. CONFIGURAR servidor SFTP externo (ou Cloud Storage: AWS S3, Azure Blob, GCP GCS)
-3. CRIAR iFlow no SAP Integration Suite:
-   - Trigger: Timer (agendamento)
-   - Source: SFTP Adapter → busca arquivos bancários
-   - Process: File parsing (MT940/CAMT)
-   - Target: API OData S/4HANA → importa extrato bancário
-4. MONITORAR via SAP Integration Suite Operations View
-5. REMOVER programa Z customizado (substituído pelo iFlow)
+FASE 3B — Migração para Cloud (Alto Esforço — SOMENTE se migrar para S/4HANA Cloud PE):
+  1. REMOVER acesso ao filesystem do servidor de aplicação SAP
+  2. CONFIGURAR servidor SFTP externo (ou Cloud Storage: AWS S3, Azure Blob, GCP GCS)
+  3. CRIAR iFlow no SAP Integration Suite:
+     - Trigger: Timer (agendamento)
+     - Source: SFTP Adapter → busca arquivos bancários (servidor SFTP externo)
+     - Process: File parsing (MT940/CAMT)
+     - Target: API OData S/4HANA Cloud → importa extrato bancário
+  4. MONITORAR via SAP Integration Suite Operations View
+  5. REMOVER programa Z customizado (substituído pelo iFlow)
+  
+  ⚠️ Esta fase NÃO se aplica ao cenário atual (on-premise com JOB interno)
 ```
 
 ---
 
 ## 7. Justificativas para Impossibilidade de Nível A
 
-### 7.1 Impossibilidade de Nível A para EPS_GET_DIRECTORY_LISTING
+### 7.1 Classificação C (não A) para EPS_GET_DIRECTORY_LISTING em On-Premise
 
-**Não é possível manter Level A com EPS_GET_DIRECTORY_LISTING** porque:
+**EPS_GET_DIRECTORY_LISTING recebe Nível C (e não A ou D) em on-premise** porque:
 
-> O acesso ao filesystem do servidor de aplicação SAP é uma **limitação de infraestrutura**, não uma limitação de API. Em S/4HANA Cloud (Public e Private Edition gerenciados pela SAP), o filesystem do servidor de aplicação não está acessível para código customizado. Isso é uma decisão de arquitetura da SAP para garantir isolamento, escalabilidade e segurança em ambiente cloud multi-tenant.
+> Em S/4HANA **on-premise**, o acesso ao filesystem do servidor de aplicação é **totalmente funcional**. O FM opera normalmente, listando diretórios via chamadas ao kernel ABAP (SPFL). A classificação C (e não A) se deve à **ausência de contrato de API C1** — o FM pode ser alterado ou removido pela SAP sem aviso entre upgrades. Não há, no entanto, um bloqueio funcional em on-premise.
 >
-> **A única saída é eliminar a necessidade de ler arquivos diretamente do servidor SAP**, movendo essa responsabilidade para uma camada de integração externa (SAP Integration Suite, middleware, ou BTP).
+> **Para on-premise**, a recomendação é usar **LOGICAL FILE PATH** (transação `FILE`) em vez de caminhos físicos, e manter `EPS_GET_DIRECTORY_LISTING` ciente do risco de upgrade.
+>
+> **Para S/4HANA Cloud** (cenário futuro), este FM seria **Nível D** (bloqueante absoluto), pois o filesystem do servidor não está acessível. Nesse caso, a única saída é mover a responsabilidade de busca de arquivos para uma camada externa (SAP Integration Suite + SFTP).
+
+### 7.1.1 Por que Integration Suite NÃO é a alternativa para o cenário atual
+
+> O SAP Integration Suite (Cloud Integration / CPI) é uma plataforma de **integração entre sistemas** (A2A, B2B). Ele é indicado quando:
+> - Um sistema externo (banco, parceiro) precisa enviar dados **para** o SAP via API
+> - O SAP precisa consumir dados **de** um sistema externo via API
+> - Há um fluxo de eventos assíncronos entre sistemas distintos
+>
+> **O cenário atual é diferente**: a VAN Nexxera deposita arquivos diretamente no filesystem do servidor SAP (via configuração de diretório no AL11). O JOB é **interno ao SAP**, não há sistema externo "chamando" o SAP. Usar Integration Suite aqui seria como usar um caminhão de entregas para buscar um pacote que já está dentro de casa — tecnicamente possível, mas desnecessário e inadequado.
+>
+> Integration Suite seria relevante **apenas** em uma migração futura para S/4HANA Cloud, onde o filesystem do servidor não estaria acessível e a VAN precisaria entregar arquivos em um servidor SFTP externo.
 
 ### 7.2 Impossibilidade de Nível A para SUBMIT RFEBKA00
 
@@ -683,60 +755,81 @@ Caso o projeto SAPHIRA seja para **S/4HANA Cloud (qualquer edição)**, os objet
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║                    ARQUITETURA CLEAN CORE (Nível A)                 ║
+║         ARQUITETURA ALVO — ON-PREMISE (Nível B/C → objetivo)        ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-  [Banco Externo]
+  [VAN Nexxera]
        │
-       │ Transmite arquivo bancário (MT940 / CAMT.053)
+       │ Deposita arquivos bancários (MT940 / CAMT.053)
+       │ via protocolo VAN (FTP/SFTP configurado pela Nexxera)
        ▼
-  [Servidor SFTP Externo]  ← Fora do SAP, infraestrutura cliente
+  ┌─────────────────────────────────────────────────────────┐
+  │  Filesystem do Servidor SAP (Application Server)        │
+  │  Diretório lógico: Z_NEXXERA_IN  (entrada)              │
+  │  Configurado via transação FILE (FILEPATH)              │
+  │  Visualizável via AL11 (administração)                  │
+  └─────────────────────────────────────────────────────────┘
        │
-       │ SAP Integration Suite polling (SFTP Adapter)
+       │ JOB agendado via SM36/SM37 (execução periódica)
        ▼
-  ┌─────────────────────────────────────────┐
-  │  SAP Integration Suite (BTP)           │
-  │  ┌─────────────────────────────────┐   │
-  │  │ iFlow: Bank Statement Processor │   │
-  │  │  1. Buscar arquivo via SFTP     │   │
-  │  │  2. Validar formato (MT940/CAMT)│   │
-  │  │  3. Mapear para API payload     │   │
-  │  │  4. Chamar API S/4HANA          │   │
-  │  │  5. Tratar resposta (OK/Erro)   │   │
-  │  │  6. Mover arquivo (SFTP rename) │   │
-  │  └─────────────────────────────────┘   │
-  └─────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────┐
+  │  Programa Z (ABAP On-Premise)                           │
+  │  ┌─────────────────────────────────────────────────┐   │
+  │  │  1. Ler parâmetros da Tabela Z                  │   │
+  │  │  2. Resolver diretório: FILE_GET_NAME           │   │
+  │  │     (LOGICAL FILE PATH → caminho físico)        │   │
+  │  │  3. Listar arquivos:                            │   │
+  │  │     EPS_GET_DIRECTORY_LISTING (Nível C)         │   │
+  │  │  4. Verificar processados:                      │   │
+  │  │     SELECT FROM I_BankStatementItem (CDS View)  │   │
+  │  │  5. ⭐ IMPORTAR via API liberada (substituir    │   │
+  │  │     SUBMIT RFEBKA00):                           │   │
+  │  │     CL_WEB_HTTP_CLIENT → API_BANKSTATEMENT_SRV  │   │
+  │  │  6. Mover arquivo: OPEN DATASET (sucesso/erro)  │   │
+  │  │     para diretório Z_NEXXERA_OK / Z_NEXXERA_ERR │   │
+  │  │  7. Gerar log estruturado                       │   │
+  │  └─────────────────────────────────────────────────┘   │
+  └─────────────────────────────────────────────────────────┘
        │
-       │ HTTP POST (OAuth 2.0)
+       │ HTTP POST (RFC Destination / Communication Arrangement)
        │ API: /sap/opu/odata/sap/API_BANKSTATEMENT_SRV
        ▼
-  ┌─────────────────────────────────────────┐
-  │  S/4HANA (Clean Core)                  │
-  │  ┌─────────────────────────────────┐   │
-  │  │ API OData: Bank Statement       │   │
-  │  │  → Processamento padrão SAP     │   │
-  │  │  → Dados em I_BankStatementItem │   │
-  │  │  → Lançamentos automáticos FI   │   │
-  │  └─────────────────────────────────┘   │
-  └─────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────┐
+  │  S/4HANA FI — Processamento de Extratos Bancários       │
+  │  → API OData: Bank Statement Import                     │
+  │  → Processamento padrão SAP (FF.5 equivalente via API)  │
+  │  → Dados em I_BankStatementItem (CDS View liberada)     │
+  │  → Lançamentos automáticos FI                           │
+  └─────────────────────────────────────────────────────────┘
        │
        │ Monitoramento
        ▼
-  [SAP Integration Suite: Operations View]
-  [Alertas: Email / SAP Alert Management]
+  [SM37 — Log de execução do JOB]
+  [SLG1 — Log de aplicação customizado]
+
+  ⭐ = ÚNICA mudança crítica obrigatória (substituir SUBMIT por API)
+  
+══════════════════════════════════════════════════════════════════════════
+
+  NOTA: SAP Integration Suite nesta arquitetura seria relevante APENAS
+  em migração futura para S/4HANA Cloud Public Edition, onde:
+  - O filesystem do servidor SAP não estaria mais acessível
+  - A VAN precisaria entregar arquivos em servidor SFTP externo
+  - O iFlow faria o polling SFTP e chamaria a API do S/4HANA Cloud
 ```
 
 ### Componentes da Arquitetura Alvo
 
-| Componente | Tecnologia | Nível Clean Core |
-|------------|------------|:----------------:|
-| Recepção de arquivos bancários | SAP Integration Suite — SFTP Adapter | A ✅ |
-| Parsing e mapeamento | SAP Integration Suite — Message Mapping | A ✅ |
-| Importação no S/4HANA | API OData `API_BANKSTATEMENT_SRV` | A ✅ |
+| Componente | Tecnologia (On-Premise) | Nível Clean Core |
+|------------|------------------------|:----------------:|
+| Recepção de arquivos bancários | VAN Nexxera → filesystem SAP (AL11 / diretório lógico FILE) | C 🔶 |
+| Listagem de arquivos | `EPS_GET_DIRECTORY_LISTING` + `LOGICAL FILE PATH` | C 🔶 |
+| Importação no S/4HANA | API OData `API_BANKSTATEMENT_SRV` via `CL_WEB_HTTP_CLIENT` | A ✅ |
 | Consulta de status | CDS View `I_BankStatementItem` | A ✅ |
-| Configuração de parâmetros | Tabela Z (sem caminhos físicos) | A ✅ |
-| Agendamento | SAP Integration Suite Timer / BTP Job Scheduling | A ✅ |
-| Monitoramento | SAP Integration Suite Operations + Alert Framework | A ✅ |
+| Movimentação de arquivos | `OPEN DATASET` + diretórios lógicos Z_NEXXERA_OK/ERR | C 🔶 |
+| Configuração de parâmetros | Tabela Z (sem caminhos físicos absolutos) | A ✅ |
+| Agendamento | JOB via SM36/SM37 (padrão on-premise) | B ⚠️ |
+| Monitoramento | SM37 + SLG1 (Application Log) | B ⚠️ |
 
 ---
 
@@ -785,20 +878,31 @@ Caso o projeto SAPHIRA seja para **S/4HANA Cloud (qualquer edição)**, os objet
 
 ## Conclusão
 
-A solução atual do programa SAPHIRA para automação de arquivos bancários (ACHÉ) apresenta **nível geral D — Crítico**, com **5 dos 9 objetos técnicos incompatíveis com Clean Core e ABAP Cloud**.
+A solução atual do programa SAPHIRA para automação de arquivos bancários (ACHÉ) apresenta **nível geral C/D em on-premise**, com **1 bloqueador principal** e múltiplos pontos de melhoria.
 
-Os principais bloqueadores são:
-1. **Acesso direto ao filesystem** do servidor SAP (AL11 + EPS_GET_DIRECTORY_LISTING)
-2. **SUBMIT de programa SAP** não liberado (SUBMIT RFEBKA00)
-3. **Ausência de APIs liberadas** no design atual
+### Resumo por Contexto de Deployment
 
-A **solução recomendada** é redesenhar o fluxo utilizando:
-- **SAP Integration Suite** para receber e processar arquivos bancários via SFTP
-- **API OData liberada** (`API_BANKSTATEMENT_SRV`) para importação no S/4HANA
-- **CDS Views liberadas** (`I_BankStatementItem`) para consultas de status
-- **Application Job Framework** para agendamento, em substituição ao JOB com SUBMIT
+| Objeto | On-Premise | Cloud PE | Principal Risco |
+|--------|:----------:|:--------:|----------------|
+| AL11 (configuração) | **C** 🔶 | **D** ❌ | Sem contrato C1; usar diretórios lógicos |
+| EPS_GET_DIRECTORY_LISTING | **C** 🔶 | **D** ❌ | FM sem contrato C1; funcional em on-premise |
+| SUBMIT RFEBKA00 | **D** ❌ | **D** ❌ | ⭐ Principal bloqueador; proibido em ABAP Cloud |
+| FF.5/RFEBKA00 | **D** ❌ | **D** ❌ | Dependência em programa SAP interno |
+| FEBKO (SELECT direto) | **C** 🔶 | **C** 🔶 | Usar CDS View liberada |
+| Tabela Z | **A** ✅ | **A** ✅ | Objeto do cliente |
+| S_DATASET | **C** 🔶 | **D** ❌ | Vinculado a filesystem |
+| S_PROGRAM | **B** ⚠️ | **C** ⚠️ | Contexto de uso |
 
-Esta arquitetura garante **100% de compatibilidade com Clean Core (Nível A)** e está alinhada com a estratégia de evolução do SAP S/4HANA Cloud.
+### Ação Prioritária (On-Premise)
+
+O **ÚNICO bloqueador crítico em on-premise é o `SUBMIT RFEBKA00`**. Sua substituição pela API OData liberada `API_BANKSTATEMENT_SRV` resolve o principal problema de Clean Core mantendo toda a lógica de JOB/filesystem inalterada.
+
+A **solução recomendada para on-premise** é:
+1. ⭐ **Substituir `SUBMIT RFEBKA00`** por chamada HTTP à API liberada `API_BANKSTATEMENT_SRV` — **impacto alto, esforço médio**
+2. **Migrar `SELECT FROM FEBKO`** para CDS View `I_BankStatementItem` — **impacto médio, esforço baixo**
+3. **Parametrizar caminhos via `LOGICAL FILE PATH`** (transação FILE) — **melhoria de design, esforço baixo**
+
+O uso de **SAP Integration Suite** NÃO é recomendado para o cenário on-premise atual. Seria adequado apenas em uma migração futura para S/4HANA Cloud Public Edition.
 
 ---
 

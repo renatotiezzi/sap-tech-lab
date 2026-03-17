@@ -35,6 +35,7 @@
    - [4.8 S_PROGRAM — Objeto de Autorização](#48-s_program--objeto-de-autorização)
 5. [Nível Geral da Solução](#5-nível-geral-da-solução)
    - [5.1 Impacto da Substituição do SUBMIT pela API](#51-impacto-da-substituição-se-chamarmos-a-api-ao-invés-do-submit-vira-nível-c)
+   - [5.2 Dá para eliminar AL11 / EPS_FM usando uma API para ler o diretório?](#52-dá-para-eliminar-al11--eps_fm-usando-uma-api-para-ler-o-diretório)
 6. [Recomendações Técnicas e Alternativas Clean Core](#6-recomendações-técnicas-e-alternativas-clean-core)
 7. [Justificativas para Impossibilidade de Nível A](#7-justificativas-para-impossibilidade-de-nível-a)
 8. [Arquitetura Alvo Recomendada](#8-arquitetura-alvo-recomendada)
@@ -644,6 +645,91 @@ NÍVEL GERAL DA SOLUÇÃO: C (nenhum objeto D restante)
 ```
 
 > ⭐ **Substituir o SUBMIT pela API é a única mudança necessária para eliminar todos os objetos Nível D da solução em on-premise.** O nível geral passa de C/D para **C**, com caminho claro para atingir B/A nas demais melhorias.
+
+---
+
+### 5.2 Dá para eliminar AL11 / EPS_FM usando uma API para ler o diretório?
+
+> **Resposta direta: Não existe API com contrato C1 para leitura de diretório em on-premise.**  
+> **Mas dá para eliminar AL11 e EPS_FM completamente — mudando a arquitetura de integração.**
+
+#### Por que não existe "API de leitura de diretório" com nível A?
+
+A função `EPS_GET_DIRECTORY_LISTING` (e sua variante `EPS2_GET_DIRECTORY_LISTING`) é o único mecanismo padrão SAP para listar arquivos no filesystem do servidor de aplicação em on-premise. Esses Function Modules **não possuem contrato C1** — SAP não os liberou para ABAP Cloud. Não existe, na plataforma SAP, uma Released API equivalente que liste arquivos no servidor de aplicação:
+
+| Alternativa considerada | C1? | Por quê não resolve |
+|-------------------------|:---:|---------------------|
+| `EPS_GET_DIRECTORY_LISTING` | ❌ | Sem contrato C1; Nível C |
+| `EPS2_GET_DIRECTORY_LISTING` | ❌ | Mesma família; sem C1 |
+| `OPEN DATASET` (direto) | ❌ Sem listar | Lê arquivo específico, mas **não lista** diretório |
+| API REST externa para filesystem | ❌ N/A | SAP não expõe filesystem via OData/REST |
+
+Portanto, **não existe caminho para Nível A mantendo o modelo de leitura de diretório**, independente do FM utilizado.
+
+#### Qual é a solução real? Eliminar a necessidade do diretório
+
+O caminho correto é **mudar o padrão de integração de pull para push**: em vez de SAP ir buscar o arquivo no diretório, a VAN envia o conteúdo do arquivo diretamente para SAP via API. Isso elimina completamente AL11 e EPS_GET_DIRECTORY_LISTING — não por substituição, mas por **remoção do requisito**.
+
+```
+PADRÃO ATUAL (Pull — SAP lê o diretório):
+
+  [VAN/Nexxera] ──deposita arquivo──▶ [Filesystem do app server SAP]
+                                               │
+                                    [JOB: EPS_GET_DIRECTORY_LISTING]  ← Nível C
+                                               │
+                                    [OPEN DATASET / AL11]              ← Nível C
+                                               │
+                                    [SUBMIT RFEBKA00]                  ← Nível D
+
+PADRÃO ALVO (Push — VAN envia direto para a API):
+
+  [VAN/Nexxera] ──HTTP POST (arquivo MT940/CAMT)──▶ [API SAP: C_BankStatementInbound]  ← Nível A ✅
+                                                              │
+                                                   [S/4HANA: Processamento interno]
+
+  AL11, EPS_GET_DIRECTORY_LISTING, SUBMIT RFEBKA00 → TODOS ELIMINADOS ✅
+```
+
+#### A API de destino: `C_BankStatementInbound`
+
+A OData API `C_BankStatementInbound` (disponível em S/4HANA ≥ 1709 on-premise) aceita upload direto do conteúdo do arquivo bancário via requisição `POST multipart/form-data`. Possui **contrato C1** — Nível A.
+
+| API | Endpoint | Método | Formato | Contrato |
+|-----|----------|--------|---------|:--------:|
+| `C_BankStatementInbound` | `/sap/opu/odata/sap/API_BANKSTATEMENT_SRV/...` | `POST` | MT940, CAMT.053, BAI2 | **C1** ✅ |
+
+#### Antes vs. Depois com o padrão Push
+
+| Componente | Nível ATUAL | Nível com Push | Mudança |
+|------------|:-----------:|:--------------:|:-------:|
+| `AL11` | **C** 🔶 | **eliminado** | ✅ removido |
+| `EPS_GET_DIRECTORY_LISTING` | **C** 🔶 | **eliminado** | ✅ removido |
+| `SUBMIT RFEBKA00` | **D** ❌ | **eliminado** | ✅ removido |
+| `FF.5 / RFEBKA00` (via SUBMIT) | **D** ❌ | **eliminado** | ✅ removido |
+| `C_BankStatementInbound` (push) | — | **A** ✅ | ✅ novo |
+| `SELECT FROM FEBKO` | **C** 🔶 | **C** 🔶 | sem mudança |
+| `Tabela Z` | **A** ✅ | **A** ✅ | sem mudança |
+| `S_PROGRAM` | **B** ⚠️ | **B** ⚠️ | sem mudança |
+
+```
+─── ON-PREMISE — Distribuição com Padrão PUSH ────────────────
+Nível A: 2 obj (33%)  → Tabela Z + C_BankStatementInbound
+Nível B: 1 obj (17%)  → S_PROGRAM
+Nível C: 2 obj (33%)  → FEBKO, S_DATASET
+Nível D: 0 obj  (0%)  → ELIMINADOS ⭐
+Eliminados: 4 obj     → AL11, EPS_FM, SUBMIT, FF.5/RFEBKA00
+
+NÍVEL GERAL DA SOLUÇÃO: B/C (melhora de C/D → B/C em uma refatoração)
+```
+
+#### O que muda na integração com a VAN/Nexxera?
+
+A VAN precisaria enviar o arquivo bancário diretamente para o endpoint SAP via HTTPS, em vez de depositar no filesystem. Isso é viável pois:
+- A maioria das VANs modernas suporta envio via HTTPS/REST
+- A Nexxera possui conectores para APIs REST
+- O SAP poderia expor um endpoint intermediário (ex: via BTP API Management) se a VAN não suportar chamada direta
+
+> 💡 **Conclusão:** Não existe API para *leitura de diretório* com nível A. O caminho para eliminar AL11 e EPS_FM é **mudar o padrão de pull para push** — fazendo a VAN enviar o arquivo diretamente à API `C_BankStatementInbound`. Isso é Level A e elimina todos os objetos Nível D e dois Nível C de uma vez.
 
 ---
 

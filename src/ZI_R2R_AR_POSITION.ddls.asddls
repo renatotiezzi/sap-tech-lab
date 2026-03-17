@@ -356,12 +356,32 @@ define view entity ZI_R2R_AR_POSITION
       @Semantics: { amount : {currencyCode: 'Currency'} }
       Origin.OriginalInvoiceAmount              as OriginalAmount,
 
+      // FIX #9: ResidualAmount must always reflect the actual open item
+      // balance from FI (AmountInCompanyCodeCurrency), not just for
+      // residual items (FollowOnDocumentType = 'V').
+      //
+      // ORIGINAL (BUG):
+      //   case
+      //     when Doc.InvoiceReference is not initial and Doc.FollowOnDocumentType = 'V'
+      //     then Doc.AmountInCompanyCodeCurrency
+      //     else cast( 0 as abap.curr( 23, 2 ) )
+      //   end as ResidualAmount
+      //
+      // Root cause: For normal open items (e.g. doc 9400000027 / 2025 / 2477)
+      // the condition evaluates to false and returns 0. The RAP application
+      // then falls back to OriginalAmount (164.136,91 — the original invoice
+      // value from ZI_R2R_AR_ORIGIN_VALUE) instead of the actual FI balance
+      // (24.445,93- as shown in FB03 = AmountInCompanyCodeCurrency).
+      //
+      // FIX: Always return AmountInCompanyCodeCurrency. This is the correct
+      // open item amount for ALL FI document item types:
+      //   - Regular open items:    full invoice amount (same as OriginalAmount)
+      //   - Residual items (V):    remaining balance after partial payment
+      //   - Credit memos / other:  their specific posted amount
+      // OriginalAmount (Origin.OriginalInvoiceAmount) is retained as a
+      // separate field for reference to the original invoice value.
       @Semantics: { amount : {currencyCode: 'Currency'} }
-      case
-        when Doc.InvoiceReference is not initial and Doc.FollowOnDocumentType = 'V'
-        then Doc.AmountInCompanyCodeCurrency
-        else cast( 0 as abap.curr( 23, 2 ) )
-      end                                       as ResidualAmount,
+      Doc.AmountInCompanyCodeCurrency           as ResidualAmount,
 
       // Clearing status
       Doc.DebitCreditCode                       as DebitCreditCode,

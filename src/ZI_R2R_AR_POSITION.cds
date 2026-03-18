@@ -126,6 +126,17 @@ define view entity ZI_R2R_AR_POSITION
     left outer join I_AccountingDocumentTypeText  as AccDocText     on  AccDocText.AccountingDocumentType = Doc.AccountingDocumentType
                                                                     and AccDocText.Language               = 'P'
 
+    // -----------------------------------------------------------------------
+    // Spec: "Select na CDS I_OPERATIONALACCTGDOCITEM com fatura referente,
+    //        para buscar o valor da fatura original."
+    // ZI_R2R_AR_ORIGIN_VALUE encapsulates the iterative SELECT chain walk:
+    //   AccountingDocument     ← InvoiceReference          (BSEG-REBZG)
+    //   FiscalYear             ← InvoiceReferenceFiscalYear (BSEG-REBZJ)
+    //   AccountingDocumentItem ← InvoiceItemReference      (BSEG-REBZZ)
+    // The walk repeats until InvoiceReference / InvoiceReferenceFiscalYear /
+    // InvoiceItemReference are empty OR FollowOnDocumentType ≠ 'V'.
+    // OriginalInvoiceAmount = AmountInCompanyCodeCurrency of the last SELECT.
+    // -----------------------------------------------------------------------
     left outer join ZI_R2R_AR_ORIGIN_VALUE        as Origin         on  Origin.CompanyCode            = Doc.CompanyCode
                                                                     and Origin.AccountingDocument     = Doc.AccountingDocument
                                                                     and Origin.FiscalYear             = Doc.FiscalYear
@@ -229,6 +240,8 @@ define view entity ZI_R2R_AR_POSITION
       Doc.CompanyCodeCurrency                   as Currency,
 
       @Semantics: { amount : {currencyCode: 'Currency'} }
+      // Spec: "Montante recebe AmountInCompanyCodeCurrency do último select realizado."
+      // Resolved by ZI_R2R_AR_ORIGIN_VALUE (chain walk — see join above).
       Origin.OriginalInvoiceAmount              as OriginalAmount,
 
       // ---------------------------------------------------------------------------------

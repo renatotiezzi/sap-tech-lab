@@ -26,11 +26,14 @@
 //   This field captures the residual/partial-payment amount for a document item.
 //   A residual item in FI is created when a customer pays only part of an invoice;
 //   SAP posts a new open item (FollowOnDocumentType = 'V') linked back to the
-//   original invoice via InvoiceReference.
-//   - WHEN the item IS a residual posting  → use the actual document amount
+//   original invoice via three reference fields: InvoiceReference,
+//   InvoiceReferenceFiscalYear, and InvoiceItemReference.
+//   - WHEN all three reference fields are filled AND FollowOnDocumentType = 'V'
+//     → use the actual document amount
 //     (Doc.AmountInCompanyCodeCurrency from I_OperationalAcctgDocItem, alias "Doc")
-//   - WHEN the item is NOT a residual item → produce a typed literal ZERO so that
-//     downstream reports can safely aggregate without NULL handling.
+//   - WHEN any reference field is empty OR FollowOnDocumentType <> 'V'
+//     → produce a typed literal ZERO so that downstream reports can safely
+//     aggregate without NULL handling.
 //
 // Maintenance history:
 //   Spec V1 - Initial version
@@ -229,56 +232,54 @@ define view entity ZI_R2R_AR_POSITION
       Origin.OriginalInvoiceAmount              as OriginalAmount,
 
       // ---------------------------------------------------------------------------------
-      // Field : ResidualAmount
+      // Field : ResidualAmount  (Saldo residual)
       // Purpose: Represents the residual (partially paid) amount for a document item,
       //          expressed in company code currency.
       //
       // A "residual item" arises in FI-AR when a customer makes a partial payment:
       //   SAP clears the original invoice and posts a new open item (the residual)
       //   that carries the unpaid balance.  SAP identifies this new item by setting
-      //   FollowOnDocumentType = 'V' and storing the original invoice number in the
-      //   InvoiceReference field of the residual document item.
+      //   FollowOnDocumentType = 'V' and storing the original invoice cross-reference
+      //   in three fields of the residual document item.
       //
       // Source CDS / field mapping:
       //   Both condition branches originate from the data source aliased as "Doc",
       //   which maps to the SAP standard CDS view I_OperationalAcctgDocItem.
       //
-      // WHEN condition is TRUE
-      //   Condition : Doc.InvoiceReference is not initial
-      //               AND Doc.FollowOnDocumentType = 'V'
-      //   Meaning   : The current item IS a residual posting (partial payment remainder).
-      //   Value     : Doc.AmountInCompanyCodeCurrency
-      //               → Source CDS  : I_OperationalAcctgDocItem (alias "Doc")
-      //               → Source field: AmountInCompanyCodeCurrency
-      //               → This is the actual posted amount of the residual item in the
-      //                 company code currency (BSEG-DMBTR / accounting currency amount).
+      // WHEN condition is TRUE  → item IS a residual posting
+      //   All three invoice cross-reference fields must be filled:
+      //     Doc.InvoiceReference           (BSEG-REBZG) — reference document number
+      //     Doc.InvoiceReferenceFiscalYear (BSEG-REBZJ) — fiscal year of referenced doc
+      //     Doc.InvoiceItemReference       (BSEG-REBZZ) — reference item number
+      //   AND Doc.FollowOnDocumentType = 'V' (BSEG-REBZT — subsequent document type)
+      //   Value : Doc.AmountInCompanyCodeCurrency
+      //           → Source CDS  : I_OperationalAcctgDocItem (alias "Doc")
+      //           → Source field: AmountInCompanyCodeCurrency (BSEG-DMBTR)
+      //           → The actual posted amount of this residual item in company code currency.
       //
-      // WHEN condition is FALSE (ELSE branch)
-      //   Condition : Doc.InvoiceReference is initial
-      //               OR Doc.FollowOnDocumentType <> 'V'
-      //   Meaning   : The current item is NOT a residual posting (it is a regular
-      //               invoice, credit memo, or other document type).
-      //   Value     : cast( 0 as abap.curr( 23, 2 ) )
-      //               → This does NOT read or reference any field from any CDS view or
-      //                 database table.  It creates a BRAND-NEW LITERAL VALUE of zero.
-      //               → abap.curr( 23, 2 ) is an ABAP CDS built-in type for currency
-      //                 amounts: 23 total digits, 2 decimal places (equivalent to
-      //                 ABAP Dictionary type CURR with length 23 and decimals 2).
-      //               → Using a typed literal (rather than NULL or an untyped 0) ensures
-      //                 the output column always has a consistent, non-null numeric type
-      //                 that is safe for downstream aggregation and currency conversion.
+      // WHEN condition is FALSE (ELSE branch) → item is NOT a residual posting
+      //   Any of the three reference fields is initial OR FollowOnDocumentType <> 'V'.
+      //   Meaning : Regular invoice, credit memo, or other document type.
+      //   Value   : cast( 0 as abap.curr( 23, 2 ) )
+      //             → Typed literal zero — does NOT reference any field.
+      //             → abap.curr( 23, 2 ): ABAP currency type, 23 digits total, 2 decimal
+      //               places; ensures a non-null, consistently-typed output column for
+      //               safe downstream aggregation.
+      //   Note    : The original invoice amount for these items is provided separately
+      //             via Origin.OriginalInvoiceAmount (ZI_R2R_AR_ORIGIN_VALUE), which
+      //             follows the residual-item chain back to the root invoice.
       // ---------------------------------------------------------------------------------
       @Semantics: { amount : {currencyCode: 'Currency'} }
       case
-        // TRUE branch: item is a residual posting created by partial payment.
-        // Value comes from Doc.AmountInCompanyCodeCurrency
-        // (I_OperationalAcctgDocItem, alias "Doc") — the actual residual amount posted.
-        when Doc.InvoiceReference is not initial and Doc.FollowOnDocumentType = 'V'
+        // TRUE: item is a residual posting — all three invoice reference fields must be
+        // filled AND FollowOnDocumentType = 'V'.
+        // Value: Doc.AmountInCompanyCodeCurrency (I_OperationalAcctgDocItem, alias "Doc").
+        when Doc.InvoiceReference           is not initial
+         and Doc.InvoiceReferenceFiscalYear is not initial
+         and Doc.InvoiceItemReference       is not initial
+         and Doc.FollowOnDocumentType       =  'V'
         then Doc.AmountInCompanyCodeCurrency
-        // ELSE branch: item is NOT a residual posting.
-        // cast( 0 as abap.curr( 23, 2 ) ) produces a typed literal zero —
-        // it does NOT read any field; it is an explicit numeric constant typed as
-        // ABAP currency (23 digits total, 2 decimal places).
+        // ELSE: item is NOT a residual posting → typed literal zero.
         else cast( 0 as abap.curr( 23, 2 ) )
       end                                       as ResidualAmount,
 

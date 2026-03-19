@@ -1,0 +1,171 @@
+class ZCL_JOB_APPLICATION_1 definition
+  public
+  final
+  create public .
+
+public section.
+
+  interfaces IF_APJ_DT_EXEC_OBJECT .
+  interfaces IF_APJ_RT_EXEC_OBJECT .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+
+
+CLASS ZCL_JOB_APPLICATION_1 IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_JOB_APPLICATION_1->IF_APJ_RT_EXEC_OBJECT~EXECUTE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_PARAMETERS                  TYPE        TT_TEMPL_VAL
+* | [!CX!] CX_APJ_RT_CONTENT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD if_apj_rt_exec_object~execute.
+
+
+  " Variáveis para parâmetros
+  DATA: lv_bukrs TYPE bukrs,
+        lv_teste TYPE c LENGTH 1,
+        lv_werks TYPE werks_d.
+  DATA:
+      mv_werks_range TYPE RANGE OF werks_d .
+
+  " Coletar parâmetros do job
+  LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<lwa_params>).
+    CASE <lwa_params>-selname.
+      WHEN 'P_BUKRS'.
+        lv_bukrs = <lwa_params>-low.
+      WHEN 'P_WERKS'.
+*        lv_WERKS = <lwa_params>-low.
+         APPEND VALUE #( sign   = <lwa_params>-sign
+                          option = <lwa_params>-option
+                          low    = <lwa_params>-low
+                          high   = <lwa_params>-high ) TO mv_werks_range.
+      WHEN 'P_TESTE'.
+        lv_teste = <lwa_params>-low.
+    ENDCASE.
+  ENDLOOP.
+
+  " Criar log diretamente usando BALI API
+  DATA: lo_header_setter TYPE REF TO if_bali_header_setter,
+        lo_bal_logger    TYPE REF TO if_bali_log,
+        lv_log_handle    TYPE if_bali_log=>ty_handle.
+
+  TRY.
+      " Criar header do log
+      lo_header_setter = cl_bali_header_setter=>create(
+        object      = 'ZDEMO_OBJECT'
+        subobject   = 'SUBOBJECT1'
+        external_id = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|
+      ).
+
+      " Criar instância do log
+      lo_bal_logger = cl_bali_log=>create_with_header( lo_header_setter ).
+
+      " Mensagem inicial de processamento
+      DATA(lo_message_setter) = cl_bali_message_setter=>create(
+        id         = 'ZMEU_MSG'
+        number     = '001'
+        severity   = if_bali_constants=>c_severity_status
+        variable_1 = 'Processamento iniciado'
+        variable_2 = CONV #( lv_bukrs )
+      ).
+      lo_bal_logger->add_item( lo_message_setter ).
+
+      " Sua lógica de negócio aqui
+      " ...
+
+      " Verificar modo teste
+      IF NOT lv_teste IS INITIAL.
+        " Modo Teste - Mensagem de aviso
+        lo_message_setter = cl_bali_message_setter=>create(
+          id         = 'ZMEU_MSG'
+          number     = '002'
+          severity   = if_bali_constants=>c_severity_warning
+          variable_1 = 'Processamento em modo teste'
+        ).
+        lo_bal_logger->add_item( lo_message_setter ).
+
+        " Simular processamento em teste
+        " ...
+
+      ELSE.
+        " Processamento Normal
+        " Aqui vai sua lógica real de processamento
+
+        " Exemplo: Simular processamento bem-sucedido
+        DATA(lv_success) = abap_true.
+
+        IF lv_success = abap_true.
+          " Mensagem de sucesso
+          lo_message_setter = cl_bali_message_setter=>create(
+            id         = 'ZMEU_MSG'
+            number     = '003'
+            severity   = if_bali_constants=>c_severity_status
+            variable_1 = 'Processamento concluído com sucesso'
+            variable_2 = CONV #( lv_bukrs )
+                 ).
+          lo_bal_logger->add_item( lo_message_setter ).
+        ENDIF.
+
+        " Salvar log
+        cl_bali_log_db=>get_instance( )->save_log(
+            log                        = lo_bal_logger
+            assign_to_current_appl_job = abap_true
+        ).
+      ENDIF.
+
+    CATCH cx_bali_runtime.
+      " Tratar erro
+  ENDTRY.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_JOB_APPLICATION_1->IF_APJ_DT_EXEC_OBJECT~GET_PARAMETERS
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] ET_PARAMETER_DEF               TYPE        TT_TEMPL_DEF
+* | [<---] ET_PARAMETER_VAL               TYPE        TT_TEMPL_VAL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+        METHOD if_apj_dt_exec_object~get_parameters.
+          "Esse metodo é semelhante ao select options
+          DATA c_burks    TYPE c LENGTH 5 VALUE 'BUKRS'.
+          DATA c_datatype TYPE c LENGTH 1 VALUE 'C'.
+          DATA c_selname  TYPE c LENGTH 7 VALUE 'P_BUKRS'.
+
+          "Definição dos parametros do JOB
+          et_parameter_def = VALUE #(
+
+          ( selname        = c_selname
+            kind           = if_apj_dt_exec_object=>parameter
+            datatype       = c_datatype
+            length         = 4
+            param_text     = 'Empresa'
+            component_type = c_burks
+            changeable_ind = abap_true
+             )
+          ( selname        = 'P_TESTE'
+            kind           = if_apj_dt_exec_object=>parameter
+            datatype       = 'C'
+            length         = 1
+            param_text     = 'Modo Teste'
+            checkbox_ind   = abap_true
+            changeable_ind = abap_true
+             )
+            ( selname        = 'P_WERKS'
+            kind           = if_apj_dt_exec_object=>select_option
+            datatype       = c_datatype
+            length         = 4
+            param_text     = 'Planta'
+            component_type = 'WERKS_D'
+            changeable_ind = abap_true
+             )
+
+          ).
+
+
+        ENDMETHOD.
+ENDCLASS.

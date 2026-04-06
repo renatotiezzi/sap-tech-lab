@@ -1,16 +1,14 @@
-*======================================================================*
-* BAdI: MB_CHECK_LINE  |  Método: CHECK_LINE                          *
-* Bloqueia o lançamento se algum item relevante não estiver com       *
-* o indicador "Item OK" (GOITEM-TAKE_IT) marcado. Os erros são        *
-* acumulados em CT_MESSAGES (protocolo semáforo), sem exibir popup.   *
-*                                                                      *
-* Campo "Item OK": GOITEM-TAKE_IT  (Data Element: MB_TAKE_IT)         *
-* Confirmado via Technical Information do MIGO (F1 no campo "Item OK")*
-*======================================================================*
-" Nota: o nome da classe mantém o sufixo histórico (_mb_migo_badi_val) por
-" compatibilidade com os objetos de Workbench já transportados. Para novos
-" projetos, prefira um nome alinhado ao BAdI, ex.: ZCL_IM_MB_CHECK_LINE_VAL.
-CLASS zcl_im_mb_migo_badi_val DEFINITION
+*----------------------------------------------------------------------*
+* BAdI  : MB_CHECK_LINE                                               *
+* Method: CHECK_LINE                                                  *
+*                                                                     *
+* Triggered by both the [Check] and [Post] buttons in MIGO.          *
+* Use this method to enforce business rules on goods-movement items.  *
+*                                                                     *
+* "Item OK" field: GOITEM-TAKE_IT (Data Element: MB_TAKE_IT)         *
+* Confirmed via F1 > Technical Information on the Item OK checkbox.  *
+*----------------------------------------------------------------------*
+CLASS zcl_im_mb_check_line DEFINITION
   PUBLIC
   FINAL
   CREATE PUBLIC.
@@ -20,52 +18,32 @@ CLASS zcl_im_mb_migo_badi_val DEFINITION
 
 ENDCLASS.
 
-CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
+CLASS zcl_im_mb_check_line IMPLEMENTATION.
 
   METHOD if_ex_mb_check_line~check_line.
-    " Variável local para montar a mensagem de erro no formato BAPIRET2
-    DATA ls_message TYPE bapiret2.
+    DATA ls_msg TYPE bapiret2.
 
-    " Ignora itens sem tipo de movimento — não são relevantes para validação
+    " Skip lines with no movement type (incomplete / header-only rows)
     CHECK i_goitem-bwart IS NOT INITIAL.
 
-    " Valida apenas itens marcados como "Item OK" pelo usuário (TAKE_IT = 'X').
-    " Itens não selecionados não serão lançados, portanto não precisam de validação.
+    " Skip lines not flagged as "Item OK" — they will not be posted
     CHECK i_goitem-take_it = 'X'.
 
-    " Monta a mensagem de erro.
-    " TODO: Para suporte a múltiplos idiomas, criar uma classe de mensagens Z
-    "       (ex.: ZMM, transação SE91) e substituir o bloco abaixo por:
-    "         MESSAGE e001(zmm) INTO ls_message-message.
-    "         ls_message-type   = 'E'.
-    "         ls_message-id     = sy-msgid.
-    "         ls_message-number = sy-msgno.
-    " Por enquanto, utiliza texto livre via MESSAGE_V1 (classe '00', msg '001').
-    ls_message-type       = 'E'.
-    ls_message-id         = '00'.
-    ls_message-number     = '001'.
-    ls_message-message_v1 =
-      'Todos os itens obrigatórios devem estar marcados como OK antes de lançar.'.
+    " --- Add your business-rule validations below ---
+    " Each failing rule should fill LS_MSG and APPEND it to CT_MESSAGES.
+    " Appending an 'E' type message prevents posting and shows a red
+    " traffic-light entry in the MIGO message log (no popup).
+    "
+    " Template:
+    "   IF <condition fails>.
+    "     ls_msg-type       = 'E'.
+    "     ls_msg-id         = 'ZMM'.    " your message class (SE91)
+    "     ls_msg-number     = '001'.
+    "     ls_msg-message_v1 = i_goitem-matnr.
+    "     APPEND ls_msg TO ct_messages.
+    "     CLEAR ls_msg.
+    "   ENDIF.
 
-    " Acumula o erro na lista de mensagens do MIGO (semáforo vermelho)
-    APPEND ls_message TO ct_messages.
   ENDMETHOD.
 
 ENDCLASS.
-
-*----------------------------------------------------------------------*
-* Debug:
-*   - Break-point no início de CHECK_LINE para inspecionar I_GOITEM
-*   - I_GOITEM-TAKE_IT = 'X' (Item OK marcado) | SPACE (não marcado)
-*   - I_GOITEM-BWART   = tipo de movimento do item (ex.: '101')
-*   - I_GOITEM-ERFMG / I_GOITEM-MATNR = quantidade e material do item
-*   - CT_MESSAGES acumula os erros exibidos no log do MIGO
-*
-*   Campo confirmado via F1 → Technical Information no campo "Item OK"
-*   do MIGO: Table=GOITEM, Field=TAKE_IT, Data Element=MB_TAKE_IT
-*
-* Configuração (uma única vez no sistema):
-*   SE18 → MB_CHECK_LINE → criar implementação ZIM_MB_MIGO_BADI_VAL
-*   Filtro opcional: BUSTYPEID = 'WE' (limita a Entradas de Mercadoria)
-*   SE19 → ativar a implementação criada
-*----------------------------------------------------------------------*

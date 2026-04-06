@@ -46,9 +46,10 @@ CLASS zcl_im_mb_migo_badi_val DEFINITION
     "* Buffer de itens: acumulado durante o ciclo LINE_MODIFY do POST  *
     "* Chave por ZEILE (número sequencial da linha no grid da MIGO)    *
     "*----------------------------------------------------------------*
-    DATA: mt_item_buffer TYPE TABLE OF mgo_goitem
-                         WITH NON-UNIQUE KEY zeile,
-          mv_error_sent  TYPE abap_bool VALUE abap_false.
+    DATA: mt_item_buffer      TYPE TABLE OF mgo_goitem
+                               WITH NON-UNIQUE KEY zeile,
+          mv_error_sent        TYPE abap_bool VALUE abap_false,
+          mv_post_cycle_active TYPE abap_bool VALUE abap_false.
 
 ENDCLASS.
 
@@ -71,29 +72,7 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
           lv_ok_count  TYPE i.
 
     "*----------------------------------------------------------------*
-    "* PASSO 1: Atualiza o buffer com o estado atual do item          *
-    "*                                                                 *
-    "* Campos principais de MGO_GOITEM úteis para debug/extensão:     *
-    "*   ZEILE  - número sequencial da linha no grid                  *
-    "*   XSTGE  - checkbox OK: 'X' = marcado  |  ' ' = não marcado  *
-    "*   BWART  - tipo de movimento (linha relevante se preenchido)  *
-    "*   MENGE  - quantidade (pode ser usada como filtro adicional)  *
-    "*   MATNR  - material                                            *
-    "*   WEMPF  - indicador de recebimento de mercadoria             *
-    "*   ERFME  - unidade de medida                                   *
-    "*----------------------------------------------------------------*
-    READ TABLE mt_item_buffer ASSIGNING <ls_buf>
-      WITH KEY zeile = c_goitem-zeile.
-    IF sy-subrc = 0.
-      " Atualiza o item já existente no buffer (p.ex. usuário editou a linha)
-      <ls_buf> = c_goitem.
-    ELSE.
-      " Insere novo item no buffer
-      APPEND c_goitem TO mt_item_buffer.
-    ENDIF.
-
-    "*----------------------------------------------------------------*
-    "* PASSO 2: Executa a validação somente durante o ciclo de POST   *
+    "* PASSO 1: Filtro – só executa durante o ciclo de POST           *
     "*                                                                 *
     "* COMO IDENTIFICAR O OKCODE CORRETO NO DEBUG:                    *
     "*   1. Ative ABAP Debugger em SE80 ou /h na barra de comandos    *
@@ -112,12 +91,49 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
        OR i_parameter-okcode = 'WA0A'
        OR i_parameter-okcode = 'WPOS'.
 
-    " Evita emitir a mesma mensagem múltiplas vezes no mesmo ciclo de POST
+    "*----------------------------------------------------------------*
+    "* PASSO 2: Detecta início de novo ciclo de POST                  *
+    "* Na primeira chamada de LINE_MODIFY com OKCODE de POST,         *
+    "* limpa o buffer e os flags para evitar dados obsoletos de       *
+    "* tentativas anteriores (ex: usuário tentou postar, recebeu      *
+    "* erro, ajustou itens e tentou postar novamente sem recarregar   *
+    "* o documento).                                                   *
+    "*----------------------------------------------------------------*
+    IF mv_post_cycle_active = abap_false.
+      CLEAR: mt_item_buffer, mv_error_sent.
+      mv_post_cycle_active = abap_true.
+    ENDIF.
+
+    " Não emite mensagem duplicada no mesmo ciclo de POST
     " (caso a MIGO continue chamando LINE_MODIFY após um MESSAGE E)
     CHECK mv_error_sent = abap_false.
 
     "*----------------------------------------------------------------*
-    "* PASSO 3: Conta linhas obrigatórias × linhas com OK marcado     *
+    "* PASSO 3: Atualiza o buffer com o estado atual do item          *
+    "*                                                                 *
+    "* Campos principais de MGO_GOITEM úteis para debug/extensão:     *
+    "*   ZEILE  - número sequencial da linha no grid                  *
+    "*   XSTGE  - checkbox OK: 'X' = marcado  |  ' ' = não marcado  *
+    "*   BWART  - tipo de movimento (linha relevante se preenchido)  *
+    "*   MENGE  - quantidade (pode ser usada como filtro adicional)  *
+    "*   MATNR  - material                                            *
+    "*   WEMPF  - indicador de recebimento de mercadoria             *
+    "*   ERFME  - unidade de medida                                   *
+    "*   EBELN  - número do Purchase Order                            *
+    "*   EBELP  - item do Purchase Order                              *
+    "*----------------------------------------------------------------*
+    READ TABLE mt_item_buffer ASSIGNING <ls_buf>
+      WITH KEY zeile = c_goitem-zeile.
+    IF sy-subrc = 0.
+      " Atualiza o item já existente no buffer (p.ex. usuário editou a linha)
+      <ls_buf> = c_goitem.
+    ELSE.
+      " Insere novo item no buffer
+      APPEND c_goitem TO mt_item_buffer.
+    ENDIF.
+
+    "*----------------------------------------------------------------*
+    "* PASSO 4: Conta linhas obrigatórias × linhas com OK marcado     *
     "*                                                                 *
     "* Critério de relevância padrão: BWART IS NOT INITIAL            *
     "* (linhas sem tipo de movimento são linhas de display / cabeçalho*
@@ -133,20 +149,22 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
     LOOP AT mt_item_buffer ASSIGNING <ls_buf>
       WHERE bwart IS NOT INITIAL.          " Linhas relevantes (com tipo de movimento)
       lv_total = lv_total + 1.
-      IF <ls_buf>-xstge = abap_true.       " XSTGE = 'X': checkbox OK marcado
+      IF <ls_buf>-xstge = 'X'.            " XSTGE tipo XFELD: 'X' = OK marcado
         lv_ok_count = lv_ok_count + 1.
       ENDIF.
     ENDLOOP.
 
     "*----------------------------------------------------------------*
-    "* PASSO 4: Bloqueia o POST se nem todas as linhas estão OK       *
+    "* PASSO 5: Bloqueia o POST se nem todas as linhas estão OK       *
     "*                                                                 *
     "* O MESSAGE TYPE 'E' aqui lança uma exceção ABAP que a MIGO      *
     "* captura e exibe na área de mensagens padrão (rodapé do MIGO),  *
     "* interrompendo o ciclo de POST sem criar popup customizado.      *
     "*                                                                 *
-    "* Alternativa com message class customizada:                      *
-    "*   MESSAGE e001(zmigo_msg) WITH 'text' TYPE 'E'.                *
+    "* Alternativa com message class customizada (recomendado para    *
+    "* suporte a i18n e textos de mensagem via SE91):                 *
+    "*   MESSAGE e001(zmigo_val) TYPE 'E'.                            *
+    "*   (criar message class ZMIGO_VAL com mensagem 001 no SE91)     *
     "*----------------------------------------------------------------*
     IF lv_total > 0 AND lv_ok_count < lv_total.
       mv_error_sent = abap_true.
@@ -165,8 +183,7 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
 *----------------------------------------------------------------------*
   METHOD if_ex_mb_migo_badi~header_modify.
 
-    CLEAR mt_item_buffer.
-    CLEAR mv_error_sent.
+    CLEAR: mt_item_buffer, mv_error_sent, mv_post_cycle_active.
 
   ENDMETHOD.
 
@@ -197,8 +214,7 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
 *----------------------------------------------------------------------*
   METHOD if_ex_mb_migo_badi~post_document.
 
-    CLEAR mt_item_buffer.
-    CLEAR mv_error_sent.
+    CLEAR: mt_item_buffer, mv_error_sent, mv_post_cycle_active.
 
   ENDMETHOD.
 

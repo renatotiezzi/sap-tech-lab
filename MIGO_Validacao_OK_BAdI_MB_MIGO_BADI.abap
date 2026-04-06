@@ -42,7 +42,7 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
     " O framework garante que apenas itens do ciclo Check/Post chegam a este
     " método, portanto não é necessário checar o indicador "Item OK" aqui.
     "
-    " Exemplo de validação de quantidade:
+    " Exemplo de validação de quantidade (descomente e adapte conforme necessário):
     "   IF i_goitem-erfmg <= 0.
     "     ls_message-type       = 'E'.
     "     ls_message-id         = 'ZMM'.   " classe de mensagens Z do projeto
@@ -50,23 +50,10 @@ CLASS zcl_im_mb_migo_badi_val IMPLEMENTATION.
     "     ls_message-message_v1 = 'Quantidade do item deve ser maior que zero.'.
     "     APPEND ls_message TO ct_messages.
     "   ENDIF.
-
-    " Monta a mensagem de erro.
-    " TODO: Para suporte a múltiplos idiomas, criar uma classe de mensagens Z
-    "       (ex.: ZMM, transação SE91) e substituir o bloco abaixo por:
-    "         MESSAGE e001(zmm) INTO ls_message-message.
-    "         ls_message-type   = 'E'.
-    "         ls_message-id     = sy-msgid.
-    "         ls_message-number = sy-msgno.
-    " Por enquanto, utiliza texto livre via MESSAGE_V1 (classe '00', msg '001').
-    ls_message-type      = 'E'.
-    ls_message-id        = '00'.
-    ls_message-number    = '001'.
-    ls_message-message_v1 =
-      'Todos os itens obrigatórios devem estar marcados como OK antes de lançar.'.
-
-    " Acumula o erro na lista de mensagens do MIGO (semáforo vermelho)
-    APPEND ls_message TO ct_messages.
+    "
+    " TODO: substituir este esqueleto pela regra de negócio real.
+    " Enquanto nenhuma regra estiver implementada, o método não produz erros
+    " e o lançamento não é bloqueado — comportamento correto para código de exemplo.
   ENDMETHOD.
 
 ENDCLASS.

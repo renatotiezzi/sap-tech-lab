@@ -1,0 +1,33 @@
+managed implementation in class ZBP_R2R046 unique;
+strict ( 2 );
+
+define behavior for ZI_R2R046 alias R2R046
+  persistent table zr2rt046
+  lock master
+  authorization master ( instance )
+  etag master Aedat
+
+{
+  " Operações padrão CRUD
+  create;
+  update;
+  delete;
+
+  " Field control
+  field ( readonly ) Erdat, Erzet, Ernam;
+  field ( readonly ) Aedat, Aezet, Aenam;
+
+  " Ações customizadas
+  action ( features : instance ) reprocessar result [1] $self;
+
+  " Determinações
+  determination setTimestamps on modify { create; update; }
+  determination setStatus      on modify { create; }
+
+  " Validações
+  validation checkBukrs on save { create; update; }
+  validation checkWerks on save { create; update; }
+
+  " Mapeamento de campos
+  mapping for zr2rt046 corresponding;
+}

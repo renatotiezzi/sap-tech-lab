@@ -1,0 +1,35 @@
+@EndUserText.label : 'Log de Execução do Job R2R - 046'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #DISPLAY_ONLY
+
+define table zr2rl046 {
+
+  key mandt      : mandt not null;
+  key log_id     : numc10 not null;   " ID do log (range de número)
+
+  " Identificação do Job
+  jobname        : btcjob;            " Nome do Job
+  jobcount       : btcjobcnt;         " Número do Job
+
+  " Parâmetros de execução
+  bukrs          : bukrs;             " Empresa
+  werks_from     : werks_d;           " Planta (de)
+  werks_to       : werks_d;           " Planta (até)
+  teste          : char1;             " Flag modo teste: 'X'=Sim, ' '=Não
+
+  " Resultado da execução
+  status         : char1;             " S=Sucesso, E=Erro, W=Aviso
+  qtd_total      : int4;              " Total de registros processados
+  qtd_ok         : int4;              " Registros com sucesso
+  qtd_error      : int4;              " Registros com erro
+  msg            : char255;           " Mensagem geral da execução
+
+  " Controle de tempo
+  dat_exec       : dats;              " Data de execução
+  hor_ini        : uzeit;             " Hora de início
+  hor_fim        : uzeit;             " Hora de fim
+  uname          : xubname;           " Usuário que executou
+
+}

@@ -1,0 +1,33 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface View - Dados R2R 046'
+
+define root view entity ZI_R2R046
+  as select from zr2rt046
+
+{
+  key bukrs        as Bukrs,
+  key werks        as Werks,
+  key matnr        as Matnr,
+
+      matkl        as Matkl,
+      meins        as Meins,
+      netpr        as Netpr,
+      waers        as Waers,
+      status       as Status,
+      msg          as Msg,
+
+      erdat        as Erdat,
+      erzet        as Erzet,
+      ernam        as Ernam,
+      aedat        as Aedat,
+      aezet        as Aezet,
+      aenam        as Aenam,
+
+      /* Campos calculados / textos */
+      case status
+        when 'P' then 'Processado'
+        when 'E' then 'Erro'
+        else          'Pendente'
+      end           as StatusText
+
+}

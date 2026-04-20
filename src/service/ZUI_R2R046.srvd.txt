@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service Definition - R2R 046'
+
+define service ZUI_R2R046 {
+  expose ZC_R2R046 as R2R046;
+}

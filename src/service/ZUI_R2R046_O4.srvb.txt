@@ -1,0 +1,14 @@
+* Service Binding: ZUI_R2R046_O4
+* Binding Type : OData V4 - UI
+* Service       : ZUI_R2R046
+*
+* Como ativar no ADT (Eclipse):
+*   1. Abra o Service Binding ZUI_R2R046_O4
+*   2. Clique em [Activate]
+*   3. Clique em [Publish Local Service Endpoint]
+*   4. Na seção "Service URL" copie o endpoint gerado
+*   5. Clique em [Preview] para abrir o Fiori Elements
+*
+* Binding Type: OData V4 UI  (ODATA V4 - UI)
+* Binding Name: ZUI_R2R046_O4
+* Service Def : ZUI_R2R046

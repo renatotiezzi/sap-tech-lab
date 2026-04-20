@@ -1,5 +1,60 @@
-CRiar
-Application Job Template: ZR2RTE_046
- 
-Application Job Catalog Entry: ZR2RCE_046
-Application Log Object: ZR2RL_046
+# Objetos Necessários - Processo R2R 046
+
+## Objetos já existentes
+- Application Job Template : ZR2RTE_046
+- Application Job Catalog Entry : ZR2RCE_046
+- Application Log Object : ZR2RL_046
+
+---
+
+## PARTE 1 — Tabelas Z + Serviço
+
+### Tabelas DDIC (SE11 / ADT)
+
+| Objeto   | Tipo                | Descrição                         |
+|----------|---------------------|-----------------------------------|
+| ZR2RT046 | Tabela Transparente | Dados do Processo R2R 046         |
+| ZR2RL046 | Tabela Transparente | Log de Execução do Job R2R 046    |
+
+### Number Range (SNRO)
+| Objeto NR | Descrição                    | De         | Até        |
+|-----------|------------------------------|------------|------------|
+| ZR2RL046  | Range para ID do Log R2R 046 | 0000000001 | 9999999999 |
+
+### Serviço RAP OData V4
+
+| Objeto           | Tipo                    | Descrição                             |
+|------------------|-------------------------|---------------------------------------|
+| ZI_R2R046        | CDS Interface View      | View de interface (BO Root)           |
+| ZC_R2R046        | CDS Consumption View    | View de consumo (projeção Fiori)      |
+| ZI_R2R046 (bdef) | Behavior Definition     | Comportamento CRUD + ação Reprocessar |
+| ZC_R2R046 (bdef) | Behavior Projection     | Projeção do comportamento             |
+| ZBP_R2R046       | Behavior Implementation | Classe ABAP de implementação RAP      |
+| ZUI_R2R046       | Service Definition      | Definição do serviço OData            |
+| ZUI_R2R046_O4    | Service Binding         | Binding OData V4 - UI                 |
+
+### Classe Atualizada
+
+| Objeto                 | Tipo        | Descrição                               |
+|------------------------|-------------|-----------------------------------------|
+| ZCL_JOB_APPLICATION_1 | Classe ABAP | Job atualizado para gravar em ZR2RL046  |
+
+---
+
+## Fluxo de chamada do Log
+
+```
+Application Job Framework
+  └─> ZCL_JOB_APPLICATION_1~EXECUTE
+        ├─> Processa registros de ZR2RT046
+        ├─> Atualiza status em ZR2RT046 (P/E por registro)
+        ├─> Salva log BALI (SLG1) via cl_bali_log_db
+        └─> Grava resumo de execução em ZR2RL046
+              (via método privado GRAVAR_LOG_TABELA)
+```
+
+---
+
+## PARTE 2 — Pendente
+- [ ] Fiori App (Launchpad / BSP)
+- [ ] Autorização (Perfis / Authorization Objects)

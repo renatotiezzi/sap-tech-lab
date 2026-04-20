@@ -1,0 +1,163 @@
+CLASS zbp_r2r046 DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zi_r2r046.
+
+ENDCLASS.
+
+CLASS zbp_r2r046 IMPLEMENTATION.
+ENDCLASS.
+
+
+CLASS lhc_r2r046 DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS:
+      " Determinações
+      setTimestamps FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR r2r046~setTimestamps,
+
+      setStatus FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR r2r046~setStatus,
+
+      " Validações
+      checkBukrs FOR VALIDATE ON SAVE
+        IMPORTING keys FOR r2r046~checkBukrs,
+
+      checkWerks FOR VALIDATE ON SAVE
+        IMPORTING keys FOR r2r046~checkWerks,
+
+      " Ação customizada
+      reprocessar FOR MODIFY
+        IMPORTING keys FOR ACTION r2r046~reprocessar RESULT result,
+
+      " Controle de autorização
+      get_instance_authorizations FOR INSTANCE AUTHORIZATION
+        IMPORTING keys REQUEST requested_authorizations FOR r2r046
+        RESULT result.
+
+ENDCLASS.
+
+CLASS lhc_r2r046 IMPLEMENTATION.
+
+  METHOD setTimestamps.
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        FIELDS ( bukrs werks matnr )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    MODIFY ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        UPDATE FIELDS ( aedat aezet aenam )
+        WITH VALUE #( FOR ls_data IN lt_data
+          ( %tky  = ls_data-%tky
+            aedat = sy-datum
+            aezet = sy-uzeit
+            aenam = sy-uname ) ).
+  ENDMETHOD.
+
+  METHOD setStatus.
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        FIELDS ( status erdat erzet ernam )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    MODIFY ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        UPDATE FIELDS ( status erdat erzet ernam )
+        WITH VALUE #( FOR ls_data IN lt_data
+          WHERE ( status IS INITIAL )
+          ( %tky  = ls_data-%tky
+            status = ' '           " Pendente
+            erdat  = sy-datum
+            erzet  = sy-uzeit
+            ernam  = sy-uname ) ).
+  ENDMETHOD.
+
+  METHOD checkBukrs.
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        FIELDS ( bukrs )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    LOOP AT lt_data ASSIGNING FIELD-SYMBOL(<ls_data>).
+      SELECT SINGLE bukrs FROM t001
+        WHERE bukrs = @<ls_data>-bukrs
+        INTO @DATA(lv_bukrs).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #(
+          %tky        = <ls_data>-%tky
+          %state_area = 'VALIDATE_BUKRS'
+          %msg        = new_message_with_text(
+                          severity = if_abap_behv_message=>severity-error
+                          text     = |Empresa { <ls_data>-bukrs } não encontrada| )
+        ) TO reported-r2r046.
+
+        APPEND VALUE #( %tky = <ls_data>-%tky ) TO failed-r2r046.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD checkWerks.
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        FIELDS ( bukrs werks )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    LOOP AT lt_data ASSIGNING FIELD-SYMBOL(<ls_data>).
+      SELECT SINGLE werks FROM t001w
+        WHERE werks = @<ls_data>-werks
+        INTO @DATA(lv_werks).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #(
+          %tky        = <ls_data>-%tky
+          %state_area = 'VALIDATE_WERKS'
+          %msg        = new_message_with_text(
+                          severity = if_abap_behv_message=>severity-error
+                          text     = |Planta { <ls_data>-werks } não encontrada| )
+        ) TO reported-r2r046.
+
+        APPEND VALUE #( %tky = <ls_data>-%tky ) TO failed-r2r046.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD reprocessar.
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    " Resetar status para reprocessamento
+    MODIFY ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046
+        UPDATE FIELDS ( status msg )
+        WITH VALUE #( FOR ls_data IN lt_data
+          ( %tky  = ls_data-%tky
+            status = ' '      " Pendente
+            msg    = ''  ) ).
+
+    " Retornar registros atualizados
+    READ ENTITIES OF zi_r2r046 IN LOCAL MODE
+      ENTITY r2r046 ALL FIELDS WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_result).
+
+    result = VALUE #( FOR ls IN lt_result
+      ( %tky   = ls-%tky
+        %param = ls ) ).
+  ENDMETHOD.
+
+  METHOD get_instance_authorizations.
+    " Sem restrição de autorização customizada neste exemplo
+  ENDMETHOD.
+
+ENDCLASS.

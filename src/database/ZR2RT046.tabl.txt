@@ -1,0 +1,30 @@
+@EndUserText.label : 'Dados do Processo R2R - 046'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+
+define table zr2rt046 {
+
+  key mandt   : mandt not null;
+  key bukrs   : bukrs not null;       " Empresa
+  key werks   : werks_d not null;     " Planta
+  key matnr   : matnr not null;       " Material
+
+  " Dados de negócio
+  matkl       : matkl;                " Grupo de mercadorias
+  meins       : meins;                " Unidade de medida base
+  netpr       : preis;                " Preço líquido
+  waers       : waers;                " Moeda
+  status      : char1;                " Status: ' '=Pendente, 'P'=Processado, 'E'=Erro
+  msg         : char255;              " Mensagem de retorno
+
+  " Controle
+  erdat       : erdat;                " Data de criação
+  erzet       : uzeit;                " Hora de criação
+  ernam       : ernam;                " Usuário criação
+  aedat       : aedat;                " Data de alteração
+  aezet       : uzeit;                " Hora de alteração
+  aenam       : aenam;                " Usuário alteração
+
+}

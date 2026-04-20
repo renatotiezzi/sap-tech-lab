@@ -1,0 +1,11 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_R2R046 alias R2R046
+{
+  use create;
+  use update;
+  use delete;
+
+  use action reprocessar;
+}

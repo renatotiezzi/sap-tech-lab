@@ -1,0 +1,35 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface View - Arquivo MGR Q2C'
+
+define root view entity ZI_Q2C014_ARQ
+  as select from ztbq2c_arq_mgr
+
+  composition [0..*] of ZI_Q2C014_LOG as _Log
+
+{
+  key id_arq       as IdArq,
+
+      tipo_doc     as TipoDoc,
+      cabec_arq    as CabecArq,
+      bandeira     as Bandeira,
+      conteudo     as Conteudo,
+
+      status       as Status,
+      tentativas   as Tentativas,
+      ultimo_err   as UltimoErr,
+
+      datum        as Datum,
+      uzeit        as Uzeit,
+      ernam        as Ernam,
+
+      /* Texto do status */
+      case status
+        when '1' then 'Erro'
+        when '2' then 'Cancelado'
+        when '3' then 'Processado'
+        when '4' then 'Criado'
+        else          'Desconhecido'
+      end           as StatusText,
+
+      _Log
+}

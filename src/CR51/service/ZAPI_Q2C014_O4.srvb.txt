@@ -1,0 +1,23 @@
+* Service Binding: ZAPI_Q2C014_O4
+* Binding Type   : OData V4 - Web API  (consumidor: SAP CPI)
+* Service        : ZAPI_Q2C014
+*
+* Como ativar no ADT (Eclipse):
+*   1. Abra o Service Binding ZAPI_Q2C014_O4
+*   2. Clique em [Activate]
+*   3. Clique em [Publish Local Service Endpoint]
+*   4. Copie o Service URL gerado
+*   5. Configure o endpoint no iFlow do CPI
+*
+* Autenticação recomendada:
+*   - Communication Arrangement com Communication User dedicado
+*   - Basic Auth ou OAuth2 Client Credentials
+*
+* Operações disponíveis para o CPI:
+*   POST   /ArqMgr              → cria arquivo (com deep insert de LogMgr)
+*   PATCH  /ArqMgr('{IdArq}')   → atualiza status / ultimo_err / tentativas
+*   POST   /ArqMgr('{IdArq}')/_Log  → adiciona item de log avulso
+*
+* Binding Type: OData V4 – Web API  (ODATA V4 - WEB API)
+* Binding Name: ZAPI_Q2C014_O4
+* Service Def : ZAPI_Q2C014

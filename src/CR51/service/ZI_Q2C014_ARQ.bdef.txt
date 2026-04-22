@@ -1,0 +1,52 @@
+managed implementation in class ZBP_Q2C014_ARQ unique;
+strict ( 2 );
+
+define behavior for ZI_Q2C014_ARQ alias Arq
+  persistent table ztbq2c_arq_mgr
+  lock master
+  authorization master ( global )
+  etag master Datum
+
+{
+  " Operações suportadas pelo CPI
+  create;
+  update;
+
+  " Composição com log (CPI pode fazer deep insert)
+  composition [0..*] to ZI_Q2C014_LOG;
+
+  " Campos protegidos contra sobrescrita pelo cliente
+  field ( readonly ) Datum, Uzeit, Ernam;
+
+  " Determinações
+  determination setTimestamps on modify { create; }
+  determination setStatusInicial on modify { create; }
+
+  " Validações
+  validation checkTipoDoc on save { create; update; }
+
+  " Mapeamento de campos
+  mapping for ztbq2c_arq_mgr corresponding;
+}
+
+define behavior for ZI_Q2C014_LOG alias Log
+  persistent table ztbq2c_log_mgr
+  lock dependent by _Arq
+  authorization dependent by _Arq
+  etag master Datum
+
+{
+  association to parent ZI_Q2C014_ARQ as _Arq;
+
+  " Logs são somente criados; não podem ser alterados ou excluídos
+  create;
+
+  " Campo de referência ao pai é somente leitura
+  field ( readonly ) IdRef;
+
+  " Determinações
+  determination setLogTimestamps on modify { create; }
+
+  " Mapeamento de campos
+  mapping for ztbq2c_log_mgr corresponding;
+}

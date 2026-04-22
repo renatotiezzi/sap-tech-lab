@@ -1,0 +1,112 @@
+CLASS zbp_q2c014_arq DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zi_q2c014_arq.
+
+ENDCLASS.
+
+CLASS zbp_q2c014_arq IMPLEMENTATION.
+ENDCLASS.
+
+
+CLASS lhc_arq DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS:
+      " Determinações - Arquivo
+      setTimestamps FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR arq~setTimestamps,
+
+      setStatusInicial FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR arq~setStatusInicial,
+
+      " Validações - Arquivo
+      checkTipoDoc FOR VALIDATE ON SAVE
+        IMPORTING keys FOR arq~checkTipoDoc,
+
+      " Autorização global
+      get_global_authorizations FOR GLOBAL AUTHORIZATION
+        IMPORTING REQUEST requested_authorizations FOR arq
+        RESULT result.
+
+ENDCLASS.
+
+CLASS lhc_arq IMPLEMENTATION.
+
+  METHOD setTimestamps.
+    MODIFY ENTITIES OF zi_q2c014_arq IN LOCAL MODE
+      ENTITY arq
+        UPDATE FIELDS ( datum uzeit ernam )
+        WITH VALUE #( FOR key IN keys
+          ( %tky  = key-%tky
+            datum = sy-datum
+            uzeit = sy-uzeit
+            ernam = sy-uname ) ).
+  ENDMETHOD.
+
+  METHOD setStatusInicial.
+    " Registros novos entram com status 4 = Criado
+    MODIFY ENTITIES OF zi_q2c014_arq IN LOCAL MODE
+      ENTITY arq
+        UPDATE FIELDS ( status tentativas )
+        WITH VALUE #( FOR key IN keys
+          ( %tky      = key-%tky
+            status    = '4'   " Criado
+            tentativas = 0 ) ).
+  ENDMETHOD.
+
+  METHOD checkTipoDoc.
+    READ ENTITIES OF zi_q2c014_arq IN LOCAL MODE
+      ENTITY arq
+        FIELDS ( tipo_doc )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_data).
+
+    LOOP AT lt_data ASSIGNING FIELD-SYMBOL(<ls>).
+      IF <ls>-tipo_doc IS INITIAL.
+        APPEND VALUE #(
+          %tky        = <ls>-%tky
+          %state_area = 'VALIDATE_TIPODOC'
+          %msg        = new_message_with_text(
+                          severity = if_abap_behv_message=>severity-error
+                          text     = 'Tipo de documento é obrigatório' )
+        ) TO reported-arq.
+
+        APPEND VALUE #( %tky = <ls>-%tky ) TO failed-arq.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD get_global_authorizations.
+    " Sem restrição de autorização customizada — acesso via Communication Arrangement
+  ENDMETHOD.
+
+ENDCLASS.
+
+
+CLASS lhc_log DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS:
+      setLogTimestamps FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR log~setLogTimestamps.
+
+ENDCLASS.
+
+CLASS lhc_log IMPLEMENTATION.
+
+  METHOD setLogTimestamps.
+    MODIFY ENTITIES OF zi_q2c014_arq IN LOCAL MODE
+      ENTITY log
+        UPDATE FIELDS ( datum uzeit ernam )
+        WITH VALUE #( FOR key IN keys
+          ( %tky  = key-%tky
+            datum = sy-datum
+            uzeit = sy-uzeit
+            ernam = sy-uname ) ).
+  ENDMETHOD.
+
+ENDCLASS.

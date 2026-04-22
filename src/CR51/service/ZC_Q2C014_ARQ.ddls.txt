@@ -1,0 +1,28 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Projection View - Arquivo MGR Q2C'
+@Metadata.allowExtensions: true
+
+define root view entity ZC_Q2C014_ARQ
+  provider contract transactional_interface
+  as projection on ZI_Q2C014_ARQ
+
+{
+  key IdArq,
+
+      TipoDoc,
+      CabecArq,
+      Bandeira,
+      Conteudo,
+
+      Status,
+      StatusText,
+      Tentativas,
+      UltimoErr,
+
+      Datum,
+      Uzeit,
+      Ernam,
+
+      /* Composição com logs */
+      _Log : redirected to composition child ZC_Q2C014_LOG
+}

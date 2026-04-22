@@ -1,0 +1,6 @@
+@EndUserText.label: 'Service Definition - Q2C MGR API'
+
+define service ZAPI_Q2C014 {
+  expose ZC_Q2C014_ARQ as ArqMgr;
+  expose ZC_Q2C014_LOG as LogMgr;
+}

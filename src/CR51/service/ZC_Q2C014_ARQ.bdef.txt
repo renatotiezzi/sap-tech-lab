@@ -1,0 +1,13 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_Q2C014_ARQ alias Arq
+{
+  use create;
+  use update;
+}
+
+define behavior for ZC_Q2C014_LOG alias Log
+{
+  use create;
+}

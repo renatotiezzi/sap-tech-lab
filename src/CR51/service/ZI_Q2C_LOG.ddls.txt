@@ -18,7 +18,7 @@ define view entity ZI_Q2C_LOG
       uzeit      as Uzeit,
       ernam      as Ernam,
 
-      /* Texto da etapa */
+      /* Campos calculados */
       case etapa
         when '1' then 'Leitura'
         when '2' then 'Validação'

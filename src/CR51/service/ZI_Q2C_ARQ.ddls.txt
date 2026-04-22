@@ -22,7 +22,7 @@ define root view entity ZI_Q2C_ARQ
       uzeit        as Uzeit,
       ernam        as Ernam,
 
-      /* Texto do status */
+      /* Campos calculados */
       case status
         when '1' then 'Erro'
         when '2' then 'Cancelado'
@@ -30,6 +30,14 @@ define root view entity ZI_Q2C_ARQ
         when '4' then 'Criado'
         else          'Desconhecido'
       end           as StatusText,
+
+      case status
+        when '1' then 1   -- vermelho
+        when '2' then 2   -- amarelo
+        when '3' then 3   -- verde
+        when '4' then 0   -- neutro
+        else          0
+      end           as StatusCriticality,
 
       _Log
 }

@@ -2,82 +2,29 @@
 @EndUserText.label: 'Consumption View - Dados R2R 046'
 @Metadata.allowExtensions: true
 
-@UI.headerInfo: {
-  typeName:       'Registro R2R',
-  typeNamePlural: 'Registros R2R',
-  title:          { type: #STANDARD, value: 'Matnr' },
-  description:    { type: #STANDARD, value: 'StatusText' }
-}
-
 define root view entity ZC_R2R046
   provider contract transactional_query
   as projection on ZI_R2R046
 
 {
-      @UI.facet: [
-        { id:          'GeneralData',
-          purpose:     #STANDARD,
-          type:        #IDENTIFICATION_REFERENCE,
-          label:       'Dados Gerais',
-          position:    10 }
-      ]
-
-      @UI.lineItem:       [{ position: 10, label: 'Empresa'  }]
-      @UI.identification: [{ position: 10, label: 'Empresa'  }]
   key Bukrs,
-
-      @UI.lineItem:       [{ position: 20, label: 'Planta'   }]
-      @UI.identification: [{ position: 20, label: 'Planta'   }]
   key Werks,
-
-      @UI.lineItem:       [{ position: 30, label: 'Material' }]
-      @UI.identification: [{ position: 30, label: 'Material' }]
   key Matnr,
 
-      @UI.lineItem:       [{ position: 40, label: 'Grupo Merc.' }]
-      @UI.identification: [{ position: 40, label: 'Grupo de Mercadorias' }]
       Matkl,
-
-      @UI.lineItem:       [{ position: 50, label: 'UM Base' }]
-      @UI.identification: [{ position: 50, label: 'Unidade de Medida Base' }]
       Meins,
-
-      @UI.lineItem:       [{ position: 60, label: 'Preço Líquido' }]
-      @UI.identification: [{ position: 60, label: 'Preço Líquido' }]
       Netpr,
-
-      @UI.lineItem:       [{ position: 70, label: 'Moeda' }]
-      @UI.identification: [{ position: 70, label: 'Moeda' }]
       Waers,
-
-      @UI.lineItem:       [{ position: 80, label: 'Status',
-                             criticality: 'StatusCriticality' }]
-      @UI.identification: [{ position: 80, label: 'Status' }]
       Status,
-
-      @UI.lineItem:       [{ position: 90, label: 'Status', hidden: true }]
       StatusText,
-
-      @UI.hidden: true
-      case Status
-        when 'P' then 3   -- verde
-        when 'E' then 1   -- vermelho
-        else          2   -- amarelo
-      end           as StatusCriticality,
-
-      @UI.identification: [{ position: 100, label: 'Mensagem' }]
+      StatusCriticality,
       Msg,
 
-      @UI.identification: [{ position: 110, label: 'Criado em' }]
       Erdat,
-
-      @UI.identification: [{ position: 120, label: 'Criado por' }]
+      Erzet,
       Ernam,
-
-      @UI.identification: [{ position: 130, label: 'Alterado em' }]
       Aedat,
-
-      @UI.identification: [{ position: 140, label: 'Alterado por' }]
+      Aezet,
       Aenam
 
 }

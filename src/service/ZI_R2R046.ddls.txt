@@ -28,6 +28,12 @@ define root view entity ZI_R2R046
         when 'P' then 'Processado'
         when 'E' then 'Erro'
         else          'Pendente'
-      end           as StatusText
+      end           as StatusText,
+
+      case status
+        when 'P' then 3
+        when 'E' then 1
+        else          2
+      end           as StatusCriticality
 
 }

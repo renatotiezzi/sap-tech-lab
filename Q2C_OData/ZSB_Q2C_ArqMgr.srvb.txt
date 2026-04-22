@@ -1,0 +1,183 @@
+================================================================
+SERVICE BINDING: ZSB_Q2C_ArqMgr
+================================================================
+Tipo       : OData V4 - Web API
+Version    : V4
+Binding    : ZSB_Q2C_ArqMgr
+Description: Q2C - Service Binding OData V4 - Arquivo Manager
+================================================================
+
+Como criar no ADT (ABAP Development Tools):
+--------------------------------------------
+1. Clique com o botão direito no pacote
+2. New → Other ABAP Repository Object
+3. Business Services → Service Binding
+4. Preencha:
+   Name        : ZSB_Q2C_ArqMgr
+   Description : Q2C - Service Binding OData V4 - Arquivo Manager
+   Binding Type: OData V4 - Web API
+5. Service Definition: ZSD_Q2C_ArqMgr
+6. Salve e ative (Ctrl+F3)
+7. Clique em "Publish Locally" para disponibilizar o endpoint
+
+================================================================
+URL BASE DO SERVIÇO (após publicação)
+================================================================
+S/4HANA On-Premise:
+  https://<host>:<port>/sap/opu/odata4/sap/zsb_q2c_arqmgr/srvd/sap/zsd_q2c_arqmgr/0001/
+
+BTP ABAP Environment:
+  https://<tenant>.abap.eu10.hana.ondemand.com/sap/opu/odata4/sap/zsb_q2c_arqmgr/srvd/sap/zsd_q2c_arqmgr/0001/
+
+Verifique a URL exata em:
+  ADT → Service Binding → aba "Service URL"
+
+================================================================
+OPERAÇÕES OData V4 PARA O CPI
+================================================================
+
+$metadata (para inspecionar o modelo):
+  GET <BASE>/$metadata
+
+------------------------------------------------------------------
+1. CRIAR ARQUIVO (Status inicial PEND)
+   POST <BASE>/ArquivoMgr
+   Content-Type: application/json
+   X-CSRF-Token: <token>
+
+   Body:
+   {
+     "Status"      : "PEND",
+     "Filename"    : "NF_12345.xml",
+     "Filetype"    : "XML",
+     "Filesize"    : 204800,
+     "ContentType" : "application/xml",
+     "Source"      : "CPI",
+     "Bukrs"       : "1000"
+   }
+
+   Response 201: registro criado com Uuid preenchido automaticamente.
+
+------------------------------------------------------------------
+2. ADICIONAR LOG AO ARQUIVO
+   POST <BASE>/ArquivoMgr(<Uuid>)/LogMgr
+   Content-Type: application/json
+   X-CSRF-Token: <token>
+
+   Body:
+   {
+     "LogType"   : "I",
+     "LogMsg"    : "Arquivo recebido pelo CPI com sucesso.",
+     "DetailMsg" : "Flow: Z_Q2C_NF_INBOUND | Step: ParseXML"
+   }
+
+   Response 201: log criado com ArqUuid preenchido via composição.
+
+------------------------------------------------------------------
+3. ATUALIZAR STATUS DO ARQUIVO
+   PATCH <BASE>/ArquivoMgr(<Uuid>)
+   Content-Type: application/json
+   If-Match: *
+   X-CSRF-Token: <token>
+
+   Body (somente campos a alterar):
+   {
+     "Status": "DONE"
+   }
+
+   Response 200 ou 204.
+
+------------------------------------------------------------------
+4. CONSULTAR ARQUIVOS PENDENTES
+   GET <BASE>/ArquivoMgr?$filter=Status eq 'PEND'
+   Accept: application/json
+
+   Exemplos adicionais:
+     $filter=Status eq 'ERRO'
+     $filter=Bukrs eq '1000' and Status eq 'PEND'
+     $orderby=CreatedAt asc
+     $top=50
+     $select=Uuid,Filename,Status,CreatedAt
+
+------------------------------------------------------------------
+5. CONSULTAR ARQUIVO COM SEUS LOGS (expand)
+   GET <BASE>/ArquivoMgr(<Uuid>)?$expand=_Log
+
+------------------------------------------------------------------
+6. EXCLUIR ARQUIVO
+   DELETE <BASE>/ArquivoMgr(<Uuid>)
+   If-Match: *
+   X-CSRF-Token: <token>
+
+   Response 204. A exclusão em cascata para LogMgr é gerenciada
+   automaticamente pelo RAP framework via composição.
+
+================================================================
+FORMATO DA CHAVE UUID NO OData V4
+================================================================
+O campo Uuid é do tipo SYSUUID_X16 (RAW 16 bytes).
+Exposto como Edm.Guid no OData V4.
+
+Formato na URL:
+  ArquivoMgr(Uuid=<guid'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'>)
+  Ex: ArquivoMgr(Uuid=guid'550e8400-e29b-41d4-a716-446655440000')
+
+Verifique o formato exato no $metadata do serviço.
+
+================================================================
+CSRF TOKEN — OBRIGATÓRIO PARA POST / PATCH / DELETE
+================================================================
+Passo 1 — Buscar token:
+  GET <BASE>/$metadata
+  Header: X-CSRF-Token: Fetch
+  → Resposta retorna: X-CSRF-Token: <valor>
+
+Passo 2 — Usar token nas requisições de escrita:
+  Header: X-CSRF-Token: <valor>
+
+No adaptador OData do CPI, o token CSRF é tratado automaticamente.
+No adaptador HTTP, implemente os dois passos acima no flow.
+
+================================================================
+FLUXO DE STATUS (contexto de negócio)
+================================================================
+  CPI cria o registro     → Status: PEND
+  CPI inicia processamento→ Status: PROC  (PATCH)
+  CPI conclui com sucesso → Status: DONE  (PATCH)
+  CPI encontra erro       → Status: ERRO  (PATCH)
+
+  Tipo de log (LogType):
+    I = Informativo  (ex: "Arquivo enfileirado")
+    S = Sucesso      (ex: "Arquivo processado com êxito")
+    W = Aviso        (ex: "Processado com avisos")
+    E = Erro         (ex: "Falha no parsing: XML inválido")
+
+================================================================
+ORDEM DE ATIVAÇÃO NO ADT
+================================================================
+1. ZTBQ2C_ARQ_MGR       — Tabela transparente
+2. ZTBQ2C_LOG_MGR       — Tabela transparente
+3. ZI_Q2C_ArqMgr        — CDS root view entity
+4. ZI_Q2C_LogMgr        — CDS child view entity
+5. ZI_Q2C_ArqMgr (BDEF) — Behavior Definition
+6. ZBP_Q2C_ArqMgr       — Behavior Implementation class
+7. ZSD_Q2C_ArqMgr       — Service Definition
+8. ZSB_Q2C_ArqMgr       — Service Binding → "Publish Locally"
+
+Atalho ADT para ativar: Ctrl+F3
+
+================================================================
+REQUISITOS MÍNIMOS DE RELEASE
+================================================================
+  strict ( 2 ) no BDEF           : S/4HANA 2022 (ABAP 7.57) ou BTP
+  cl_abap_context_info            : S/4HANA 2020+ ou BTP ABAP Env
+  cl_system_uuid                  : S/4HANA 2019+
+  OData V4 Web API binding type   : S/4HANA 2020+ ou BTP ABAP Env
+  EML (MODIFY / READ ENTITIES)    : S/4HANA 2020+
+
+  Para S/4HANA 2019 ou anterior:
+    Substitua  strict ( 2 )  por  strict
+    Substitua  cl_abap_context_info=>get_user_technical_name( )
+    por        sy-uname
+
+================================================================

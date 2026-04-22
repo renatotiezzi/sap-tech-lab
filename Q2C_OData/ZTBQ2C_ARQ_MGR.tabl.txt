@@ -1,0 +1,21 @@
+@EndUserText.label: 'Q2C - Controle de Arquivo - Manager'
+@AbapCatalog.enhancement.category: #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory: #TRANSPARENT
+@AbapCatalog.deliveryClass: #A
+@AbapCatalog.dataMaintenance: #RESTRICTED
+define table ztbq2c_arq_mgr {
+  key client              : abap.clnt not null;
+  key uuid                : sysuuid_x16 not null;
+  status                  : abap.char(4);
+  filename                : abap.char(255);
+  filetype                : abap.char(10);
+  filesize                : abap.int4;
+  content_type            : abap.char(100);
+  source                  : abap.char(20);
+  bukrs                   : bukrs;
+  created_by              : syuname;
+  created_at              : timestampl;
+  changed_by              : syuname;
+  changed_at              : timestampl;
+  local_last_changed_at   : timestampl;
+}

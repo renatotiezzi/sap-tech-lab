@@ -1,0 +1,26 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #CHECK
+@EndUserText.label: 'Q2C - Interface View - Log Manager'
+@ObjectModel.usageType:{
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #TRANSACTIONAL
+}
+define view entity ZI_Q2C_LogMgr
+  as select from ztbq2c_log_mgr
+
+  association to parent ZI_Q2C_ArqMgr as _ArqMgr
+    on $projection.ArqUuid = _ArqMgr.Uuid
+
+{
+  key uuid        as Uuid,
+      arq_uuid    as ArqUuid,
+      log_type    as LogType,
+      log_msg     as LogMsg,
+      detail_msg  as DetailMsg,
+      created_by  as CreatedBy,
+      created_at  as CreatedAt,
+
+      /* Associations */
+      _ArqMgr
+}

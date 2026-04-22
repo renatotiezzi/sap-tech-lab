@@ -1,0 +1,26 @@
+projection;
+strict ( 2 );
+
+// -----------------------------------------------------------------------
+// Projection BDEF: Arquivos de Entrada MGR
+// Exposes all CRUD operations to the service layer
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_ARQ_MGR alias ArqMgr
+{
+  use create;
+  use update;
+  use delete;
+
+  use association _Log { create; }
+}
+
+// -----------------------------------------------------------------------
+// Projection BDEF: Log de Processamento MGR
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_LOG_MGR alias LogMgr
+{
+  use create;
+  use delete;
+
+  use association _Arq;
+}

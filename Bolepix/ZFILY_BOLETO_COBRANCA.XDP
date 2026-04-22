@@ -1,0 +1,2257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xfa generator="AdobeLiveCycleDesigner_V11.0.1.20140218.1.907162_SAP" APIVersion="3.6.13324.0"?><xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/" timeStamp="2018-12-04T13:07:45Z" uuid="2b2d2e81-3d1f-4ae5-aa60-107e33a62016">
+<template xmlns:xliff="urn:oasis:names:tc:xliff:document:1.1" xmlns="http://www.xfa.org/schema/xfa-template/3.3/">
+   <?formServer defaultPDFRenderFormat acrobat10.0dynamic?>
+   <subform layout="tb" locale="pt_BR" name="data" restoreState="auto" w="190.499mm">
+      <pageSet>
+         <pageArea id="Page1" name="Page1">
+            <contentArea h="267.95mm" w="190.5mm" x="10mm" y="19.05mm"/>
+            <medium long="297mm" short="210mm" stock="a4"/>
+            <subform h="80.465mm" name="ReciboPagador" w="186.955mm" x="8.045mm" y="31.75mm">
+               <bind match="none"/>
+               <field h="10mm" name="LOGO" w="9.8mm" x="1.955mm">
+                  <ui>
+                     <imageEdit data="embed"/>
+                  </ui>
+                  <bind match="dataRef" ref="$.LOGO"/>
+                  <desc>
+                     <exData name="Anotação do schema">Graphic Node GRAPHIC
+URL-FIELD = G_LOGO</exData>
+                     <text name="embeddedHref">Unknown Embedded URI</text>
+                  </desc>
+                  <value>
+                     <image contentType="application/octet-stream"/>
+                  </value>
+               </field>
+               <field h="7mm" name="NOME_BANCO" w="34.675mm" x="11.955mm" y="3mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="12pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="1mm"/>
+                  <para vAlign="bottom"/>
+                  <bind match="dataRef" ref="$.IS_DATA.NOME_BANCO"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+               </field>
+               <field h="7mm" name="CODIGO_BANCO" w="15mm" x="46.58mm" y="3.175mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="12pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="1mm"/>
+                  <para vAlign="bottom"/>
+                  <bind match="dataRef" ref="$.IS_DATA.CODIGO_BANCO"/>
+                  <value>
+                     <text maxChars="5"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+               </field>
+               <draw h="5.939mm" hAlign="center" name="Text1" w="2.185042in" x="128.905mm" y="3.175mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="3FF4C046-EB08-4A40-94AA-D8E908A8C880">RECIBO DO PAGADOR</text>
+                  </value>
+                  <font baselineShift="0pt" size="14pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para hAlign="center" marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt"/>
+                  <?renderCache.bounds 154489 14001 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 17 RECIBO DO PAGADOR 0 1417 12471 0 0 0 "Arial" 1 0 14000 ISO-8859-1?></draw>
+               <field h="7mm" name="DATA_VENCIMENTO" w="60mm" x="126.955mm" y="10.25mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="2.8824mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="BBF53EC7-4690-4CEC-B50F-1916375B692F">Vencimento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_VENCIMENTO"/>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+               </field>
+               <field h="7mm" name="BENEFICIARIO" w="81mm" x="1.955mm" y="17.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="67DA8D47-240D-417D-B67A-6DAF57E08BB6">Beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.BENEFICIARIO"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+               </field>
+               <field h="7mm" name="CNPJ" w="44mm" x="82.905mm" y="17.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="E163A0BA-EFEF-4543-8FC9-F03266AD3BEC">CNPJ</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.CNPJ"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="AGENCIA" w="60mm" x="126.905mm" y="17.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="8ACA0DFF-6DE6-4453-8B1D-D38463BFDADA">Agência/Código do Beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.AGENCIA"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="ENDERECO_BENEFICIARIO" w="125mm" x="1.955mm" y="24.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="62E65BE1-DD23-40A4-9038-7EB0F7071375">Endereço Beneficiário / Sacador Avalista</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.ENDERECO_BENEFICIARIO"/>
+                  <value>
+                     <text maxChars="255"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" w="60mm" x="126.905mm" y="24.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="3.1938mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="DATA_EMISSAO" w="29mm" x="1.955mm" y="31.25mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="F7138E7A-EC78-4A0A-AE8D-0947CF9A1E1E">Data do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_EMISSAO">
+                     <picture>date{YYYY-MM-DD}</picture>
+                  </bind>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+                  <validate nullTest="error"/>
+                  <desc>
+                     <text name="Anotação do schema">Campo do tipo DATS</text>
+                  </desc>
+               </field>
+               <field h="7mm" name="NUMERO_DOCUMENTO" w="27.5mm" x="30.905mm" y="31.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="C1984963-41E3-433C-8ADA-F70BD5952F05">No. do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.NUMERO_DOCUMENTO"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+               </field>
+               <field h="7mm" name="TIPO_DOCUMENTO" w="21mm" x="58.405mm" y="31.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.922mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="B3C82AD5-FCE2-468F-9F0E-FE6404E75D98">Espécie Doc.</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.TIPO_DOCUMENTO"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" name="ACEITE" w="13mm" x="79.405mm" y="31.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="1C6ECE75-19D8-4E9C-8DAB-3A08CA7F6B34">Aceite</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.ACEITE"/>
+                  <value>
+                     <text maxChars="1"/>
+                  </value>
+               </field>
+               <field h="7mm" name="DATA_PROCESSAMENTO" w="34.5mm" x="92.406mm" y="31.25mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="95FDC4CB-B6B3-4740-9439-2C12655B75EE">Data do Processamento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_PROCESSAMENTO">
+                     <picture>date{YYYY-MM-DD}</picture>
+                  </bind>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+                  <validate nullTest="error"/>
+                  <desc>
+                     <text name="Anotação do schema">Campo do tipo DATS</text>
+                  </desc>
+               </field>
+               <field h="7mm" name="NOSSO_NUMERO" w="60mm" x="126.905mm" y="31.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="2E156AD7-2736-4806-8C3F-24F06F0FD7EF">Nosso Número</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.NOSSO_NUMERO"/>
+                  <value>
+                     <text maxChars="30"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="USODOBANCO" w="28mm" x="1.955mm" y="38.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="E8FB4B14-5D21-4118-B2C2-3900146A63A6">Uso do Banco</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+               </field>
+               <field h="7mm" name="CARTEIRA" w="25mm" x="29.905mm" y="38.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="372C8967-62CF-4F18-9592-0444C693D0E8">Carteira</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.CARTEIRA"/>
+                  <value>
+                     <text maxChars="3"/>
+                  </value>
+               </field>
+               <field h="7mm" name="ESPECIE" w="15mm" x="54.905mm" y="38.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="B2309867-2EF3-4865-B014-0E922F563CDC">Espécie</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.ESPECIE"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" name="Quantidade" w="29mm" x="69.905mm" y="38.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="4D339785-E064-4B65-8D0B-595DB01C4283">Quantidade</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" locale="pt_BR" name="Valor" w="28mm" x="98.905mm" y="38.25mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="78760997-8D83-42B1-BE55-A7A5CE209CD0">Valor</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" locale="pt_BR" name="VALOR_DOCUMENTO" w="60mm" x="126.905mm" y="38.25mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="407FA213-62E9-4C11-9B09-1B957BB18026">Valor do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.VALOR_DOCUMENTO"/>
+                  <desc>
+                     <text name="Schema Annotation">Document value REGUD-DMBTR</text>
+                  </desc>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="35mm" name="TEXT" w="125mm" x="1.955mm" y="45.25mm">
+                  <ui>
+                     <textEdit multiLine="1">
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="11pt" typeface="Arial"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <caption placement="top" reserve="3.5mm">
+                     <font fontHorizontalScale="98%" fontVerticalScale="98%" size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="DB68FB84-B838-48F9-B23C-D02788526D6F">Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida contate o beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.TEXT"/>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <edge/>
+                     <corner/>
+                     <corner presence="hidden"/>
+                     <corner/>
+                  </border>
+                  <value>
+                     <exData contentType="text/html">
+                        <body xmlns="http://www.w3.org/1999/xhtml"/>
+                     </exData>
+                  </value>
+                  <desc>
+                     <exData name="Anotação do schema">Text Node TEXT
+Texto de include SAPScript 
+ NAME = ZFI_BOLETO_BANCARIO_INSTRUC 
+ LANGUAGE = P 
+ OBJECT = TEXT 
+ ID = ST</exData>
+                  </desc>
+               </field>
+               <field h="7mm" w="60mm" x="126.905mm" y="45.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.505mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" locale="pt_BR" name="Desconto" w="60mm" x="126.905mm" y="52.25mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <caption placement="top" reserve="3.0331mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="D0D7F98E-715C-4C4F-A12E-25A649037F26">(-) Desconto / Abatimento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.999}</picture>
+                  </format>
+               </field>
+               <field h="7mm" w="60mm" x="126.905mm" y="66.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.505mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" locale="pt_BR" name="MULTA" w="60mm" x="126.905mm" y="59.25mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9437mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="897C32EA-B252-4892-9AB4-B523961A9905">(+) Mora / Multa</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.999}|num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" locale="pt_BR" name="VALOR_DOCUMENTO" w="60mm" x="126.905mm" y="73.25mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="31DD99B1-32CF-459E-816D-FDFDCFCFCC47">(=) Valor Cobrado</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="none"/>
+                  <desc>
+                     <text name="Schema Annotation">Document value REGUD-DMBTR</text>
+                  </desc>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" minW="125mm" name="LOCAL_PAGAMENTO" x="1.955mm" y="10.25mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9782mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="ED1F7C22-A5D9-4B64-93B8-1C1453CF6356">Local de Pagamento</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.LOCAL_PAGAMENTO"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <?templateDesigner expand 1?></subform>
+            <subform h="44.794mm" name="AutenticacaoRecibo" w="187.45mm" x="10mm" y="113.031mm">
+               <bind match="none"/>
+               <field h="7mm" name="PAGADOR" w="120mm" y="3.969mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="A3E7A8A1-F35E-4AF3-8356-90075D74AD3B">Pagador</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.PAGADOR"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                  </border>
+               </field>
+               <field h="7mm" name="CNPJ_PAGADOR" w="65mm" x="120mm" y="3.969mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="1F0AA42B-BFE4-4F3B-81C5-3AFC5745F1D3">CNPJ/CPF</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.CNPJ_PAGADOR"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="ENDERECO_PAGADOR" w="185mm" y="10.969mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="C80DB325-3140-461D-A4FA-2A8B107F94F9">Endereço</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.ENDERECO_PAGADOR"/>
+                  <value>
+                     <text maxChars="255"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge/>
+                  </border>
+               </field>
+               <draw h="5.2331mm" name="Texto1" w="185mm" y="18mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="E2A80BCA-E8D6-43AE-A498-9468CA93AAA2">Sacador/Avalista</text>
+                  </value>
+                  <font baselineShift="0pt" size="9pt" typeface="Arial"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt" vAlign="bottom"/>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+                  <?renderCache.bounds 521575 12000 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 16 Sacador/Avalista 0 1417 11523 0 0 0 "Arial" 0 0 9000 ISO-8859-1?></draw>
+               <draw h="6.35mm" name="Texto2" w="1.25in" x="155.7mm" y="25.35mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="7C3F31B0-1DB2-4A52-B1AE-77FF4948766E">Autenticação mecânica</text>
+                  </value>
+                  <font baselineShift="0pt" size="8pt" typeface="Arial"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt"/>
+                  <?renderCache.bounds 87166 15166 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 24 Autenticação mecânica 0 1417 7733 0 0 0 "Arial" 0 0 8000 ISO-8859-1?></draw>
+               <draw h="=0mm" name="Linha1" w="185mm" y="36mm">
+                  <value>
+                     <line>
+                        <edge stroke="dashed" thickness="0.55mm">
+                           <color value="20,20,20"/>
+                        </edge>
+                     </line>
+                  </value>
+               </draw>
+               <?templateDesigner expand 0?></subform>
+            <subform h="83.775mm" name="FichaCompensacao" w="187.45mm" x="10mm" y="153.225mm">
+               <bind match="none"/>
+               <field h="7mm" name="DATA_VENCIMENTO" w="60mm" x="125mm" y="13.775mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="2.9437mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="9C2D95A4-A30F-4DB1-A6E7-F2B521EDEE61">Vencimento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_VENCIMENTO"/>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+               </field>
+               <field h="7mm" name="AGENCIA" w="60mm" x="125mm" y="20.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.85mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="1B871972-63A6-4A9D-96E4-44A11EDF7637">Agência/Código do Beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.AGENCIA"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" w="60mm" x="125mm" y="27.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.505mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="NOSSO_NUMERO" w="60mm" x="124.95mm" y="34.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="67C54408-A9B6-4530-A5C4-4DDFFAF3B4E8">Nosso Número</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.NOSSO_NUMERO"/>
+                  <value>
+                     <text maxChars="30"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" locale="pt_BR" name="VALOR_DOCUMENTO" w="60mm" x="124.95mm" y="41.775mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" marginRight="14.173pt" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.8824mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="D93C12FF-B73D-447B-B37B-2B3E9A2155FD">Valor do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.VALOR_DOCUMENTO"/>
+                  <desc>
+                     <text name="Schema Annotation">Document value REGUD-DMBTR</text>
+                  </desc>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" locale="pt_BR" name="Desconto" w="60mm" x="124.95mm" y="48.775mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <caption placement="top" reserve="2.8824mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="9103AE01-51E8-4FF2-8E62-0B8FFC8AF367">(-) Desconto / Abatimento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.999}</picture>
+                  </format>
+               </field>
+               <field h="7mm" w="60mm" x="124.95mm" y="55.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.505mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" locale="pt_BR" name="MULTA" w="60mm" x="124.95mm" y="62.775mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="2ECB26D9-3E4C-4610-8F3D-128A0CB2F358">(+) Mora / Multa</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.999}|num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" w="60mm" x="124.95mm" y="69.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.505mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                  </caption>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="15"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" locale="pt_BR" name="VALOR_DOCUMENTO" w="60mm" x="124.95mm" y="76.775mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="right" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="FE2EBC53-613A-41EA-AFB5-4A76225102F2">(=) Valor Cobrado</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <fill>
+                        <color value="192,192,192"/>
+                     </fill>
+                  </border>
+                  <bind match="none"/>
+                  <desc>
+                     <text name="Schema Annotation">Document value REGUD-DMBTR</text>
+                  </desc>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" locale="pt_BR" name="Valor" w="28mm" x="96.95mm" y="41.775mm">
+                  <ui>
+                     <numericEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </numericEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <value>
+                     <decimal fracDigits="-1"/>
+                  </value>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="D1F4DBF1-6BEB-4087-B704-493120900B3B">Valor</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <format>
+                     <picture>num{z,zzz,zz9.888}</picture>
+                  </format>
+               </field>
+               <field h="7mm" name="DATA_PROCESSAMENTO" w="34.5mm" x="90.45mm" y="34.775mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="2.85mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="B17E6C28-561F-4639-9052-DA7F12ED8D30">Data do Processamento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_PROCESSAMENTO">
+                     <picture>date{YYYY-MM-DD}</picture>
+                  </bind>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+                  <validate nullTest="error"/>
+                  <desc>
+                     <text name="Anotação do schema">Campo do tipo DATS</text>
+                  </desc>
+               </field>
+               <field h="7mm" name="ACEITE" w="13mm" x="77.45mm" y="34.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="CF8FFFE6-A91E-46BD-8795-FF3F6ABFF1A9">Aceite</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.ACEITE"/>
+                  <value>
+                     <text maxChars="1"/>
+                  </value>
+               </field>
+               <field h="7mm" name="Quantidade" w="29mm" x="67.95mm" y="41.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="BECC4139-53CD-47F5-A98B-E04B2ACAEE96">Quantidade</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" name="TIPO_DOCUMENTO" w="21mm" x="56.45mm" y="34.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.8824mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="99939D61-F8A0-4D3F-BE8D-F15D62DF8424">Espécie Doc.</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.TIPO_DOCUMENTO"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" name="CARTEIRA" w="25mm" x="27.95mm" y="41.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="B785D130-68E2-425D-B8FC-4697427C7936">Carteira</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.CARTEIRA"/>
+                  <value>
+                     <text maxChars="3"/>
+                  </value>
+               </field>
+               <field h="7mm" name="NUMERO_DOCUMENTO" w="27.5mm" x="28.95mm" y="34.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="3.1066mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="36488A07-2F99-4AA3-A466-76332688C931">No. do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.NUMERO_DOCUMENTO"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+               </field>
+               <field h="7mm" name="USODOBANCO" w="28mm" y="41.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="4FE6F583-587B-41A0-A0AA-029127C46B2F">Uso do Banco</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="none"/>
+               </field>
+               <field h="7mm" name="DATA_EMISSAO" w="29mm" y="34.775mm">
+                  <ui>
+                     <dateTimeEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </dateTimeEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para hAlign="center" vAlign="middle"/>
+                  <value>
+                     <date/>
+                  </value>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="6856C80C-0D1B-4FEE-8AA6-9BFA9688973C">Data do Documento</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.DATA_EMISSAO">
+                     <picture>date{YYYY-MM-DD}</picture>
+                  </bind>
+                  <format>
+                     <picture>date{DD/MM/YYYY}</picture>
+                  </format>
+                  <validate nullTest="error"/>
+                  <desc>
+                     <text name="Anotação do schema">Campo do tipo DATS</text>
+                  </desc>
+               </field>
+               <field h="7mm" name="ENDERECO_BENEFICIARIO" w="125mm" y="27.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="192C9873-D3B2-4D88-A71F-443D3D3D04AC">Endereço Beneficiário / Sacador Avalista</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.ENDERECO_BENEFICIARIO"/>
+                  <value>
+                     <text maxChars="255"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="CNPJ" w="44mm" x="81mm" y="20.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="3.0996mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="BBE8FB9E-DC7B-4813-A4D3-3AEA2BF8E0EB">CNPJ</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.CNPJ"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="BENEFICIARIO" w="81mm" y="20.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.8824mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="9F07D5B4-B1F2-4043-A0F0-0259D91425FF">Beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.BENEFICIARIO"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                  </border>
+               </field>
+               <field h="7mm" name="LOCAL_PAGAMENTO" w="125mm" y="13.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="D1A62D06-5F0F-46BC-88EA-64F5178D80A3">Local de Pagamento</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.LOCAL_PAGAMENTO"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+               </field>
+               <field h="7mm" name="CODIGO_BANCO" w="15mm" x="44.625mm" y="6.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="12pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="1mm"/>
+                  <para vAlign="bottom"/>
+                  <bind match="dataRef" ref="$.IS_DATA.CODIGO_BANCO"/>
+                  <value>
+                     <text maxChars="5"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+               </field>
+               <field h="7mm" name="NOME_BANCO" w="34.675mm" x="10mm" y="6.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="12pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="1mm"/>
+                  <para vAlign="bottom"/>
+                  <bind match="dataRef" ref="$.IS_DATA.NOME_BANCO"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+               </field>
+               <field h="10mm" name="LOGO" w="9.8mm" y="3.775mm">
+                  <ui>
+                     <imageEdit data="embed"/>
+                  </ui>
+                  <bind match="dataRef" ref="$.LOGO"/>
+                  <desc>
+                     <exData name="Anotação do schema">Graphic Node GRAPHIC
+URL-FIELD = G_LOGO</exData>
+                     <text name="embeddedHref">Unknown Embedded URI</text>
+                  </desc>
+                  <value>
+                     <image contentType="application/octet-stream"/>
+                  </value>
+               </field>
+               <?templateDesigner expand 0?>
+               <field h="7mm" name="ESPECIE" w="15mm" x="52.95mm" y="41.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para marginLeft="8.504pt" vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="D6AB0032-D622-4748-8236-F4B872DCDDAB">Espécie</text>
+                     </value>
+                  </caption>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                  </border>
+                  <bind match="dataRef" ref="$.IS_DATA.ESPECIE"/>
+                  <value>
+                     <text maxChars="2"/>
+                  </value>
+               </field>
+               <field h="7mm" name="LINHA_DIGITAVEL" w="124.651mm" x="59.799mm" y="6.775mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="12pt" typeface="Arial"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="1mm"/>
+                  <para vAlign="bottom"/>
+                  <bind match="dataRef" ref="$.IS_DATA.LINHA_DIGITAVEL"/>
+                  <value>
+                     <text maxChars="60"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <corner/>
+                     <corner presence="hidden"/>
+                  </border>
+               </field>
+               <field h="35mm" name="TEXT" w="125mm" y="48.775mm">
+                  <ui>
+                     <textEdit multiLine="1">
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="11pt" typeface="Arial"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <caption placement="top" reserve="3.5mm">
+                     <font fontHorizontalScale="98%" fontVerticalScale="98%" size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="DB9DA9FA-ADE3-44CD-8DE5-DA619AD526BA">Instruções de responsabilidade do BENEFICIÁRIO. Qualquer dúvida contate o beneficiário</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.TEXT"/>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge/>
+                     <edge/>
+                     <corner/>
+                     <corner presence="hidden"/>
+                     <corner/>
+                  </border>
+                  <value>
+                     <exData contentType="text/html">
+                        <body xmlns="http://www.w3.org/1999/xhtml"/>
+                     </exData>
+                  </value>
+                  <desc>
+                     <exData name="Anotação do schema">Text Node TEXT
+Texto de include SAPScript 
+ NAME = ZFI_BOLETO_BANCARIO_INSTRUC 
+ LANGUAGE = P 
+ OBJECT = TEXT 
+ ID = ST</exData>
+                  </desc>
+               </field>
+            </subform>
+            <subform h="50mm" name="Subformulário1" w="187.45mm" x="10mm" y="240mm">
+               <bind match="none"/>
+               <field h="7mm" name="CNPJ_PAGADOR" w="65mm" x="120mm" y="3mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="CC49D8A0-3F59-42E9-8A26-47C933D2C8FD">CNPJ/CPF</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.CNPJ_PAGADOR"/>
+                  <value>
+                     <text maxChars="20"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                  </border>
+               </field>
+               <draw h="5.2331mm" name="Texto1" w="185mm" y="17.175mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="D6CB05A9-B759-4390-8DA9-FCD4CFF1B4B7">Sacador/Avalista</text>
+                  </value>
+                  <font baselineShift="0pt" size="9pt" typeface="Arial"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt" vAlign="bottom"/>
+                  <border>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                     <edge presence="hidden"/>
+                     <corner/>
+                  </border>
+                  <?renderCache.bounds 521575 12000 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 16 Sacador/Avalista 0 1417 11523 0 0 0 "Arial" 0 0 9000 ISO-8859-1?></draw>
+               <field h="7mm" name="ENDERECO_PAGADOR" w="185mm" y="10mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.5811mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="FB525A4F-C59B-42D9-9A6D-5A4CC45634DC">Endereço</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.ENDERECO_PAGADOR"/>
+                  <value>
+                     <text maxChars="255"/>
+                  </value>
+                  <border>
+                     <edge presence="hidden"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <corner thickness="0.176mm"/>
+                     <edge/>
+                     <edge/>
+                     <edge/>
+                  </border>
+               </field>
+               <field h="7mm" name="PAGADOR" w="120mm" y="3mm">
+                  <ui>
+                     <textEdit>
+                        <border presence="hidden"/>
+                        <margin/>
+                     </textEdit>
+                  </ui>
+                  <font size="9pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.3mm" leftInset="1mm" rightInset="1mm" topInset="0.3mm"/>
+                  <para vAlign="middle"/>
+                  <caption placement="top" reserve="2.9437mm">
+                     <font size="8pt" typeface="Arial"/>
+                     <para vAlign="middle"/>
+                     <value>
+                        <text xliff:rid="100F5304-D474-479D-A508-C6095DBD3120">Pagador</text>
+                     </value>
+                  </caption>
+                  <bind match="dataRef" ref="$.IS_DATA.PAGADOR"/>
+                  <value>
+                     <text maxChars="50"/>
+                  </value>
+                  <border>
+                     <edge/>
+                     <corner thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <corner presence="hidden" thickness="0.176mm"/>
+                     <edge presence="hidden"/>
+                     <edge presence="hidden"/>
+                     <edge/>
+                  </border>
+               </field>
+               <draw h="7.67mm" name="Texto3" w="57.296mm" x="128.94mm" y="23.4mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="A071A8D3-97FD-40C5-B800-884C7EAD1657">Ficha de Compensação</text>
+                  </value>
+                  <font baselineShift="0pt" size="14pt" typeface="Arial" weight="bold"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt"/>
+                  <?renderCache.bounds 159580 18908 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 22 Ficha de Compensação 0 1417 12471 0 0 0 "Arial" 1 0 14000 ISO-8859-1?></draw>
+               <draw h="6.35mm" name="Texto2" w="1.25in" x="154.903mm" y="30.769mm">
+                  <ui>
+                     <textEdit/>
+                  </ui>
+                  <value>
+                     <text xliff:rid="C62ED533-FC0C-400D-A089-B3DE2A02DEAB">Autenticação mecânica</text>
+                  </value>
+                  <font baselineShift="0pt" size="8pt" typeface="Arial"/>
+                  <margin bottomInset="0.5mm" leftInset="0.5mm" rightInset="0.5mm" topInset="0.5mm"/>
+                  <para marginLeft="0pt" marginRight="0pt" spaceAbove="0pt" spaceBelow="0pt" textIndent="0pt"/>
+                  <?renderCache.bounds 87166 15166 0 0 1417 1417 0 0?>
+                  <?renderCache.textRun 24 Autenticação mecânica 0 1417 7733 0 0 0 "Arial" 0 0 8000 ISO-8859-1?></draw>
+               <?templateDesigner expand 0?>
+               <subform layout="tb" name="Subform1" w="126.539mm" x="2.163mm" y="24.496mm">
+                  <bind match="none"/>
+                  <?templateDesigner expand 1?></subform>
+               <field h="13mm" name="BARCODE" w="103mm" x="2.311mm" y="27.048mm">
+                  <ui>
+                     <barcode dataLength="43" textLocation="none" type="code2Of5Interleaved" wideNarrowRatio="3.0"/>
+                  </ui>
+                  <font typeface="Courier New"/>
+                  <value>
+                     <text xliff:rid="6199E566-BAB5-4D3B-891A-DA0F55D9A63E"/>
+                  </value>
+                  <bind match="dataRef" ref="$.IS_DATA.BARCODE"/>
+               </field>
+            </subform>
+            <?templateDesigner expand 1?></pageArea>
+         <?templateDesigner expand 1?></pageSet>
+      <proto/>
+      <desc>
+         <text name="version">11.0.1.20140218.1.907162.903801</text>
+      </desc>
+      <?templateDesigner expand 1?>
+      <?renderCache.subset "Arial" 0 0 ISO-8859-1 4 220 65 0003000B000C000E0010001100120020002400250026002700280029002C002D002F003000310032003300340035003600380039004400450046004700480049004A004C004F00500051005200530054005500560057005800590069006B006D006F007000720079007D007E00C8 ()+-./=ABCDEFIJLMNOPQRSUVabcdefgilmnopqrstuváâãçéêóõúÁ?>
+      <?renderCache.subset "Arial" 1 0 ISO-8859-1 4 100 27 0003002400250026002700280029002A002C0032003300350044004600470048004B004C00500051005200530056006D006F ABCDEFGIOPRacdehimnopsãç?></subform>
+   <?templateDesigner DefaultPreviewDynamic 1?>
+   <?templateDesigner DefaultRunAt client?>
+   <?templateDesigner WidowOrphanControl 0?>
+   <?templateDesigner DefaultCaptionFontSettings face:Arial;size:10;weight:normal;style:normal?>
+   <?templateDesigner DefaultValueFontSettings face:Arial;size:10;weight:normal;style:normal?>
+   <?templateDesigner DefaultLanguage JavaScript?>
+   <?acrobat JavaScript strictScoping?>
+   <?templateDesigner Grid show:0, snap:0, units:1, color:ff8080, origin:(0,0), interval:(79375,79375), objsnap:0, guidesnap:1, pagecentersnap:1?>
+   <?templateDesigner FormTargetVersion 33?>
+   <?templateDesigner Zoom 99?>
+   <?templateDesigner Rulers horizontal:1, vertical:1, guidelines:0, crosshairs:0?></template>
+<config xmlns="http://www.xfa.org/schema/xci/3.0/">
+   <agent name="designer">
+      <!--  [0..n]  -->
+      <destination>pdf</destination>
+      <pdf>
+         <!--  [0..n]  -->
+         <fontInfo/>
+      </pdf>
+      <common>
+         <template>
+            <base>http://riodevasecc.generale-location.fr:8000/sap/bc/fp/form/layout/</base>
+         </template>
+      </common>
+   </agent>
+   <present>
+      <!--  [0..n]  -->
+      <pdf>
+         <!--  [0..n]  -->
+         <version>1.7</version>
+         <adobeExtensionLevel>8</adobeExtensionLevel>
+      </pdf>
+      <common>
+         <data>
+            <xsl>
+               <uri/>
+            </xsl>
+            <outputXSL>
+               <uri/>
+            </outputXSL>
+         </data>
+      </common>
+      <xdp>
+         <packets>*</packets>
+      </xdp>
+   </present>
+</config>
+<connectionSet xmlns="http://www.xfa.org/schema/xfa-connection-set/2.8/">
+   <xsdConnection dataDescription="data" name="ZFILY_BOLETO_COBRANCA">
+      <uri/>
+      <rootElement>data</rootElement>
+   </xsdConnection>
+</connectionSet>
+<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/">
+   <xfa:data xfa:dataNode="dataGroup"/>
+   <dd:dataDescription xmlns:dd="http://ns.adobe.com/data-description/" dd:name="data">
+      <data>
+         <IS_DATA>
+            <NOME_BANCO/>
+            <CODIGO_BANCO/>
+            <LOCAL_PAGAMENTO/>
+            <DATA_VENCIMENTO/>
+            <DATA_PROCESSAMENTO/>
+            <BENEFICIARIO/>
+            <AGENCIA/>
+            <DATA_EMISSAO/>
+            <NUMERO_DOCUMENTO/>
+            <NOSSO_NUMERO/>
+            <CARTEIRA/>
+            <VALOR_DOCUMENTO/>
+            <LINHA_DIGITAVEL/>
+            <BARCODE/>
+            <CNPJ/>
+            <ENDERECO_BENEFICIARIO/>
+            <TIPO_DOCUMENTO/>
+            <ACEITE/>
+            <ESPECIE/>
+            <MULTA/>
+            <JUROS/>
+            <PAGADOR/>
+            <CNPJ_PAGADOR/>
+            <ENDERECO_PAGADOR/>
+            <DIAS_PROTESTO/>
+            <WAERS/>
+            <NAME_TEXT/>
+            <V_MULTA/>
+            <V_JUROS/>
+            <V_DIAS/>
+            <V_NAME_TEXT/>
+            <TEXT/>
+         </IS_DATA>
+         <LOGO/>
+         <G_LOGO/>
+      </data>
+   </dd:dataDescription>
+</xfa:datasets>
+<localeSet xmlns="http://www.xfa.org/schema/xfa-locale-set/2.7/">
+   <locale desc="Portuguese (Brazil)" name="pt_BR">
+      <calendarSymbols name="gregorian">
+         <monthNames>
+            <month>janeiro</month>
+            <month>fevereiro</month>
+            <month>março</month>
+            <month>abril</month>
+            <month>maio</month>
+            <month>junho</month>
+            <month>julho</month>
+            <month>agosto</month>
+            <month>setembro</month>
+            <month>outubro</month>
+            <month>novembro</month>
+            <month>dezembro</month>
+         </monthNames>
+         <monthNames abbr="1">
+            <month>jan</month>
+            <month>fev</month>
+            <month>mar</month>
+            <month>abr</month>
+            <month>mai</month>
+            <month>jun</month>
+            <month>jul</month>
+            <month>ago</month>
+            <month>set</month>
+            <month>out</month>
+            <month>nov</month>
+            <month>dez</month>
+         </monthNames>
+         <dayNames>
+            <day>domingo</day>
+            <day>segunda-feira</day>
+            <day>terça-feira</day>
+            <day>quarta-feira</day>
+            <day>quinta-feira</day>
+            <day>sexta-feira</day>
+            <day>sábado</day>
+         </dayNames>
+         <dayNames abbr="1">
+            <day>dom</day>
+            <day>seg</day>
+            <day>ter</day>
+            <day>qua</day>
+            <day>qui</day>
+            <day>sex</day>
+            <day>sáb</day>
+         </dayNames>
+         <meridiemNames>
+            <meridiem>AM</meridiem>
+            <meridiem>PM</meridiem>
+         </meridiemNames>
+         <eraNames>
+            <era>BC</era>
+            <era>AD</era>
+         </eraNames>
+      </calendarSymbols>
+      <datePatterns>
+         <datePattern name="full">EEEE, D' de 'MMMM' de 'YYYY</datePattern>
+         <datePattern name="long">D' de 'MMMM' de 'YYYY</datePattern>
+         <datePattern name="med">DD/MM/YYYY</datePattern>
+         <datePattern name="short">DD/MM/YY</datePattern>
+      </datePatterns>
+      <timePatterns>
+         <timePattern name="full">HH'h'MM'min'SS's' Z</timePattern>
+         <timePattern name="long">H'h'M'min'S's' Z</timePattern>
+         <timePattern name="med">HH:MM:SS</timePattern>
+         <timePattern name="short">HH:MM</timePattern>
+      </timePatterns>
+      <dateTimeSymbols>GyMdkHmsSEDFwWahKzZ</dateTimeSymbols>
+      <numberPatterns>
+         <numberPattern name="numeric">z,zz9.zzz</numberPattern>
+         <numberPattern name="currency">$ z,zz9.zz</numberPattern>
+         <numberPattern name="percent">z,zz9%</numberPattern>
+      </numberPatterns>
+      <numberSymbols>
+         <numberSymbol name="decimal">,</numberSymbol>
+         <numberSymbol name="grouping">.</numberSymbol>
+         <numberSymbol name="percent">%</numberSymbol>
+         <numberSymbol name="minus">-</numberSymbol>
+         <numberSymbol name="zero">0</numberSymbol>
+      </numberSymbols>
+      <currencySymbols>
+         <currencySymbol name="symbol">R$</currencySymbol>
+         <currencySymbol name="isoname">BRL</currencySymbol>
+         <currencySymbol name="decimal">,</currencySymbol>
+      </currencySymbols>
+      <typefaces>
+         <typeface name="Myriad Pro"/>
+         <typeface name="Minion Pro"/>
+         <typeface name="Courier Std"/>
+         <typeface name="Adobe Pi Std"/>
+         <typeface name="Adobe Hebrew"/>
+         <typeface name="Adobe Arabic"/>
+         <typeface name="Adobe Thai"/>
+         <typeface name="Kozuka Gothic Pro-VI M"/>
+         <typeface name="Kozuka Mincho Pro-VI R"/>
+         <typeface name="Adobe Ming Std L"/>
+         <typeface name="Adobe Song Std L"/>
+         <typeface name="Adobe Myungjo Std M"/>
+         <typeface name="Adobe Devanagari"/>
+      </typefaces>
+   </locale>
+</localeSet>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.4-c005 78.150055, 2013/08/07-22:58:47        ">
+   <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" xmlns:desc="http://ns.adobe.com/xfa/promoted-desc/" rdf:about="">
+         <xmp:MetadataDate>2018-12-04T13:07:45Z</xmp:MetadataDate>
+         <xmp:CreatorTool>Adobe LiveCycle Designer 11.0</xmp:CreatorTool>
+         <pdf:Producer>Adobe LiveCycle Designer 11.0</pdf:Producer>
+         <xmpMM:DocumentID>uuid:2b2d2e81-3d1f-4ae5-aa60-107e33a62016</xmpMM:DocumentID>
+         <desc:version rdf:parseType="Resource">
+            <rdf:value>11.0.1.20140218.1.907162.903801</rdf:value>
+            <desc:ref>/template/subform[1]</desc:ref>
+         </desc:version>
+      </rdf:Description>
+   </rdf:RDF>
+</x:xmpmeta></xdp:xdp>

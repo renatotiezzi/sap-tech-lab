@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema attributeFormDefault="unqualified"
+            elementFormDefault="qualified"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:xfa="http://www.xfa.org/schema/xfa-template/2.2/"
+            xmlns:xfadata="http://www.xfa.org/schema/xfa-data/1.0/"
+            xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <xsd:import namespace="http://www.xfa.org/schema/xfa-data/1.0/"/>
+
+  <xsd:element name="data">
+    <xsd:complexType>
+      <xsd:sequence>
+
+        <!-- ============================================================ -->
+        <!-- IS_DATA: Boleto collection data (aligned with ty_form_data)  -->
+        <!-- EF: DBR EF - BOLEPIX_BOLETO MONITOR_CONTINENTAL_V1          -->
+        <!-- ============================================================ -->
+        <xsd:element name="IS_DATA">
+          <xsd:complexType>
+            <xsd:sequence>
+
+              <!-- Bank identification -->
+              <xsd:element name="NOME_BANCO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="20"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="CODIGO_BANCO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="5"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="LOCAL_PAGAMENTO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="50"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Dates -->
+              <xsd:element name="DATA_VENCIMENTO" type="xsd:date"/>
+              <xsd:element name="DATA_PROCESSAMENTO" type="xsd:date"/>
+              <xsd:element name="DATA_EMISSAO" type="xsd:date"/>
+
+              <!-- Beneficiary (company issuing the boleto) -->
+              <xsd:element name="BENEFICIARIO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="50"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="CNPJ">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="20"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="ENDERECO_BENEFICIARIO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="255"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Bank account details -->
+              <xsd:element name="AGENCIA">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="15"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="CARTEIRA">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="3"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Document identification -->
+              <xsd:element name="NUMERO_DOCUMENTO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="20"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="NOSSO_NUMERO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="30"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="TIPO_DOCUMENTO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="2"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="ACEITE">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="1"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="ESPECIE">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="2"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Amount -->
+              <xsd:element name="VALOR_DOCUMENTO">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:decimal">
+                    <xsd:totalDigits value="23"/>
+                    <xsd:fractionDigits value="2"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="WAERS">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="5"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Barcode -->
+              <xsd:element name="LINHA_DIGITAVEL">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="60"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="BARCODE">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="44"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Payer (customer) -->
+              <xsd:element name="PAGADOR">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="50"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="CNPJ_PAGADOR">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="20"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <xsd:element name="ENDERECO_PAGADOR">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="255"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- SAPscript text reference -->
+              <xsd:element name="NAME_TEXT">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string">
+                    <xsd:maxLength value="50"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+
+              <!-- Text node for instructions / observations -->
+              <xsd:element name="TEXT">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:any namespace="http://www.w3.org/1999/xhtml"
+                             minOccurs="0" maxOccurs="unbounded"
+                             processContents="skip"/>
+                  </xsd:sequence>
+                  <xsd:attribute ref="xfadata:contentType" fixed="text/html"/>
+                </xsd:complexType>
+              </xsd:element>
+
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- ============================================================ -->
+        <!-- LOGO: Company logo image (base64 encoded)                    -->
+        <!-- ============================================================ -->
+        <xsd:element name="LOGO">
+          <xsd:complexType>
+            <xsd:simpleContent>
+              <xsd:extension base="xsd:base64Binary">
+                <xsd:attribute ref="xfadata:contentType" default="IMAGE/BMP"/>
+                <xsd:attribute ref="xfadata:transferEncoding" fixed="base64"/>
+              </xsd:extension>
+            </xsd:simpleContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <xsd:element name="G_LOGO" type="xsd:base64Binary"/>
+
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>

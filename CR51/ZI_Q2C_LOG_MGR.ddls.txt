@@ -1,0 +1,27 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Log de Processamento MGR - Interface View'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.usageType: {
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #MIXED
+}
+define view entity ZI_Q2C_LOG_MGR
+  as select from ztbq2c_log_mgr
+  association to parent ZI_Q2C_ARQ_MGR as _Arq
+    on  $projection.Pedido   = _Arq.Pedido
+    and $projection.Bandeira = _Arq.Bandeira
+{
+  key pedido    as Pedido,
+  key bandeira  as Bandeira,
+      id_ref    as IdRef,
+      etapa     as Etapa,
+      mensagem  as Mensagem,
+      datum     as Datum,
+      uzeit     as Uzeit,
+      ernam     as Ernam,
+
+      /* Associations */
+      _Arq
+}

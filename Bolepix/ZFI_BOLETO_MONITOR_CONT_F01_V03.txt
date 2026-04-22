@@ -1,0 +1,1018 @@
+*&---------------------------------------------------------------------*
+*& Include ZFI_BOLETO_MONITOR_CONT_F01
+*&---------------------------------------------------------------------*
+*& EF: DBR EF - BOLEPIX_BOLETO MONITOR_CONTINENTAL_V1
+*& Business logic: selection, processing, ALV, form generation, email
+*&---------------------------------------------------------------------*
+
+*----------------------------------------------------------------------*
+* Orchestration
+*----------------------------------------------------------------------*
+FORM f_seleciona_dados.
+
+  PERFORM f_ler_parametros.
+  PERFORM f_seleciona_bsid.
+  PERFORM f_calcula_vencimento.
+  PERFORM f_seleciona_bkpf.
+  PERFORM f_seleciona_kna1.
+  PERFORM f_seleciona_adr6.
+  PERFORM f_seleciona_t012.
+  PERFORM f_seleciona_t012k.
+  PERFORM f_seleciona_t012c.
+  PERFORM f_seleciona_t001.
+  PERFORM f_seleciona_but000.
+  PERFORM f_seleciona_dfkkbptaxnum.
+  PERFORM f_seleciona_but020.
+  PERFORM f_seleciona_adrc.
+  PERFORM f_seleciona_log.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Read parameters from custom table ZTFI_BOLETO_PARAM
+*----------------------------------------------------------------------*
+FORM f_ler_parametros.
+
+  CLEAR: gv_mail_cc, gv_mail_subject, gv_form_name, gv_mail_body.
+  REFRESH gt_param.
+
+  SELECT param, value1, value2
+    FROM ztfi_boleto_param
+    INTO TABLE @gt_param
+   WHERE param IN (@gc_param_mail_cc,
+                   @gc_param_mail_subject,
+                   @gc_param_form_name,
+                   @gc_param_mail_body).
+
+  LOOP AT gt_param INTO DATA(ls_param).
+    CASE ls_param-param.
+      WHEN gc_param_mail_cc.
+        gv_mail_cc = ls_param-value1.
+      WHEN gc_param_mail_subject.
+        gv_mail_subject = ls_param-value1.
+      WHEN gc_param_form_name.
+        gv_form_name = ls_param-value1.
+      WHEN gc_param_mail_body.
+        gv_mail_body = ls_param-value1.
+    ENDCASE.
+  ENDLOOP.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select open customer items from BSID/BSEG per EF criteria
+*----------------------------------------------------------------------*
+FORM f_seleciona_bsid.
+
+  REFRESH gt_bsid.
+
+  SELECT a~bukrs, a~kunnr, a~gjahr, a~belnr, a~buzei,
+         a~budat, a~bldat, a~waers, a~xblnr, a~monat,
+         a~shkzg, b~dmbtr, a~wrbtr,
+         a~zfbdt, a~zbd1t, a~zbd2t, a~zbd3t,
+         b~hbkid, b~anfbn, b~xref3, b~bupla, b~hktid, a~rebzg
+    FROM bsid AS a
+    INNER JOIN bseg AS b
+      ON b~bukrs = a~bukrs
+     AND b~belnr = a~belnr
+     AND b~gjahr = a~gjahr
+     AND b~buzei = a~buzei
+    INTO TABLE @gt_bsid
+   WHERE a~bukrs IN @s_bukrs
+     AND a~kunnr IN @s_kunnr
+     AND a~belnr IN @s_belnr
+     AND a~budat IN @s_budat
+     AND a~shkzg = @gc_shkzg_debit
+     AND b~koart = 'D'
+     AND b~augbl = @space
+     AND b~xumsw = 'X'
+     AND b~anfbn <> @space
+     AND b~xref3 <> @space.
+
+  IF gt_bsid IS INITIAL.
+    MESSAGE s012(zfi) DISPLAY LIKE 'E'.
+    LEAVE LIST-PROCESSING.
+  ENDIF.
+
+  SORT gt_bsid BY bukrs belnr gjahr buzei.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Calculate net due date using standard FM and apply due date filter
+*----------------------------------------------------------------------*
+FORM f_calcula_vencimento.
+
+  DATA lt_bsid TYPE STANDARD TABLE OF ty_bsid.
+
+  LOOP AT gt_bsid ASSIGNING FIELD-SYMBOL(<fs_bsid>).
+
+    CALL FUNCTION 'NET_DUE_DATE_GET'
+      EXPORTING
+        i_zfbdt = <fs_bsid>-zfbdt
+        i_zbd1t = <fs_bsid>-zbd1t
+        i_zbd2t = <fs_bsid>-zbd2t
+        i_zbd3t = <fs_bsid>-zbd3t
+        i_shkzg = <fs_bsid>-shkzg
+        i_rebzg = <fs_bsid>-rebzg
+      IMPORTING
+        e_faedt = <fs_bsid>-faedt.
+
+    CHECK <fs_bsid>-faedt IN s_faedt.
+    APPEND <fs_bsid> TO lt_bsid.
+
+  ENDLOOP.
+
+  gt_bsid = lt_bsid.
+
+  IF gt_bsid IS INITIAL.
+    MESSAGE s012(zfi) DISPLAY LIKE 'E'.
+    LEAVE LIST-PROCESSING.
+  ENDIF.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Read document header data from BKPF
+*----------------------------------------------------------------------*
+FORM f_seleciona_bkpf.
+
+  REFRESH gt_bkpf.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT bukrs, belnr, gjahr, bldat, budat, monat, xblnr
+    FROM bkpf
+    INTO TABLE @gt_bkpf
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs
+     AND belnr = @gt_bsid-belnr
+     AND gjahr = @gt_bsid-gjahr.
+
+  SORT gt_bkpf BY bukrs belnr gjahr.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Read customer master data from KNA1
+*----------------------------------------------------------------------*
+FORM f_seleciona_kna1.
+
+  DATA lt_kunnr TYPE SORTED TABLE OF ty_kna1-kunnr WITH UNIQUE KEY table_line.
+
+  REFRESH gt_kna1.
+
+  LOOP AT gt_bsid INTO DATA(ls_bsid).
+    INSERT ls_bsid-kunnr INTO TABLE lt_kunnr.
+  ENDLOOP.
+
+  CHECK lt_kunnr IS NOT INITIAL.
+
+  SELECT kunnr, name1, adrnr
+    FROM kna1
+    INTO TABLE @gt_kna1
+    FOR ALL ENTRIES IN @lt_kunnr
+   WHERE kunnr = @lt_kunnr-table_line.
+
+  SORT gt_kna1 BY kunnr.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Read customer email addresses from ADR6
+*----------------------------------------------------------------------*
+FORM f_seleciona_adr6.
+
+  DATA lt_adrnr TYPE SORTED TABLE OF adr6-addrnumber WITH UNIQUE KEY table_line.
+
+  REFRESH gt_adr6.
+
+  LOOP AT gt_kna1 INTO DATA(ls_kna1).
+    IF ls_kna1-adrnr IS NOT INITIAL.
+      INSERT ls_kna1-adrnr INTO TABLE lt_adrnr.
+    ENDIF.
+  ENDLOOP.
+
+  CHECK lt_adrnr IS NOT INITIAL.
+
+  SELECT addrnumber, smtp_addr, flgdefault
+    FROM adr6
+    INTO TABLE @gt_adr6
+    FOR ALL ENTRIES IN @lt_adrnr
+   WHERE addrnumber = @lt_adrnr-table_line.
+
+  SORT gt_adr6 BY addrnumber flgdefault DESCENDING.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select House Bank data (T012)
+*----------------------------------------------------------------------*
+FORM f_seleciona_t012.
+
+  REFRESH gt_t012.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT DISTINCT bukrs, hbkid, baknl, banks
+    FROM t012
+    INTO TABLE @gt_t012
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs
+     AND hbkid = @gt_bsid-hbkid.
+
+  SORT gt_t012 BY bukrs hbkid.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select House Bank Account data (T012K)
+*----------------------------------------------------------------------*
+FORM f_seleciona_t012k.
+
+  REFRESH gt_t012k.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT bukrs, hbkid, hktid, bankn, bkont
+    FROM t012k
+    INTO TABLE @gt_t012k
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs
+     AND hbkid = @gt_bsid-hbkid
+     AND hktid = @gt_bsid-hktid.
+
+  SORT gt_t012k BY bukrs hbkid hktid.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Wallet data (T012C)
+*----------------------------------------------------------------------*
+FORM f_seleciona_t012c.
+
+  REFRESH gt_t012c.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT DISTINCT bukrs, hbkid, vorga
+    FROM t012c
+    INTO TABLE @gt_t012c
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs
+     AND hbkid = @gt_bsid-hbkid.
+
+  SORT gt_t012c BY bukrs hbkid.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Company data (T001) - beneficiary address number
+*----------------------------------------------------------------------*
+FORM f_seleciona_t001.
+
+  REFRESH gt_t001.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT DISTINCT bukrs, adrnr
+    FROM t001
+    INTO TABLE @gt_t001
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs.
+
+  SORT gt_t001 BY bukrs.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Payer data (BUT000)
+*----------------------------------------------------------------------*
+FORM f_seleciona_but000.
+
+  DATA lt_partner TYPE SORTED TABLE OF but000-partner WITH UNIQUE KEY table_line.
+
+  REFRESH gt_but000.
+
+  LOOP AT gt_bsid INTO DATA(ls_bsid).
+    INSERT ls_bsid-kunnr INTO TABLE lt_partner.
+  ENDLOOP.
+
+  CHECK lt_partner IS NOT INITIAL.
+
+  SELECT partner, name_org1
+    FROM but000
+    INTO TABLE @gt_but000
+    FOR ALL ENTRIES IN @lt_partner
+   WHERE partner = @lt_partner-table_line.
+
+  SORT gt_but000 BY partner.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Payer Tax ID (DFKKBPTAXNUM)
+*----------------------------------------------------------------------*
+FORM f_seleciona_dfkkbptaxnum.
+
+  DATA lt_partner TYPE SORTED TABLE OF dfkkbptaxnum-partner WITH UNIQUE KEY table_line.
+
+  REFRESH gt_dfkkbptaxnum.
+
+  LOOP AT gt_bsid INTO DATA(ls_bsid).
+    INSERT ls_bsid-kunnr INTO TABLE lt_partner.
+  ENDLOOP.
+
+  CHECK lt_partner IS NOT INITIAL.
+
+  SELECT partner, taxtype, taxnum
+    FROM dfkkbptaxnum
+    INTO TABLE @gt_dfkkbptaxnum
+    FOR ALL ENTRIES IN @lt_partner
+   WHERE partner = @lt_partner-table_line
+     AND taxtype IN ('BR1', 'BR2').
+
+  SORT gt_dfkkbptaxnum BY partner taxtype.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Payer Address data (BUT020)
+*----------------------------------------------------------------------*
+FORM f_seleciona_but020.
+
+  DATA lt_partner TYPE SORTED TABLE OF but020-partner WITH UNIQUE KEY table_line.
+
+  REFRESH gt_but020.
+
+  LOOP AT gt_bsid INTO DATA(ls_bsid).
+    INSERT ls_bsid-kunnr INTO TABLE lt_partner.
+  ENDLOOP.
+
+  CHECK lt_partner IS NOT INITIAL.
+
+  SELECT partner, addrnumber
+    FROM but020
+    INTO TABLE @gt_but020
+    FOR ALL ENTRIES IN @lt_partner
+   WHERE partner = @lt_partner-table_line.
+
+  SORT gt_but020 BY partner.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Select Address data (ADRC) - beneficiary and payer
+*----------------------------------------------------------------------*
+FORM f_seleciona_adrc.
+
+  DATA lt_addrnr TYPE SORTED TABLE OF adrc-addrnumber WITH UNIQUE KEY table_line.
+
+  REFRESH gt_adrc.
+
+  LOOP AT gt_t001 INTO DATA(ls_t001).
+    IF ls_t001-adrnr IS NOT INITIAL.
+      INSERT ls_t001-adrnr INTO TABLE lt_addrnr.
+    ENDIF.
+  ENDLOOP.
+
+  IF gt_but020 IS NOT INITIAL.
+    LOOP AT gt_but020 INTO DATA(ls_but020).
+      IF ls_but020-addrnumber IS NOT INITIAL.
+        INSERT ls_but020-addrnumber INTO TABLE lt_addrnr.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+
+  CHECK lt_addrnr IS NOT INITIAL.
+
+  SELECT addrnumber, name1, street, house_num1, city2, city1, post_code1
+    FROM adrc
+    INTO TABLE @gt_adrc
+    FOR ALL ENTRIES IN @lt_addrnr
+   WHERE addrnumber = @lt_addrnr-table_line.
+
+  SORT gt_adrc BY addrnumber.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Read processing log from ZTFI_BOLETO_LOG
+*----------------------------------------------------------------------*
+FORM f_seleciona_log.
+
+  REFRESH gt_log.
+
+  CHECK gt_bsid IS NOT INITIAL.
+
+  SELECT bukrs, belnr, gjahr, buzei,
+         proc_type, uname, erdat, erzet, status, message
+    FROM ztfi_boleto_log
+    INTO TABLE @gt_log
+    FOR ALL ENTRIES IN @gt_bsid
+   WHERE bukrs = @gt_bsid-bukrs
+     AND belnr = @gt_bsid-belnr
+     AND gjahr = @gt_bsid-gjahr
+     AND buzei = @gt_bsid-buzei.
+
+  SORT gt_log BY bukrs belnr gjahr buzei erdat DESCENDING erzet DESCENDING.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Build ALV output table
+*----------------------------------------------------------------------*
+FORM f_trata_dados.
+
+  REFRESH gt_alv.
+
+  LOOP AT gt_bsid INTO gs_bsid.
+
+    CLEAR gs_alv.
+
+    gs_alv-status_proc = gc_icon_pending.
+    gs_alv-bukrs       = gs_bsid-bukrs.
+    gs_alv-bupla       = gs_bsid-bupla.
+    gs_alv-gjahr       = gs_bsid-gjahr.
+    gs_alv-kunnr       = gs_bsid-kunnr.
+    gs_alv-belnr       = gs_bsid-belnr.
+    gs_alv-buzei       = gs_bsid-buzei.
+    gs_alv-dmbtr       = gs_bsid-dmbtr.
+    gs_alv-waers       = gs_bsid-waers.
+    gs_alv-faedt       = gs_bsid-faedt.
+    gs_alv-xref3       = gs_bsid-xref3.
+    gs_alv-hbkid       = gs_bsid-hbkid.
+    gs_alv-hktid       = gs_bsid-hktid.
+
+    READ TABLE gt_bkpf INTO gs_bkpf
+      WITH KEY bukrs = gs_bsid-bukrs
+               belnr = gs_bsid-belnr
+               gjahr = gs_bsid-gjahr
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      gs_alv-bldat = gs_bkpf-bldat.
+      gs_alv-budat = gs_bkpf-budat.
+      gs_alv-monat = gs_bkpf-monat.
+      gs_alv-xblnr = gs_bkpf-xblnr.
+    ENDIF.
+
+    READ TABLE gt_kna1 INTO gs_kna1
+      WITH KEY kunnr = gs_bsid-kunnr
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      gs_alv-name1 = gs_kna1-name1.
+    ENDIF.
+
+    IF gs_bsid-faedt < sy-datum.
+      gs_alv-atraso = sy-datum - gs_bsid-faedt.
+    ELSE.
+      gs_alv-dias_vencer = gs_bsid-faedt - sy-datum.
+    ENDIF.
+
+    READ TABLE gt_log INTO DATA(ls_log)
+      WITH KEY bukrs = gs_bsid-bukrs
+               belnr = gs_bsid-belnr
+               gjahr = gs_bsid-gjahr
+               buzei = gs_bsid-buzei.
+    IF sy-subrc = 0.
+      gs_alv-last_date = ls_log-erdat.
+      gs_alv-last_time = ls_log-erzet.
+      gs_alv-proc_user = ls_log-uname.
+      IF ls_log-status = 'S'.
+        gs_alv-status_proc = gc_icon_done.
+      ELSEIF ls_log-status = 'E'.
+        gs_alv-status_proc = gc_icon_error.
+      ENDIF.
+    ENDIF.
+
+    APPEND gs_alv TO gt_alv.
+
+  ENDLOOP.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Display ALV using CL_SALV_TABLE
+*----------------------------------------------------------------------*
+FORM f_exibe_dados.
+
+  DATA: lo_columns TYPE REF TO cl_salv_columns_table,
+        lo_events  TYPE REF TO cl_salv_events_table,
+        lo_funcs   TYPE REF TO cl_salv_functions_list,
+        lo_layout  TYPE REF TO cl_salv_layout,
+        lo_display TYPE REF TO cl_salv_display_settings,
+        lo_sel     TYPE REF TO cl_salv_selections,
+        lo_handler TYPE REF TO lcl_event_handler,
+        ls_key     TYPE salv_s_layout_key.
+
+  TRY.
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = go_salv
+        CHANGING
+          t_table      = gt_alv ).
+    CATCH cx_salv_msg.
+      RETURN.
+  ENDTRY.
+
+  lo_layout = go_salv->get_layout( ).
+  ls_key-report = sy-repid.
+  lo_layout->set_key( ls_key ).
+  lo_layout->set_save_restriction( if_salv_c_layout=>restrict_none ).
+
+  lo_display = go_salv->get_display_settings( ).
+  lo_display->set_striped_pattern( abap_true ).
+  lo_display->set_list_header( TEXT-002 ).
+
+  lo_sel = go_salv->get_selections( ).
+  lo_sel->set_selection_mode( if_salv_c_selection_mode=>multiple ).
+
+  lo_funcs = go_salv->get_functions( ).
+  lo_funcs->set_all( abap_true ).
+
+  go_salv->set_screen_status(
+    report        = sy-repid
+    pfstatus      = 'STATUS_GUI_MAIN'
+    set_functions = go_salv->c_functions_all ).
+
+  lo_columns = go_salv->get_columns( ).
+  PERFORM f_modifica_fieldcat USING lo_columns.
+
+  lo_events = go_salv->get_event( ).
+  CREATE OBJECT lo_handler.
+  SET HANDLER lo_handler->on_user_command FOR lo_events.
+  SET HANDLER lo_handler->on_link_click   FOR lo_events.
+
+  go_salv->display( ).
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Configure ALV field catalog
+*----------------------------------------------------------------------*
+FORM f_modifica_fieldcat USING io_columns TYPE REF TO cl_salv_columns_table.
+
+  PERFORM f_set_column USING io_columns 'STATUS_PROC' 'Status'          '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'BUKRS'       'Company Code'    '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'BUPLA'       'Business Place'  '15' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'MONAT'       'Posting Period'  '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'GJAHR'       'Fiscal Year'     '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'KUNNR'       'Customer'        '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'NAME1'       'Customer Name'   '30' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'BELNR'       'Accounting Doc.' '15' abap_true  abap_false.
+  PERFORM f_set_column USING io_columns 'BUZEI'       'Item'            '6'  abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'DMBTR'       'Amount'          '15' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'WAERS'       'Currency'        '8'  abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'BLDAT'       'Document Date'   '12' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'BUDAT'       'Posting Date'    '12' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'FAEDT'       'Due Date'        '12' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'ATRASO'      'Days in Arrears' '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'DIAS_VENCER' 'Days Until Due'  '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'XBLNR'       'Invoice Number'  '20' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'XREF3'       'Nosso Numero'    '20' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'HBKID'       'House Bank'      '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'HKTID'       'Bank Account ID' '12' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'LAST_DATE'   'Last Date'       '12' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'LAST_TIME'   'Last Time'       '10' abap_false abap_false.
+  PERFORM f_set_column USING io_columns 'PROC_USER'   'Processing User' '15' abap_false abap_false.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Set individual ALV column properties
+*----------------------------------------------------------------------*
+FORM f_set_column USING io_columns TYPE REF TO cl_salv_columns_table
+                        iv_column  TYPE lvc_fname
+                        iv_text    TYPE scrtext_l
+                        iv_length  TYPE char10
+                        iv_hotspot TYPE abap_bool
+                        iv_hidden  TYPE abap_bool.
+
+  DATA lo_col TYPE REF TO cl_salv_column_table.
+
+  TRY.
+      lo_col ?= io_columns->get_column( iv_column ).
+      lo_col->set_short_text( iv_text ).
+      lo_col->set_medium_text( iv_text ).
+      lo_col->set_long_text( iv_text ).
+      lo_col->set_output_length( iv_length ).
+
+      IF iv_hotspot = abap_true.
+        lo_col->set_cell_type( if_salv_c_cell_type=>hotspot ).
+      ENDIF.
+
+      IF iv_hidden = abap_true.
+        lo_col->set_visible( if_salv_c_bool_sap=>false ).
+      ENDIF.
+    CATCH cx_salv_not_found.
+  ENDTRY.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Print boletos
+*----------------------------------------------------------------------*
+FORM f_imprimir_boletos USING it_alv TYPE STANDARD TABLE.
+
+  LOOP AT it_alv INTO DATA(ls_alv).
+    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING DATA(lv_pdf_xstr).
+    IF lv_pdf_xstr IS NOT INITIAL.
+      PERFORM f_gravar_log USING ls_alv gc_proc_print 'S' 'Boleto printed successfully'.
+    ELSE.
+      PERFORM f_gravar_log USING ls_alv gc_proc_print 'E' 'PDF generation failed'.
+    ENDIF.
+  ENDLOOP.
+
+  MESSAGE s000(zfi) WITH 'Print processing finished'.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Send boletos by email
+*----------------------------------------------------------------------*
+FORM f_enviar_email USING it_alv TYPE STANDARD TABLE.
+
+  DATA: lv_email TYPE adr6-smtp_addr.
+
+  LOOP AT it_alv INTO DATA(ls_alv).
+
+    CLEAR lv_email.
+    PERFORM f_busca_email_cliente USING ls_alv-kunnr CHANGING lv_email.
+
+    IF lv_email IS INITIAL.
+      PERFORM f_gravar_log USING ls_alv gc_proc_email 'E' 'Customer email not found'.
+      CONTINUE.
+    ENDIF.
+
+    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING DATA(lv_pdf_xstr).
+
+    IF lv_pdf_xstr IS INITIAL.
+      PERFORM f_gravar_log USING ls_alv gc_proc_email 'E' 'PDF generation failed - email not sent'.
+      CONTINUE.
+    ENDIF.
+
+    DATA(lv_sent) = abap_false.
+    PERFORM f_send_email_bcs USING ls_alv
+                                   lv_email
+                                   gv_mail_cc
+                                   gv_mail_subject
+                                   gv_mail_body
+                                   lv_pdf_xstr
+                          CHANGING lv_sent.
+
+    IF lv_sent = abap_true.
+      PERFORM f_gravar_log USING ls_alv gc_proc_email 'S' 'Boleto sent successfully'.
+    ELSE.
+      PERFORM f_gravar_log USING ls_alv gc_proc_email 'E' 'Email sending failed'.
+    ENDIF.
+
+  ENDLOOP.
+
+  MESSAGE s000(zfi) WITH 'Email processing finished'.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Look up customer email from ADR6
+*----------------------------------------------------------------------*
+FORM f_busca_email_cliente USING    iv_kunnr TYPE kunnr
+                           CHANGING cv_email TYPE adr6-smtp_addr.
+
+  CLEAR cv_email.
+
+  READ TABLE gt_kna1 INTO DATA(ls_kna1)
+    WITH KEY kunnr = iv_kunnr
+    BINARY SEARCH.
+  CHECK sy-subrc = 0.
+
+  READ TABLE gt_adr6 INTO DATA(ls_adr6)
+    WITH KEY addrnumber = ls_kna1-adrnr
+    BINARY SEARCH.
+  IF sy-subrc = 0.
+    cv_email = ls_adr6-smtp_addr.
+  ENDIF.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Build form data with EF mapping rules (3.1 to 3.11) - FULLY IMPLEMENTED
+*----------------------------------------------------------------------*
+FORM f_monta_form_data USING    is_alv      TYPE ty_alv
+                      CHANGING cs_form_data TYPE ty_form_data.
+
+  DATA: ls_t012       TYPE ty_t012,
+        ls_t012k      TYPE ty_t012k,
+        ls_t012c      TYPE ty_t012c,
+        ls_t001       TYPE ty_t001_map,
+        ls_adrc_ben   TYPE ty_adrc_map,
+        ls_adrc_pay   TYPE ty_adrc_map,
+        ls_but000     TYPE ty_but000,
+        ls_but020     TYPE ty_but020,
+        ls_dfkkbptax  TYPE ty_dfkkbptaxnum_map,
+        lv_agencia    TYPE char15,
+        lv_carteira   TYPE char3,
+        lv_cep_mask   TYPE char10.
+
+  CLEAR cs_form_data.
+
+  cs_form_data-local_pagamento = 'PAGÁVEL EM QUALQUER BANCO ATÉ O VENCIMENTO'.
+  cs_form_data-especie = 'R$'.
+
+  READ TABLE gt_t012 INTO ls_t012
+    WITH KEY bukrs = is_alv-bukrs
+             hbkid = is_alv-hbkid
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    cs_form_data-nome_banco = ls_t012-banks.
+    cs_form_data-codigo_banco = ls_t012-baknl.
+    IF strlen( ls_t012-baknl ) >= 5.
+      lv_agencia = ls_t012-baknl+4.
+    ELSE.
+      lv_agencia = ls_t012-baknl.
+    ENDIF.
+  ENDIF.
+
+  READ TABLE gt_t012k INTO ls_t012k
+    WITH KEY bukrs = is_alv-bukrs
+             hbkid = is_alv-hbkid
+             hktid = is_alv-hktid
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    IF ls_t012k-bkont IS NOT INITIAL.
+      cs_form_data-agencia = |{ lv_agencia } / { ls_t012k-bankn }-{ ls_t012k-bkont }|.
+    ELSE.
+      cs_form_data-agencia = |{ lv_agencia } / { ls_t012k-bankn }|.
+    ENDIF.
+  ELSE.
+    cs_form_data-agencia = lv_agencia.
+  ENDIF.
+
+  READ TABLE gt_t001 INTO ls_t001
+    WITH KEY bukrs = is_alv-bukrs
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    READ TABLE gt_adrc INTO ls_adrc_ben
+      WITH KEY addrnumber = ls_t001-adrnr
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      cs_form_data-beneficiario = ls_adrc_ben-name1.
+      cs_form_data-endereco_beneficiario = |{ ls_adrc_ben-street } { ls_adrc_ben-house_num1 } { ls_adrc_ben-city2 } { ls_adrc_ben-city1 }|.
+      CONDENSE cs_form_data-endereco_beneficiario.
+    ENDIF.
+  ENDIF.
+
+  CALL FUNCTION 'J_1BREAD_CGC_COMPANY'
+    EXPORTING
+      i_bukrs = is_alv-bukrs
+    IMPORTING
+      e_cgc = cs_form_data-cnpj
+    EXCEPTIONS
+      OTHERS = 1.
+
+  READ TABLE gt_t012c INTO ls_t012c
+    WITH KEY bukrs = is_alv-bukrs
+             hbkid = is_alv-hbkid
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    IF strlen( ls_t012c-vorga ) > 1.
+      lv_carteira = ls_t012c-vorga+1.
+    ELSE.
+      lv_carteira = ls_t012c-vorga.
+    ENDIF.
+    cs_form_data-carteira = lv_carteira.
+  ENDIF.
+
+  cs_form_data-nosso_numero = |{ lv_carteira }/{ is_alv-xref3 }|.
+
+  READ TABLE gt_but000 INTO ls_but000
+    WITH KEY partner = is_alv-kunnr
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    cs_form_data-pagador = ls_but000-name_org1.
+  ELSE.
+    cs_form_data-pagador = is_alv-name1.
+  ENDIF.
+
+  CLEAR ls_dfkkbptax.
+
+  READ TABLE gt_dfkkbptaxnum INTO ls_dfkkbptax
+    WITH KEY partner = is_alv-kunnr
+             taxtype = 'BR1'
+    BINARY SEARCH.
+
+  IF sy-subrc <> 0.
+    READ TABLE gt_dfkkbptaxnum INTO ls_dfkkbptax
+      WITH KEY partner = is_alv-kunnr
+               taxtype = 'BR2'
+      BINARY SEARCH.
+  ENDIF.
+
+  IF sy-subrc = 0.
+    IF ls_dfkkbptax-taxtype = 'BR1'.
+      IF strlen( ls_dfkkbptax-taxnum ) >= 14.
+        cs_form_data-cnpj_pagador = |{ ls_dfkkbptax-taxnum(2) }.{ ls_dfkkbptax-taxnum+2(3) }.{ ls_dfkkbptax-taxnum+5(3) }/{ ls_dfkkbptax-taxnum+8(4) }-{ ls_dfkkbptax-taxnum+12(2) }|.
+      ELSE.
+        cs_form_data-cnpj_pagador = ls_dfkkbptax-taxnum.
+      ENDIF.
+    ELSEIF ls_dfkkbptax-taxtype = 'BR2'.
+      IF strlen( ls_dfkkbptax-taxnum ) >= 11.
+        cs_form_data-cnpj_pagador = |{ ls_dfkkbptax-taxnum(3) }.{ ls_dfkkbptax-taxnum+3(3) }.{ ls_dfkkbptax-taxnum+6(3) }-{ ls_dfkkbptax-taxnum+9(2) }|.
+      ELSE.
+        cs_form_data-cnpj_pagador = ls_dfkkbptax-taxnum.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+
+  READ TABLE gt_but020 INTO ls_but020
+    WITH KEY partner = is_alv-kunnr
+    BINARY SEARCH.
+
+  IF sy-subrc = 0.
+    READ TABLE gt_adrc INTO ls_adrc_pay
+      WITH KEY addrnumber = ls_but020-addrnumber
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      IF strlen( ls_adrc_pay-post_code1 ) >= 8.
+        lv_cep_mask = |{ ls_adrc_pay-post_code1(5) }-{ ls_adrc_pay-post_code1+5(3) }|.
+      ELSE.
+        lv_cep_mask = ls_adrc_pay-post_code1.
+      ENDIF.
+      cs_form_data-endereco_pagador = |{ ls_adrc_pay-street } { ls_adrc_pay-house_num1 } { ls_adrc_pay-city2 } { ls_adrc_pay-city1 } { lv_cep_mask }|.
+      CONDENSE cs_form_data-endereco_pagador.
+    ENDIF.
+  ENDIF.
+
+  cs_form_data-data_vencimento    = is_alv-faedt.
+  cs_form_data-data_processamento = sy-datum.
+  cs_form_data-data_emissao       = is_alv-bldat.
+  cs_form_data-numero_documento   = |{ is_alv-xblnr }-{ is_alv-buzei }|.
+  cs_form_data-valor_documento    = is_alv-dmbtr.
+  cs_form_data-waers              = is_alv-waers.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Generate PDF via Adobe Forms
+*----------------------------------------------------------------------*
+FORM f_gerar_pdf_boleto USING    is_alv      TYPE ty_alv
+                        CHANGING cv_pdf_xstr TYPE xstring.
+
+  DATA: lv_funcname     TYPE funcname,
+        ls_outputparams TYPE sfpoutputparams,
+        ls_docparams    TYPE sfpdocparams,
+        ls_formoutput   TYPE fpformoutput,
+        ls_form_data    TYPE ty_form_data.
+
+  CLEAR cv_pdf_xstr.
+
+  CHECK gv_form_name IS NOT INITIAL.
+
+  PERFORM f_monta_form_data USING is_alv CHANGING ls_form_data.
+
+  TRY.
+      CALL FUNCTION 'FP_FUNCTION_MODULE_NAME'
+        EXPORTING
+          i_name     = gv_form_name
+        IMPORTING
+          e_funcname = lv_funcname.
+
+      ls_outputparams-getpdf   = abap_true.
+      ls_outputparams-nodialog = abap_true.
+      ls_outputparams-preview  = abap_false.
+
+      CALL FUNCTION 'FP_JOB_OPEN'
+        CHANGING
+          ie_outputparams = ls_outputparams.
+
+      CALL FUNCTION lv_funcname
+        EXPORTING
+          /1bcdwb/docparams  = ls_docparams
+          is_data            = ls_form_data
+        IMPORTING
+          /1bcdwb/formoutput = ls_formoutput.
+
+      CALL FUNCTION 'FP_JOB_CLOSE'.
+
+      cv_pdf_xstr = ls_formoutput-pdf.
+
+    CATCH cx_root.
+      CALL FUNCTION 'FP_JOB_CLOSE'
+        EXCEPTIONS
+          OTHERS = 0.
+  ENDTRY.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Send email via BCS
+*----------------------------------------------------------------------*
+FORM f_send_email_bcs USING is_alv         TYPE ty_alv
+                            iv_to          TYPE adr6-smtp_addr
+                            iv_cc          TYPE adr6-smtp_addr
+                            iv_subject     TYPE so_obj_des
+                            iv_body        TYPE string
+                            iv_pdf_xstring TYPE xstring
+                   CHANGING cv_sent        TYPE abap_bool.
+
+  DATA: lt_body_hex TYPE solix_tab,
+        lv_size     TYPE so_obj_len.
+
+  DATA: lo_send_request TYPE REF TO cl_bcs,
+        lo_document     TYPE REF TO cl_document_bcs,
+        lo_recipient    TYPE REF TO if_recipient_bcs,
+        lo_cc           TYPE REF TO if_recipient_bcs.
+
+  cv_sent = abap_false.
+
+  TRY.
+      IF iv_pdf_xstring IS NOT INITIAL.
+        CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+          EXPORTING
+            buffer        = iv_pdf_xstring
+          IMPORTING
+            output_length = lv_size
+          TABLES
+            binary_tab    = lt_body_hex.
+      ENDIF.
+
+      lo_send_request = cl_bcs=>create_persistent( ).
+
+      lo_document = cl_document_bcs=>create_document(
+                      i_type    = 'RAW'
+                      i_text    = VALUE soli_tab( ( line = iv_body ) )
+                      i_subject = iv_subject ).
+
+      IF lt_body_hex IS NOT INITIAL.
+        lo_document->add_attachment(
+          i_attachment_type    = 'PDF'
+          i_attachment_subject = |BOLETO_{ is_alv-belnr }|
+          i_attachment_size    = lv_size
+          i_att_content_hex    = lt_body_hex ).
+      ENDIF.
+
+      lo_send_request->set_document( lo_document ).
+
+      lo_recipient = cl_cam_address_bcs=>create_internet_address( iv_to ).
+      lo_send_request->add_recipient( lo_recipient ).
+
+      IF iv_cc IS NOT INITIAL.
+        lo_cc = cl_cam_address_bcs=>create_internet_address( iv_cc ).
+        lo_send_request->add_recipient( i_recipient = lo_cc
+                                        i_copy      = abap_true ).
+      ENDIF.
+
+      lo_send_request->send( i_with_error_screen = abap_false ).
+
+      COMMIT WORK.
+      cv_sent = abap_true.
+
+    CATCH cx_bcs.
+      cv_sent = abap_false.
+  ENDTRY.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Write log entry
+*----------------------------------------------------------------------*
+FORM f_gravar_log USING is_alv       TYPE ty_alv
+                        iv_proc_type TYPE char10
+                        iv_status    TYPE char1
+                        iv_message   TYPE char255.
+
+  DATA ls_log TYPE ztfi_boleto_log.
+
+  CLEAR ls_log.
+  ls_log-bukrs     = is_alv-bukrs.
+  ls_log-belnr     = is_alv-belnr.
+  ls_log-gjahr     = is_alv-gjahr.
+  ls_log-buzei     = is_alv-buzei.
+  ls_log-proc_type = iv_proc_type.
+  ls_log-uname     = sy-uname.
+  ls_log-erdat     = sy-datum.
+  ls_log-erzet     = sy-uzeit.
+  ls_log-status    = iv_status.
+  ls_log-message   = iv_message.
+
+  INSERT ztfi_boleto_log FROM ls_log.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Refresh ALV
+*----------------------------------------------------------------------*
+FORM f_atualiza_alv.
+
+  PERFORM f_seleciona_log.
+  PERFORM f_trata_dados.
+
+  IF go_salv IS BOUND.
+    go_salv->refresh( ).
+  ENDIF.
+
+ENDFORM.

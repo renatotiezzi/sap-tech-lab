@@ -1,0 +1,19 @@
+@EndUserText.label: 'Log de Processamento MGR - Projection View'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+define view entity ZC_Q2C_LOG_MGR
+  provider contract transactional_query
+  as projection on ZI_Q2C_LOG_MGR
+{
+  key Pedido,
+  key Bandeira,
+      IdRef,
+      Etapa,
+      Mensagem,
+      Datum,
+      Uzeit,
+      Ernam,
+
+      /* Associations */
+      _Arq : redirected to parent ZC_Q2C_ARQ_MGR
+}

@@ -1,0 +1,70 @@
+managed implementation in class zbp_i_q2c_arq_mgr unique;
+strict ( 2 );
+
+// -----------------------------------------------------------------------
+// Root BO: Arquivos de Entrada MGR
+// -----------------------------------------------------------------------
+define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
+persistent table ztbq2c_arq_mgr
+lock master
+authorization master ( instance )
+etag master Uzeit
+{
+  create;
+  update;
+  delete;
+
+  // Admin fields filled by determination - not editable by user
+  field ( readonly ) Datum, Uzeit, Ernam;
+
+  determination set_admin_fields on modify { create; update; }
+
+  // Composition to Log child entity
+  association _Log { create; }
+
+  mapping for ztbq2c_arq_mgr
+  {
+    Pedido     = pedido;
+    Bandeira   = bandeira;
+    TipoDoc    = tipo_doc;
+    CabecArq   = cabec_arq;
+    Conteudo   = conteudo;
+    Status     = status;
+    Tentativas = tentativas;
+    Datum      = datum;
+    Uzeit      = uzeit;
+    Ernam      = ernam;
+  }
+}
+
+// -----------------------------------------------------------------------
+// Child BO: Log de Processamento MGR
+// -----------------------------------------------------------------------
+define behavior for ZI_Q2C_LOG_MGR alias LogMgr
+persistent table ztbq2c_log_mgr
+lock dependent by _Arq
+authorization dependent by _Arq
+etag master Uzeit
+{
+  create;
+  delete;
+
+  // Admin fields filled by determination - not editable by user
+  field ( readonly ) Datum, Uzeit, Ernam;
+
+  determination set_admin_fields on modify { create; }
+
+  association _Arq;
+
+  mapping for ztbq2c_log_mgr
+  {
+    Pedido   = pedido;
+    Bandeira = bandeira;
+    IdRef    = id_ref;
+    Etapa    = etapa;
+    Mensagem = mensagem;
+    Datum    = datum;
+    Uzeit    = uzeit;
+    Ernam    = ernam;
+  }
+}

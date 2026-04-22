@@ -1,0 +1,13 @@
+CLASS zbp_i_q2c_arq_mgr DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zi_q2c_arq_mgr.
+
+  " Global class is abstract + final for managed RAP.
+  " All handler logic resides in local classes (CCIMP include).
+
+ENDCLASS.
+
+CLASS zbp_i_q2c_arq_mgr IMPLEMENTATION.
+ENDCLASS.

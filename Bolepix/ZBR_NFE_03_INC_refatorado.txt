@@ -1,0 +1,11 @@
+*&---------------------------------------------------------------------*
+*& Include          ZBR_NFE_03_INC (refatorado para classe)
+*&---------------------------------------------------------------------*
+
+DATA(lv_ok) = zcl_nfse_layout_cpi=>download_selected_rows(
+               it_selected_rows = it_selected_rows
+               it_nfe_alv       = it_nfe_alv ).
+
+IF lv_ok = abap_false.
+  MESSAGE 'Nenhum PDF NFSe foi gerado.' TYPE 'S'.
+ENDIF.

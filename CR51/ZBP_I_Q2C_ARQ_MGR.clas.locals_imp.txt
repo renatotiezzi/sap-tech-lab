@@ -1,0 +1,92 @@
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type definitions
+
+*----------------------------------------------------------------------*
+* Local Handler: ArqMgr
+*----------------------------------------------------------------------*
+CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS set_admin_fields FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR arqmgr~set_admin_fields.
+ENDCLASS.
+
+CLASS lhc_arq_mgr IMPLEMENTATION.
+
+  METHOD set_admin_fields.
+
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        FIELDS ( Pedido Bandeira )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(arq_entries).
+
+    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\arqmgr.
+
+    LOOP AT arq_entries INTO DATA(entry).
+      APPEND VALUE #(
+        %tky     = entry-%tky
+        datum    = sy-datum
+        uzeit    = sy-uzeit
+        ernam    = sy-uname
+        %control = VALUE #(
+          datum = if_abap_behv=>mk-on
+          uzeit = if_abap_behv=>mk-on
+          ernam = if_abap_behv=>mk-on
+        )
+      ) TO updates.
+    ENDLOOP.
+
+    MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        UPDATE FIELDS ( Datum Uzeit Ernam )
+        WITH updates
+      REPORTED DATA(reported_data).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+*----------------------------------------------------------------------*
+* Local Handler: LogMgr
+*----------------------------------------------------------------------*
+CLASS lhc_log_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS set_admin_fields FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR logmgr~set_admin_fields.
+ENDCLASS.
+
+CLASS lhc_log_mgr IMPLEMENTATION.
+
+  METHOD set_admin_fields.
+
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY logmgr
+        FIELDS ( Pedido Bandeira )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(log_entries).
+
+    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\logmgr.
+
+    LOOP AT log_entries INTO DATA(entry).
+      APPEND VALUE #(
+        %tky     = entry-%tky
+        datum    = sy-datum
+        uzeit    = sy-uzeit
+        ernam    = sy-uname
+        %control = VALUE #(
+          datum = if_abap_behv=>mk-on
+          uzeit = if_abap_behv=>mk-on
+          ernam = if_abap_behv=>mk-on
+        )
+      ) TO updates.
+    ENDLOOP.
+
+    MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY logmgr
+        UPDATE FIELDS ( Datum Uzeit Ernam )
+        WITH updates
+      REPORTED DATA(reported_data).
+
+  ENDMETHOD.
+
+ENDCLASS.

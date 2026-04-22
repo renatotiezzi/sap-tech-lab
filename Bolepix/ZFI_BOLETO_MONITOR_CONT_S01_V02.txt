@@ -1,0 +1,34 @@
+*&---------------------------------------------------------------------*
+*& Include ZFI_BOLETO_MONITOR_CONT_S01
+*&---------------------------------------------------------------------*
+*& EF: DBR EF - BOLEPIX_BOLETO MONITOR_CONTINENTAL_V1
+*& Selection screen - BSID criteria per EF (no mandatory fields)
+*&---------------------------------------------------------------------*
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+
+SELECT-OPTIONS:
+  s_bukrs FOR bsid-bukrs,
+  s_budat FOR bsid-budat,
+  s_faedt FOR bsid-zfbdt,
+  s_kunnr FOR bsid-kunnr,
+  s_belnr FOR bsid-belnr,
+  s_bupla FOR bsid-bupla.
+
+SELECTION-SCREEN END OF BLOCK b1.
+
+INITIALIZATION.
+
+  IF s_budat[] IS INITIAL.
+    s_budat-sign = 'I'.
+    s_budat-option = 'EQ'.
+    s_budat-low = sy-datum.
+    APPEND s_budat.
+  ENDIF.
+
+  IF s_faedt[] IS INITIAL.
+    s_faedt-sign = 'I'.
+    s_faedt-option = 'EQ'.
+    s_faedt-low = sy-datum.
+    APPEND s_faedt.
+  ENDIF.

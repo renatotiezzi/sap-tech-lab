@@ -1,0 +1,22 @@
+*&---------------------------------------------------------------------*
+*& Report ZFI_BOLETO_MONITOR_CONT
+*&---------------------------------------------------------------------*
+*& Boleto Monitor Continental
+*& EF: DBR EF - BOLEPIX_BOLETO MONITOR_CONTINENTAL_V1
+*& Selection of open customer items (BSID) with boleto registration
+*& data (XREF3/ANFBN), ALV display with print and email actions.
+*&---------------------------------------------------------------------*
+REPORT zfi_boleto_monitor_cont MESSAGE-ID zfi.
+
+INCLUDE zfi_boleto_monitor_cont_t01.
+INCLUDE zfi_boleto_monitor_cont_s01.
+INCLUDE zfi_boleto_monitor_cont_f01.
+
+START-OF-SELECTION.
+
+  PERFORM f_seleciona_dados.
+  PERFORM f_trata_dados.
+
+END-OF-SELECTION.
+
+  PERFORM f_exibe_dados.

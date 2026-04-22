@@ -1,0 +1,73 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo: {
+  typeName:       'Arquivo',
+  typeNamePlural: 'Arquivos',
+  title:          { type: #STANDARD, value: 'IdArq' },
+  description:    { type: #STANDARD, value: 'StatusText' }
+}
+
+annotate view ZC_Q2C014_ARQ with
+{
+
+  @UI.facet: [
+    { id:            'GeneralData',
+      purpose:       #STANDARD,
+      type:          #IDENTIFICATION_REFERENCE,
+      label:         'Dados do Arquivo',
+      position:      10 },
+    { id:            'Log',
+      purpose:       #STANDARD,
+      type:          #LINEITEM_REFERENCE,
+      label:         'Log de Processamento',
+      position:      20,
+      targetElement: '_Log' }
+  ]
+
+  @UI.lineItem:       [{ position: 10, label: 'ID Arquivo' }]
+  @UI.identification: [{ position: 10, label: 'ID Arquivo' }]
+  IdArq;
+
+  @UI.lineItem:       [{ position: 20, label: 'Tipo Doc.' }]
+  @UI.identification: [{ position: 20, label: 'Tipo Documento' }]
+  TipoDoc;
+
+  @UI.identification: [{ position: 30, label: 'Cabeçalho' }]
+  CabecArq;
+
+  @UI.lineItem:       [{ position: 40, label: 'Bandeira' }]
+  @UI.identification: [{ position: 40, label: 'Bandeira' }]
+  Bandeira;
+
+  @UI.identification: [{ position: 50, label: 'Conteúdo' }]
+  Conteudo;
+
+  @UI.lineItem:       [{ position: 60, label: 'Status',
+                         criticality: 'StatusCriticality' }]
+  @UI.identification: [{ position: 60, label: 'Status' }]
+  Status;
+
+  @UI.lineItem: [{ position: 70, label: 'Status Desc.', hidden: true }]
+  StatusText;
+
+  @UI.hidden: true
+  StatusCriticality;
+
+  @UI.lineItem:       [{ position: 80, label: 'Tentativas' }]
+  @UI.identification: [{ position: 80, label: 'Tentativas' }]
+  Tentativas;
+
+  @UI.identification: [{ position: 90, label: 'Último Erro' }]
+  UltimoErr;
+
+  @UI.lineItem:       [{ position: 100, label: 'Data' }]
+  @UI.identification: [{ position: 100, label: 'Data' }]
+  Datum;
+
+  @UI.identification: [{ position: 110, label: 'Hora' }]
+  Uzeit;
+
+  @UI.identification: [{ position: 120, label: 'Criado por' }]
+  Ernam;
+
+}

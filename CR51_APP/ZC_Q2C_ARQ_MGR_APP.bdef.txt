@@ -1,0 +1,26 @@
+projection;
+strict ( 2 );
+
+// -----------------------------------------------------------------------
+// Projection BDEF: Arquivos de Entrada MGR - APP Reprocessamento
+// Readonly + actions EXPOSTAS da interface (definidas em ZI_Q2C_ARQ_MGR.bdef)
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
+{
+  use read;
+
+  // Actions expostas da interface - NUNCA declarar na projeção
+  use action Reprocess;
+  use action Cancel;
+
+  use association _Log;
+}
+
+// -----------------------------------------------------------------------
+// LOG: somente leitura no APP (sem create/delete)
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_LOG_MGR_APP alias LogMgrApp
+{
+  use read;
+  use association _Arq;
+}

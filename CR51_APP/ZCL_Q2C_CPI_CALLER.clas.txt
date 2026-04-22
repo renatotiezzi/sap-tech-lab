@@ -1,0 +1,104 @@
+*&---------------------------------------------------------------------*
+*& Class ZCL_Q2C_CPI_CALLER
+*&---------------------------------------------------------------------*
+*& Responsável por chamar o CPI para reprocessamento de arquivos
+*& - Prepara payload JSON
+*& - Chamada HTTP/API
+*& - Retorna status
+*&---------------------------------------------------------------------*
+
+CLASS zcl_q2c_cpi_caller DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS call_cpi_reprocess
+      IMPORTING
+        pedido    TYPE ztbq2c_arq_mgr-pedido
+        bandeira  TYPE ztbq2c_arq_mgr-bandeira
+        conteudo  TYPE ztbq2c_arq_mgr-conteudo
+        tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
+      EXPORTING
+        ev_status TYPE string.
+
+  PRIVATE SECTION.
+    METHODS prepare_payload
+      IMPORTING
+        pedido    TYPE ztbq2c_arq_mgr-pedido
+        bandeira  TYPE ztbq2c_arq_mgr-bandeira
+        conteudo  TYPE ztbq2c_arq_mgr-conteudo
+        tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
+      RETURNING
+        VALUE(rs_payload) TYPE string.
+
+    METHODS execute_http_call
+      IMPORTING
+        payload   TYPE string
+      RETURNING
+        VALUE(rs_response) TYPE string.
+
+ENDCLASS.
+
+CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
+
+  METHOD call_cpi_reprocess.
+    DATA payload   TYPE string.
+    DATA response  TYPE string.
+
+    TRY.
+        " 1. Preparar payload JSON
+        payload = prepare_payload(
+          pedido   = pedido
+          bandeira = bandeira
+          conteudo = conteudo
+          tipo_doc = tipo_doc
+        ).
+
+        " 2. Executar chamada HTTP/REST para CPI
+        response = execute_http_call( payload ).
+
+        " 3. Retornar status
+        ev_status = response.
+
+    CATCH cx_root INTO DATA(exc).
+        ev_status = 'Erro na chamada CPI: ' && exc->get_text( ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD prepare_payload.
+    " NOTA: Customize este método com a estrutura JSON esperada pelo CPI
+    " Exemplo genérico:
+    " {
+    "   "pedido": "123456",
+    "   "bandeira": "FORD",
+    "   "tipo_doc": "ZVTF",
+    "   "conteudo": "TXT original..."
+    " }
+
+    DATA json_data TYPE string.
+
+    " TODO: Implementar serialização JSON com seus campos específicos
+    " rs_payload = json_data.
+
+    rs_payload = |{ "pedido": "|pedido|", "bandeira": "|bandeira|", "tipo_doc": "|tipo_doc|", "conteudo": "|conteudo|" }|.
+
+  ENDMETHOD.
+
+  METHOD execute_http_call.
+    " NOTA: Customize este método com sua chamada CPI/API específica
+    " Pode usar: cl_http_client, REST APIs, ou seu mecanismo integração preferido
+
+    " TODO: Implementar chamada HTTP POST/GET conforme seu CPI
+    " Exemplo estrutura:
+    " - URL do endpoint CPI
+    " - Headers (Content-Type, Authorization)
+    " - Body (payload JSON)
+    " - Tratamento de resposta
+
+    rs_response = 'Chamada CPI executada com sucesso'. " Placeholder
+
+  ENDMETHOD.
+
+ENDCLASS.

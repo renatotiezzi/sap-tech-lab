@@ -1,0 +1,16 @@
+*&---------------------------------------------------------------------*
+*& ZBP_I_Q2C_ARQ_MGR_APP
+*&---------------------------------------------------------------------*
+*& ATENÇÃO: Esta classe NÃO deve ser criada no SAP.
+*&
+*& As actions Reprocess e Cancel estão implementadas em:
+*&   ZBP_I_Q2C_ARQ_MGR.clas (locals_imp)
+*&   -> lhc_arq_mgr.reprocess()
+*&   -> lhc_arq_mgr.cancel()
+*&
+*& Regra RAP: handlers são sempre FOR BEHAVIOR OF <interface view> (ZI_*)
+*& Nunca FOR BEHAVIOR OF <projection view> (ZC_*)
+*&
+*& A projeção ZC_Q2C_ARQ_MGR_APP usa "use action Reprocess/Cancel"
+*& que aponta automaticamente para o handler da interface ZI_Q2C_ARQ_MGR.
+*&---------------------------------------------------------------------*

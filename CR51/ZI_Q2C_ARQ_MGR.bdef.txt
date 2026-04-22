@@ -16,8 +16,13 @@ etag master Uzeit
 
   // Admin fields filled by determination - not editable by user
   field ( readonly ) Datum, Uzeit, Ernam;
+  field ( readonly : update ) Pedido, Bandeira;
 
   determination set_admin_fields on modify { create; update; }
+
+  // Actions defined here - exposed via projection BDEF
+  action Reprocess result [1] $self;
+  action Cancel    result [1] $self;
 
   // Composition to Log child entity
   association _Log { create; }

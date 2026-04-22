@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service Definition Q2C MGR - APP Reprocessamento'
+define service ZSD_Q2C_MGR_APP {
+  expose ZC_Q2C_ARQ_MGR_APP  as ArqMgrApp;
+  expose ZC_Q2C_LOG_MGR_APP  as LogMgrApp;  // read-only: sem delete/create
+}

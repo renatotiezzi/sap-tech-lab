@@ -1,0 +1,13 @@
+CLASS zbp_i_q2c_arq_mgr_app DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zc_q2c_arq_mgr_app.
+
+  " Global class is abstract + final for projection RAP handler.
+  " All action and validation logic resides in local classes (CCIMP include).
+
+ENDCLASS.
+
+CLASS zbp_i_q2c_arq_mgr_app IMPLEMENTATION.
+ENDCLASS.

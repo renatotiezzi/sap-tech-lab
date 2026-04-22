@@ -1,0 +1,90 @@
+*&---------------------------------------------------------------------*
+*& ATENÇÃO: Este arquivo NÃO deve ser criado no SAP.
+*&
+*& A lógica dos handlers (reprocess/cancel) está em:
+*&   ZBP_I_Q2C_ARQ_MGR.clas.locals_imp (pasta CR51)
+*&
+*& Ver ZBP_I_Q2C_ARQ_MGR_APP.clas.txt para explicação completa.
+*&---------------------------------------------------------------------*
+
+
+*----------------------------------------------------------------------*
+* Local Handler: ArqMgrApp - Ações de Reprocessamento
+*----------------------------------------------------------------------*
+CLASS lhc_arq_mgr_app DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS reprocess FOR MODIFY
+      IMPORTING keys FOR ACTION arqmgrapp~reprocess
+      RESULT result.
+
+    METHODS cancel FOR MODIFY
+      IMPORTING keys FOR ACTION arqmgrapp~cancel
+      RESULT result.
+ENDCLASS.
+
+CLASS lhc_arq_mgr_app IMPLEMENTATION.
+
+  METHOD reprocess.
+    DATA reprocess_action TYPE REF TO zcl_q2c_reprocess_action.
+    DATA result_data       TYPE TABLE FOR ACTION RESULT zc_q2c_arq_mgr_app~reprocess.
+
+    LOOP AT keys INTO DATA(key).
+      TRY.
+          reprocess_action = NEW zcl_q2c_reprocess_action( ).
+          reprocess_action->execute(
+            EXPORTING
+              pedido   = key-pedido
+              bandeira = key-bandeira
+            IMPORTING
+              ev_status  = DATA(status_msg)
+          ).
+
+          APPEND VALUE #(
+            %key    = key-%key
+            %param  = VALUE #( )
+            %msg    = NEW cl_abap_structdescr(
+          ) TO result_data.
+
+      CATCH cx_root INTO DATA(exc).
+          APPEND VALUE #(
+            %key   = key-%key
+            %param = VALUE #( )
+            %msg   = NEW cl_abap_struc_descr( )
+          ) TO result_data.
+      ENDTRY.
+    ENDLOOP.
+
+    result = result_data.
+
+  ENDMETHOD.
+
+  METHOD cancel.
+    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\arqmgr.
+
+    LOOP AT keys INTO DATA(key).
+      APPEND VALUE #(
+        %key     = key-%key
+        %control = VALUE #(
+          status = if_abap_behv=>mk-on
+        )
+        status   = 'CANCELADO'
+      ) TO updates.
+    ENDLOOP.
+
+    MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        UPDATE FIELDS ( Status )
+        WITH updates
+      FAILED DATA(failed_update)
+      REPORTED DATA(reported_update).
+
+    LOOP AT keys INTO DATA(key).
+      APPEND VALUE #(
+        %key   = key-%key
+        %param = VALUE #( )
+      ) TO result.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.

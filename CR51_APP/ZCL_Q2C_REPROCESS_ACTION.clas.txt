@@ -1,0 +1,144 @@
+*&---------------------------------------------------------------------*
+*& Class ZCL_Q2C_REPROCESS_ACTION
+*&---------------------------------------------------------------------*
+*& Lógica de reprocessamento de arquivos MGR
+*& - Incrementa tentativas
+*& - Reseta status
+*& - Dispara chamada para CPI
+*&---------------------------------------------------------------------*
+
+CLASS zcl_q2c_reprocess_action DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS execute
+      IMPORTING
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira
+      EXPORTING
+        ev_status TYPE string.
+
+    METHODS constructor.
+
+  PRIVATE SECTION.
+    DATA cpi_caller TYPE REF TO zcl_q2c_cpi_caller.
+
+    METHODS read_arq_data
+      IMPORTING
+        pedido    TYPE ztbq2c_arq_mgr-pedido
+        bandeira  TYPE ztbq2c_arq_mgr-bandeira
+      RETURNING
+        VALUE(rs_arq) TYPE ztbq2c_arq_mgr.
+
+    METHODS update_tentativas
+      IMPORTING
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira.
+
+    METHODS update_status
+      IMPORTING
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira
+        status   TYPE ztbq2c_arq_mgr-status.
+
+ENDCLASS.
+
+CLASS zcl_q2c_reprocess_action IMPLEMENTATION.
+
+  METHOD constructor.
+    cpi_caller = NEW zcl_q2c_cpi_caller( ).
+  ENDMETHOD.
+
+  METHOD execute.
+    DATA ls_arq TYPE ztbq2c_arq_mgr.
+
+    TRY.
+        " 1. Ler dados do arquivo
+        ls_arq = read_arq_data(
+          pedido   = pedido
+          bandeira = bandeira
+        ).
+
+        " 2. Incrementar tentativas
+        update_tentativas(
+          pedido   = pedido
+          bandeira = bandeira
+        ).
+
+        " 3. Resetar status para 'em_processamento'
+        update_status(
+          pedido   = pedido
+          bandeira = bandeira
+          status   = 'EM_PROCESSAMENTO'
+        ).
+
+        " 4. Chamar CPI com conteúdo JSON
+        cpi_caller->call_cpi_reprocess(
+          EXPORTING
+            pedido     = pedido
+            bandeira   = bandeira
+            conteudo   = ls_arq-conteudo
+            tipo_doc   = ls_arq-tipo_doc
+          IMPORTING
+            ev_status  = ev_status
+        ).
+
+    CATCH cx_root INTO DATA(exc).
+        ev_status = 'Erro ao reprocessar: ' && exc->get_text( ).
+        update_status(
+          pedido   = pedido
+          bandeira = bandeira
+          status   = 'ERRO'
+        ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD read_arq_data.
+    " @variables obrigatório para evitar ambiguidade campo=campo no WHERE
+    SELECT SINGLE *
+      FROM ztbq2c_arq_mgr
+      INTO @rs_arq
+      WHERE pedido   = @pedido
+        AND bandeira = @bandeira.
+
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION TYPE cx_abap_invalid_value
+        EXPORTING
+          value = |Arquivo { pedido }/{ bandeira } não encontrado|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD update_tentativas.
+    " NOTA: Este método é chamado apenas quando ZCL_Q2C_REPROCESS_ACTION
+    " é invocada FORA do contexto RAP (ex: job background).
+    " Dentro do RAP, o handler lhc_arq_mgr.reprocess() usa MODIFY ENTITIES.
+    SELECT SINGLE tentativas
+      FROM ztbq2c_arq_mgr
+      INTO @DATA(current_tentativas)
+      WHERE pedido   = @pedido
+        AND bandeira = @bandeira.
+
+    UPDATE ztbq2c_arq_mgr
+      SET tentativas = @( current_tentativas + 1 ),
+          datum      = @sy-datum,
+          uzeit      = @sy-uzeit,
+          ernam      = @sy-uname
+      WHERE pedido   = @pedido
+        AND bandeira = @bandeira.
+  ENDMETHOD.
+
+  METHOD update_status.
+    " NOTA: idem update_tentativas - usar MODIFY ENTITIES dentro do RAP
+    UPDATE ztbq2c_arq_mgr
+      SET status     = @status,
+          datum      = @sy-datum,
+          uzeit      = @sy-uzeit,
+          ernam      = @sy-uname
+      WHERE pedido   = @pedido
+        AND bandeira = @bandeira.
+  ENDMETHOD.
+
+ENDCLASS.

@@ -1,0 +1,16 @@
+" ============================================================
+" Data Element: ZDEQ2C_BANDEIRA
+" Descrição   : Bandeira do fabricante
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: CHAR
+" Tamanho     : 10
+"
+" Exemplos: Ford / JCB / Renault
+"
+" Field Labels:
+"   Short  : Bandeira
+"   Medium : Bandeira
+"   Long   : Bandeira Fabricante
+"   Heading: Bandeira

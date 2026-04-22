@@ -1,0 +1,13 @@
+" ============================================================
+" Data Element: ZDEQ2C_ETAPA
+" Descrição   : Etapa do processamento
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : ATIVO
+" ============================================================
+" Domain      : ZDOQ2C_ETAPA (CHAR 1)
+"
+" Field Labels:
+"   Short  : Etapa
+"   Medium : Etapa
+"   Long   : Etapa Process.
+"   Heading: Etapa

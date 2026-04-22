@@ -1,0 +1,14 @@
+" ============================================================
+" Data Element: ZDEQ2C_TENTATIVAS
+" Descrição   : Número de tentativas de reprocessamento
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: INT4
+" Tamanho     : 10 (interno)
+"
+" Field Labels:
+"   Short  : Tentativas
+"   Medium : Nº Tentativas
+"   Long   : Nº Tentativas Reprocessamento
+"   Heading: Tentativas

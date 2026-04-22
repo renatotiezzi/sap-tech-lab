@@ -1,0 +1,27 @@
+@EndUserText.label : 'Log de Processamento MGR - Q2C'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #DISPLAY_ONLY
+
+define table ztbq2c_log_mgr {
+
+  key mandt        : mandt not null;
+  key id_log       : zdeq2c_id_log not null;    " ID do log (gerado por NR)
+
+  " Referência ao arquivo de origem
+  id_ref           : zdeq2c_id_ref;             " FK → ZTBQ2C_ARQ_MGR-ID_ARQ
+
+  " Etapa do processamento
+  etapa            : zdeq2c_etapa;              " 1=Leitura 2=Validação 3=Ordem Venda
+                                                " 4=Remessa 5=Fatura 6=XML
+
+  " Resultado
+  mensagem         : zdeq2c_mensagem;           " Mensagem da etapa
+
+  " Controle de tempo
+  datum            : dats;                      " Data do registro
+  uzeit            : uzeit;                     " Hora do registro
+  ernam            : xubname;                   " Usuário que gerou o log
+
+}

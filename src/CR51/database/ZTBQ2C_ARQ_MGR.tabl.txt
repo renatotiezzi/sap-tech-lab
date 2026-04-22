@@ -1,0 +1,30 @@
+@EndUserText.label : 'Arquivos de Entrada MGR - Q2C'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #DISPLAY_ONLY
+
+define table ztbq2c_arq_mgr {
+
+  key mandt        : mandt not null;
+  key id_arq       : zdeq2c_id_arq not null;   " ID do arquivo (gerado por NR)
+
+  " Identificação do arquivo
+  tipo_doc         : zdeq2c_tipo_doc;           " Tipo doc. vendas: ZVTF/ZVTR/ZV01
+  cabec_arq        : zdeq2c_cabec_arq;          " Cabeçalho TXT enviado pela MGR
+  bandeira         : zdeq2c_bandeira;           " Bandeira: Ford / JCB / Renault
+
+  " Conteúdo
+  conteudo         : zdeq2c_conteudo;           " Arquivo bruto (Q2C014I000)
+
+  " Status e controle de reprocessamento
+  status           : zdeq2c_status_mgr;         " 1=Erro 2=Cancelado 3=Processado 4=Criado
+  tentativas       : zdeq2c_tentativas;         " Nº de tentativas de reprocessamento
+  ultimo_err       : zdeq2c_ultimo_err;         " Mensagem do último erro (exibida no cockpit)
+
+  " Controle de tempo
+  datum            : dats;                      " Data de recebimento
+  uzeit            : uzeit;                     " Hora de recebimento
+  ernam            : xubname;                   " Usuário que criou o registro
+
+}

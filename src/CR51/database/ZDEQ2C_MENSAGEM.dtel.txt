@@ -1,0 +1,14 @@
+" ============================================================
+" Data Element: ZDEQ2C_MENSAGEM
+" Descrição   : Mensagem de log do processamento
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: STRING
+" Tamanho     : variável
+"
+" Field Labels:
+"   Short  : Mensagem
+"   Medium : Mensagem
+"   Long   : Mensagem Log
+"   Heading: Mensagem

@@ -1,0 +1,15 @@
+" ============================================================
+" Data Element: ZDEQ2C_ID_REF
+" Descrição   : Identificador de Referência
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : ATIVO
+" ============================================================
+" Tipo de dado: NUMC
+" Tamanho     : 10
+" Referência  : FK → ZTBQ2C_ARQ_MGR-ID_ARQ
+"
+" Field Labels:
+"   Short  : ID Ref.
+"   Medium : ID Referência
+"   Long   : ID_Referência
+"   Heading: ID_REFERÊNCIA

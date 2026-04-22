@@ -1,0 +1,17 @@
+" ============================================================
+" Data Element: ZDEQ2C_CONTEUDO
+" Descrição   : Conteúdo binário do arquivo recebido
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: RAWSTRING
+" Tamanho     : variável
+"
+" Observação  : Armazena o arquivo bruto enviado pela MGR
+"               conforme especificação Q2C014I000.
+"
+" Field Labels:
+"   Short  : Conteúdo
+"   Medium : Conteúdo
+"   Long   : Conteúdo Arquivo
+"   Heading: Conteúdo Arquivo

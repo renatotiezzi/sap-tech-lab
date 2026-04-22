@@ -1,0 +1,17 @@
+" ============================================================
+" Domain: ZDOQ2C_ETAPA
+" Descrição: Etapa do processamento MGR
+" Package: ZPQ2C_014 | Módulo: Q2C
+" Status: ATIVO
+" ============================================================
+" Tipo de dado : CHAR
+" Tamanho      : 1
+" Output Length: 1
+"
+" Valores fixos:
+"   '1'  Leitura
+"   '2'  Validação
+"   '3'  Ordem de Venda
+"   '4'  Remessa
+"   '5'  Fatura
+"   '6'  XML

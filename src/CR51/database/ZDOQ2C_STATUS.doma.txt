@@ -1,0 +1,15 @@
+" ============================================================
+" Domain: ZDOQ2C_STATUS
+" Descrição: Status do arquivo MGR
+" Package: ZPQ2C_014 | Módulo: Q2C
+" Status: CRIAR
+" ============================================================
+" Tipo de dado : CHAR
+" Tamanho      : 1
+" Output Length: 1
+"
+" Valores fixos:
+"   '1'  Erro
+"   '2'  Cancelado
+"   '3'  Processado
+"   '4'  Criado

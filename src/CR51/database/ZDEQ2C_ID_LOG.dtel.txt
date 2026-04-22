@@ -1,0 +1,15 @@
+" ============================================================
+" Data Element: ZDEQ2C_ID_LOG
+" Descrição   : Identificador do Log
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : ATIVO
+" ============================================================
+" Tipo de dado: NUMC
+" Tamanho     : 10
+" Geração     : Number Range (NR)
+"
+" Field Labels:
+"   Short  : ID Log
+"   Medium : ID Log
+"   Long   : Identificador Log
+"   Heading: ID Log

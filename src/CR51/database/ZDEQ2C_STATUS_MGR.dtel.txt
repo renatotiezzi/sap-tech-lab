@@ -1,0 +1,19 @@
+" ============================================================
+" Data Element: ZDEQ2C_STATUS_MGR
+" Descrição   : Status do processamento do arquivo MGR
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Domain      : ZDOQ2C_STATUS (CHAR 1)
+"
+" Valores:
+"   '1'  Erro
+"   '2'  Cancelado
+"   '3'  Processado
+"   '4'  Criado
+"
+" Field Labels:
+"   Short  : Status
+"   Medium : Status MGR
+"   Long   : Status Arquivo MGR
+"   Heading: Status

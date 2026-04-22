@@ -1,0 +1,16 @@
+" ============================================================
+" Data Element: ZDEQ2C_TIPO_DOC
+" Descrição   : Tipo de Documento de Vendas
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: CHAR
+" Tamanho     : 4
+"
+" Exemplos de uso: ZVTF / ZVTR / ZV01
+"
+" Field Labels:
+"   Short  : Tp.Doc
+"   Medium : Tipo Doc.
+"   Long   : Tipo Doc. Vendas
+"   Heading: Tipo Doc. Vendas

@@ -1,0 +1,15 @@
+" ============================================================
+" Data Element: ZDEQ2C_ID_ARQ
+" Descrição   : Identificador do Arquivo MGR
+" Package     : ZPQ2C_014 | Módulo: Q2C
+" Status      : CRIAR
+" ============================================================
+" Tipo de dado: NUMC
+" Tamanho     : 10
+" Geração     : Number Range (NR)
+"
+" Field Labels:
+"   Short  : ID Arq.
+"   Medium : ID Arquivo
+"   Long   : ID Arquivo MGR
+"   Heading: ID Arquivo

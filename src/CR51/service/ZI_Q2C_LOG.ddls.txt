@@ -1,10 +1,10 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Interface View - Log MGR Q2C'
 
-define view entity ZI_Q2C014_LOG
+define view entity ZI_Q2C_LOG
   as select from ztbq2c_log_mgr
 
-  association to parent ZI_Q2C014_ARQ as _Arq
+  association to parent ZI_Q2C_ARQ as _Arq
     on $projection.IdRef = _Arq.IdArq
 
 {

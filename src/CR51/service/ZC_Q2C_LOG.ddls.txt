@@ -1,8 +1,8 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Projection View - Log MGR Q2C'
 
-define view entity ZC_Q2C014_LOG
-  as projection on ZI_Q2C014_LOG
+define view entity ZC_Q2C_LOG
+  as projection on ZI_Q2C_LOG
 
 {
   key IdLog,
@@ -17,5 +17,5 @@ define view entity ZC_Q2C014_LOG
       Ernam,
 
       /* Associação ao pai */
-      _Arq : redirected to parent ZC_Q2C014_ARQ
+      _Arq : redirected to parent ZC_Q2C_ARQ
 }

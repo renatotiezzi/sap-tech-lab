@@ -1,10 +1,10 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Interface View - Arquivo MGR Q2C'
 
-define root view entity ZI_Q2C014_ARQ
+define root view entity ZI_Q2C_ARQ
   as select from ztbq2c_arq_mgr
 
-  composition [0..*] of ZI_Q2C014_LOG as _Log
+  composition [0..*] of ZI_Q2C_LOG as _Log
 
 {
   key id_arq       as IdArq,

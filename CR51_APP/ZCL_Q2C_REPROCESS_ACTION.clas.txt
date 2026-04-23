@@ -1,10 +1,14 @@
 *&---------------------------------------------------------------------*
 *& Class ZCL_Q2C_REPROCESS_ACTION
 *&---------------------------------------------------------------------*
-*& Lógica de reprocessamento de arquivos MGR
-*& - Incrementa tentativas
-*& - Reseta status
-*& - Dispara chamada para CPI
+*& Lógica de reprocessamento de arquivos MGR para uso FORA do RAP.
+*& USO: Job background, programas clássicos (não-RAP).
+*&
+*& IMPORTANTE: Esta classe NÃO deve ser chamada dentro de um handler RAP
+*& (lhc_arq_mgr.reprocess). Dentro do RAP, usar ZCL_Q2C_CPI_CALLER
+*& diretamente + MODIFY ENTITIES para atualizar ARQ e LOG via framework.
+*& Motivo: execute() faz updates diretos na tabela (COMMIT implícito),
+*& o que conflita com o buffer RAP e causaria dupla atualização.
 *&---------------------------------------------------------------------*
 
 CLASS zcl_q2c_reprocess_action DEFINITION

@@ -24,8 +24,8 @@ etag master Uzeit
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
-  // Composition to Log child entity
-  association _Log { create; }
+  // Composition to Log child entity (create = primeiro reprocessamento; update = sobrescreve LOG existente)
+  association _Log { create; update; }
 
   mapping for ztbq2c_arq_mgr
   {
@@ -52,12 +52,13 @@ authorization dependent by _Arq
 etag master Uzeit
 {
   create;
+  update;
   delete;
 
   // Admin fields filled by determination - not editable by user
   field ( readonly ) Datum, Uzeit, Ernam;
 
-  determination set_admin_fields on modify { create; }
+  determination set_admin_fields on modify { create; update; }
 
   association _Arq;
 

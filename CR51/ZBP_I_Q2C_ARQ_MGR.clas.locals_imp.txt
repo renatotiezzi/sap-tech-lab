@@ -17,6 +17,16 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS cancel FOR MODIFY
       IMPORTING keys FOR ACTION arqmgr~cancel
       RESULT result.
+
+    " Helper: UPSERT do LOG (sobrescreve última informação de processamento)
+    " Tenta UPDATE; se LOG não existir (primeira execução), cria via composição _Log
+    METHODS upsert_log
+      IMPORTING
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira
+        etapa    TYPE ztbq2c_log_mgr-etapa
+        mensagem TYPE ztbq2c_log_mgr-mensagem
+        id_ref   TYPE ztbq2c_log_mgr-id_ref OPTIONAL.
 ENDCLASS.
 
 CLASS lhc_arq_mgr IMPLEMENTATION.
@@ -55,7 +65,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   METHOD reprocess.
 
-    " 1. Ler dados atuais das entidades selecionadas
+    " 1. Ler dados completos das entidades selecionadas (inclusive Conteudo/TipoDoc para CPI)
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
         ALL FIELDS
@@ -63,36 +73,58 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       RESULT DATA(entities)
       FAILED DATA(read_failed).
 
-    DATA reprocess_action TYPE REF TO zcl_q2c_reprocess_action.
+    " Instancia CPI caller uma vez fora do loop (reutilização de conexão HTTP)
+    DATA(cpi_caller) = NEW zcl_q2c_cpi_caller( ).
 
     LOOP AT entities INTO DATA(entity).
-      TRY.
-          " 2. Incrementar tentativas e resetar status via RAP
-          DATA(new_tentativas) = entity-Tentativas + 1.
 
+      " 2. Incrementar tentativas + marcar em processamento via RAP (não via SQL direto)
+      MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+        ENTITY arqmgr
+          UPDATE FIELDS ( Tentativas Status )
+          WITH VALUE #( (
+            %key       = entity-%key
+            Tentativas = entity-Tentativas + 1
+            Status     = 'EM_PROCESSAMENTO'
+          ) )
+        FAILED DATA(upd_failed)
+        REPORTED DATA(upd_reported).
+
+      TRY.
+          " 3. Chamar CPI diretamente — ZCL_Q2C_REPROCESS_ACTION.execute() é
+          "    reservada para contexto FORA do RAP (job background) para evitar
+          "    dupla atualização de Tentativas/Status
+          cpi_caller->call_cpi_reprocess(
+            EXPORTING
+              pedido     = entity-Pedido
+              bandeira   = entity-Bandeira
+              conteudo   = entity-Conteudo
+              tipo_doc   = entity-TipoDoc
+            IMPORTING
+              ev_status  = DATA(cpi_status)
+          ).
+
+          " 4. Sucesso: atualizar Status ARQ + sobrescrever LOG com resultado
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Tentativas Status )
+              UPDATE FIELDS ( Status )
               WITH VALUE #( (
-                %key       = entity-%key
-                Tentativas = new_tentativas
-                Status     = 'EM_PROCESSAMENTO'
-              ) )
-            FAILED DATA(update_failed)
-            REPORTED DATA(update_reported).
+                %key   = entity-%key
+                Status = 'PROCESSADO'
+              ) ).
 
-          " 3. Chamar CPI via classe de negócio
-          reprocess_action = NEW zcl_q2c_reprocess_action( ).
-          reprocess_action->execute(
-            EXPORTING
-              pedido   = entity-Pedido
-              bandeira = entity-Bandeira
-            IMPORTING
-              ev_status = DATA(status_msg)
+          upsert_log(
+            pedido   = entity-Pedido
+            bandeira = entity-Bandeira
+            etapa    = 'REPROCESSAMENTO'
+            mensagem = COND #( WHEN cpi_status IS NOT INITIAL
+                               THEN cpi_status
+                               ELSE 'Reprocessado com sucesso' )
           ).
 
         CATCH cx_root INTO DATA(exc).
-          " 4. Em caso de erro: marcar como ERRO
+
+          " 5. Erro: marcar ARQ como ERRO + sobrescrever LOG com mensagem de erro
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
               UPDATE FIELDS ( Status )
@@ -100,10 +132,18 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
                 %key   = entity-%key
                 Status = 'ERRO'
               ) ).
+
+          upsert_log(
+            pedido   = entity-Pedido
+            bandeira = entity-Bandeira
+            etapa    = 'REPROCESSAMENTO'
+            mensagem = |Erro: { exc->get_text( ) }|
+          ).
+
       ENDTRY.
     ENDLOOP.
 
-    " 5. Ler estado final e retornar resultado (obrigatório para result [1] $self)
+    " 6. Ler estado final e retornar resultado (obrigatório para result [1] $self)
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
         ALL FIELDS
@@ -119,7 +159,14 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   METHOD cancel.
 
-    " Atualizar status para CANCELADO via RAP
+    " 1. Ler dados atuais (necessário para gravar LOG com contexto)
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(entities).
+
+    " 2. Atualizar status para CANCELADO via RAP
     MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
         UPDATE FIELDS ( Status )
@@ -130,7 +177,17 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       FAILED DATA(update_failed)
       REPORTED DATA(update_reported).
 
-    " Ler estado final e retornar resultado
+    " 3. Sobrescrever LOG com informação de cancelamento
+    LOOP AT entities INTO DATA(entity).
+      upsert_log(
+        pedido   = entity-Pedido
+        bandeira = entity-Bandeira
+        etapa    = 'CANCELAMENTO'
+        mensagem = 'Registro cancelado manualmente'
+      ).
+    ENDLOOP.
+
+    " 4. Ler estado final e retornar resultado
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
         ALL FIELDS
@@ -144,94 +201,51 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.
+  METHOD upsert_log.
+    " Semântica UPSERT: LOG armazena apenas a última informação de processamento.
+    " 1ª tentativa: UPDATE do LOG existente (sobrescreve)
+    " Se LOG não existe (1ª execução): cria via composição _Log do ArqMgr
 
-*----------------------------------------------------------------------*
-* Local Handler: LogMgr
-*----------------------------------------------------------------------*
-CLASS lhc_log_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
-  PRIVATE SECTION.
-    METHODS set_admin_fields FOR DETERMINE ON MODIFY
-      IMPORTING keys FOR logmgr~set_admin_fields.
-ENDCLASS.
-
-CLASS lhc_log_mgr IMPLEMENTATION.
-
-  METHOD set_admin_fields.
-
-    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-      ENTITY logmgr
-        FIELDS ( Pedido Bandeira )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(log_entries).
-
-    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\logmgr.
-
-    LOOP AT log_entries INTO DATA(entry).
-      APPEND VALUE #(
-        %tky     = entry-%tky
-        datum    = sy-datum
-        uzeit    = sy-uzeit
-        ernam    = sy-uname
-        %control = VALUE #(
-          datum = if_abap_behv=>mk-on
-          uzeit = if_abap_behv=>mk-on
-          ernam = if_abap_behv=>mk-on
-        )
-      ) TO updates.
-    ENDLOOP.
+    DATA log_upd TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\logmgr.
+    APPEND VALUE #(
+      %tky     = VALUE #(
+        Pedido   = pedido
+        Bandeira = bandeira
+      )
+      IdRef    = id_ref
+      Etapa    = etapa
+      Mensagem = mensagem
+      %control = VALUE #(
+        IdRef    = if_abap_behv=>mk-on
+        Etapa    = if_abap_behv=>mk-on
+        Mensagem = if_abap_behv=>mk-on
+      )
+    ) TO log_upd.
 
     MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY logmgr
-        UPDATE FIELDS ( Datum Uzeit Ernam )
-        WITH updates
-      REPORTED DATA(reported_data).
+        UPDATE FIELDS ( IdRef Etapa Mensagem )
+        WITH log_upd
+      FAILED DATA(upd_failed).
 
-  ENDMETHOD.
-
-ENDCLASS.
-
-
-*----------------------------------------------------------------------*
-* Local Handler: ArqMgr
-*----------------------------------------------------------------------*
-CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
-  PRIVATE SECTION.
-    METHODS set_admin_fields FOR DETERMINE ON MODIFY
-      IMPORTING keys FOR arqmgr~set_admin_fields.
-ENDCLASS.
-
-CLASS lhc_arq_mgr IMPLEMENTATION.
-
-  METHOD set_admin_fields.
-
-    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-      ENTITY arqmgr
-        FIELDS ( Pedido Bandeira )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(arq_entries).
-
-    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\arqmgr.
-
-    LOOP AT arq_entries INTO DATA(entry).
-      APPEND VALUE #(
-        %tky     = entry-%tky
-        datum    = sy-datum
-        uzeit    = sy-uzeit
-        ernam    = sy-uname
-        %control = VALUE #(
-          datum = if_abap_behv=>mk-on
-          uzeit = if_abap_behv=>mk-on
-          ernam = if_abap_behv=>mk-on
-        )
-      ) TO updates.
-    ENDLOOP.
-
-    MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-      ENTITY arqmgr
-        UPDATE FIELDS ( Datum Uzeit Ernam )
-        WITH updates
-      REPORTED DATA(reported_data).
+    " LOG não existia — criar via associação composicional _Log
+    IF upd_failed IS NOT INITIAL.
+      MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+        ENTITY arqmgr
+        CREATE BY \_Log
+        FROM VALUE #( (
+          %tky    = VALUE #( Pedido = pedido Bandeira = bandeira )
+          %target = VALUE #( (
+            %cid     = |CID_LOG_{ pedido }_{ bandeira }|
+            Pedido   = pedido
+            Bandeira = bandeira
+            IdRef    = id_ref
+            Etapa    = etapa
+            Mensagem = mensagem
+          ) )
+        ) )
+      FAILED DATA(cre_failed).
+    ENDIF.
 
   ENDMETHOD.
 

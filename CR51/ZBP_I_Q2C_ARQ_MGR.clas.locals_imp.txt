@@ -19,7 +19,7 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
       RESULT result.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
-      IMPORTING REQUEST $global FROM arqmgr RESULT result.
+      IMPORTING REQUEST requested_authorizations FOR ArqMgr RESULT result.
 
     " Helper: UPSERT do LOG (sobrescreve última informação de processamento)
     " Tenta UPDATE; se LOG não existir (primeira execução), cria via composição _Log

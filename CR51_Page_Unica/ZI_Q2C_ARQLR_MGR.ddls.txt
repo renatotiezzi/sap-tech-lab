@@ -1,0 +1,32 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Arquivos de Entrada MGR - Interface View LR'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.usageType: {
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #MIXED
+}
+define root view entity ZI_Q2C_ARQLR_MGR
+  as select from ztbq2c_arq_mgr
+  composition [0..1] of ZI_Q2C_LOGLR_MGR as _Log
+{
+  key pedido        as Pedido,
+  key bandeira      as Bandeira,
+      tipo_doc      as TipoDoc,
+      cabec_arq     as CabecArq,
+      conteudo      as Conteudo,
+      status        as Status,
+      tentativas    as Tentativas,
+      datum         as Datum,
+      uzeit         as Uzeit,
+      ernam         as Ernam,
+      _Log.IdRef    as LogIdRef,
+      _Log.Etapa    as LogEtapa,
+      _Log.Mensagem as LogMensagem,
+      _Log.Datum    as LogDatum,
+      _Log.Uzeit    as LogUzeit,
+      _Log.Ernam    as LogErnam,
+
+      _Log
+}

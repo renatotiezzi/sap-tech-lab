@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------
+// Service Binding: ZSB_Q2C_MGRLR
+// Type    : OData V4 - UI
+// Service : ZSD_Q2C_MGRLR
+// Version : 0001
+// -----------------------------------------------------------------------
+// NOTE: Service Bindings cannot be stored as source files — they must be
+// created directly in the SAP system via ADT or SE80.
+//
+// Creation steps in ADT:
+//   1. Right-click on package > New > Other ABAP Repository Object
+//   2. Navigate to: Business Services > Service Binding
+//   3. Fill in:
+//        Name        : ZSB_Q2C_MGRLR
+//        Description : Service Binding Q2C MGR LR
+//        Binding Type: OData V4 - UI
+//        Service Def : ZSD_Q2C_MGRLR
+//   4. Activate and click "Publish" to register the OData endpoint.
+//
+// After publishing, the service URL will follow the pattern:
+//   /sap/opu/odata4/sap/zsb_q2c_mgrlr/srvd/sap/zsd_q2c_mgrlr/0001/
+//
+// Exposed Entity Sets:
+//   - ArqMgr (root) -> CRUD + Actions (Reprocess, Cancel)
+// -----------------------------------------------------------------------

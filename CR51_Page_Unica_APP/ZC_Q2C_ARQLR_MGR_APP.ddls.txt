@@ -1,0 +1,24 @@
+@EndUserText.label: 'Arquivos de Entrada MGR - APP LR'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+define root view entity ZC_Q2C_ARQLR_MGR_APP
+  provider contract transactional_query
+  as projection on ZI_Q2C_ARQLR_MGR
+{
+  key Pedido,
+  key Bandeira,
+      TipoDoc,
+      CabecArq,
+      Conteudo,
+      Status,
+      Tentativas,
+      Datum,
+      Uzeit,
+      Ernam,
+      LogIdRef,
+      LogEtapa,
+      LogMensagem,
+      LogDatum,
+      LogUzeit,
+      LogErnam
+}

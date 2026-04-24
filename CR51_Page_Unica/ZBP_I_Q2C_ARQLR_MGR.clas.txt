@@ -1,0 +1,10 @@
+CLASS zbp_i_q2c_arqlr_mgr DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zi_q2c_arqlr_mgr.
+
+ENDCLASS.
+
+CLASS zbp_i_q2c_arqlr_mgr IMPLEMENTATION.
+ENDCLASS.

@@ -1,0 +1,4 @@
+@EndUserText.label: 'Service Definition Q2C MGR LR'
+define service ZSD_Q2C_MGRLR {
+  expose ZC_Q2C_ARQLR_MGR as ArqMgr;
+}

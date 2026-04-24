@@ -1,0 +1,8 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_Q2C_ARQLR_MGR_APP alias ArqMgrApp
+{
+  use action Reprocess;
+  use action Cancel;
+}

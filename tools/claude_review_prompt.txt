@@ -1,0 +1,27 @@
+You are a senior SAP RAP and ABAP reviewer.
+
+Goal:
+- Find real runtime risks and coherence issues in this Q2C ARQ MGR RAP project.
+- Focus on correctness over style.
+
+Project rules:
+- Do NOT suggest rewriting architecture.
+- Keep changes minimal and practical.
+- Preserve current object split: CR51 (common), CR51_SVR (service), CR51_APP (app).
+
+Priority checks:
+1) Runtime dump risks in behavior implementation (actions, MODIFY ENTITIES, READ ENTITIES, failed/reported handling).
+2) RAP BDEF/projection consistency.
+3) CDS projection consistency (parent/child redirects and associations).
+4) Fiori metadata coherence (facets, lineItem, selectionField, labels, duplication risks).
+5) Any missing null/exception handling that can break OData batch.
+
+Constraints for fixes:
+- Minimal diffs only.
+- No broad refactor.
+- Keep compatibility with older ABAP runtime where possible.
+
+Output requirements:
+- Findings grouped by severity (Critical/High/Medium).
+- For each finding: file path + root cause + fix.
+- End with ONE unified diff patch that applies cleanly.

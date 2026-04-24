@@ -82,7 +82,8 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     " TODO: Implementar serialização JSON com seus campos específicos
     " rs_payload = json_data.
 
-    rs_payload = |{ "pedido": "|pedido|", "bandeira": "|bandeira|", "tipo_doc": "|tipo_doc|", "conteudo": "|conteudo|" }|.
+    """ Template de string ABAP: \{ e \} = chaves literais; { var } = interpolação
+    rs_payload = |\{ "pedido": "{ pedido }", "bandeira": "{ bandeira }", "tipo_doc": "{ tipo_doc }", "conteudo": "{ conteudo }" \}|.
 
   ENDMETHOD.
 

@@ -109,9 +109,10 @@ CLASS zcl_q2c_reprocess_action IMPLEMENTATION.
         AND bandeira = @bandeira.
 
     IF sy-subrc <> 0.
-      RAISE EXCEPTION TYPE cx_abap_invalid_value
-        EXPORTING
-          value = |Arquivo { pedido }/{ bandeira } não encontrado|.
+      " WITH em MESSAGE exige data object (variável), não expressão inline
+      DATA(lv_not_found) = |Arquivo { pedido }/{ bandeira } não encontrado|.
+      RAISE EXCEPTION TYPE cx_sy_open_sql_db
+        MESSAGE e001(00) WITH lv_not_found.
     ENDIF.
   ENDMETHOD.
 

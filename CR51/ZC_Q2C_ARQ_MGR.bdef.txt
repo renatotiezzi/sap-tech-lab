@@ -11,7 +11,7 @@ define behavior for ZC_Q2C_ARQ_MGR alias ArqMgr
   use update;
   use delete;
 
-  use association _Log { create; update; }
+  use association _Log { create; }
 }
 
 // -----------------------------------------------------------------------

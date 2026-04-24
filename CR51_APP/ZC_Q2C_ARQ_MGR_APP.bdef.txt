@@ -7,8 +7,7 @@ strict ( 2 );
 // -----------------------------------------------------------------------
 define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
 {
-  use read;
-
+  // Sem create/update/delete = projeção read-only
   // Actions expostas da interface - NUNCA declarar na projeção
   use action Reprocess;
   use action Cancel;
@@ -21,6 +20,6 @@ define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
 // -----------------------------------------------------------------------
 define behavior for ZC_Q2C_LOG_MGR_APP alias LogMgrApp
 {
-  use read;
+  // Sem create/update/delete = read-only
   use association _Arq;
 }

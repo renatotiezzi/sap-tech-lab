@@ -7,7 +7,7 @@ strict ( 2 );
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
 persistent table ztbq2c_arq_mgr
 lock master
-authorization master ( instance )
+authorization master ( global )
 etag master Uzeit
 {
   create;
@@ -24,8 +24,9 @@ etag master Uzeit
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
-  // Composition to Log child entity (create = primeiro reprocessamento; update = sobrescreve LOG existente)
-  association _Log { create; update; }
+  // Composition to Log child entity
+  // Nota: update do LOG é feito diretamente na entidade LogMgr (não via associação do pai)
+  association _Log { create; }
 
   mapping for ztbq2c_arq_mgr
   {

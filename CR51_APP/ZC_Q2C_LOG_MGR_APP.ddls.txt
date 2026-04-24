@@ -2,7 +2,6 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @Metadata.allowExtensions: true
 define view entity ZC_Q2C_LOG_MGR_APP
-  provider contract transactional_query
   as projection on ZI_Q2C_LOG_MGR
 {
   key Pedido,

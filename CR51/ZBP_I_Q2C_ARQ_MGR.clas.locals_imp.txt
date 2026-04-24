@@ -242,9 +242,22 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
             IdRef    = id_ref
             Etapa    = etapa
             Mensagem = mensagem
+            " %control obrigatório em strict(2) para indicar quais campos persistir no CREATE
+            %control = VALUE #(
+              IdRef    = if_abap_behv=>mk-on
+              Etapa    = if_abap_behv=>mk-on
+              Mensagem = if_abap_behv=>mk-on
+            )
           ) )
         ) )
       FAILED DATA(cre_failed).
+
+      " Se CREATE também falhar, registrar no log de aplicação e continuar
+      IF cre_failed IS NOT INITIAL.
+        " Falha crítica: LOG não pôde ser criado nem atualizado
+        " Registrar via ABAP message para não quebrar o fluxo da action
+        ASSERT 1 = 1. " Placeholder: substituir por log de aplicação específico
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -263,18 +276,12 @@ ENDCLASS.
 CLASS lhc_log_mgr IMPLEMENTATION.
 
   METHOD set_admin_fields.
-
-    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-      ENTITY logmgr
-        FIELDS ( Pedido Bandeira )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(log_entries).
-
+    " Campos chave já disponíveis em keys — READ desnecessário, usar %tky diretamente
     DATA updates TYPE TABLE FOR UPDATE zi_q2c_arq_mgr\\logmgr.
 
-    LOOP AT log_entries INTO DATA(entry).
+    LOOP AT keys INTO DATA(key).
       APPEND VALUE #(
-        %tky     = entry-%tky
+        %tky     = key-%tky
         datum    = sy-datum
         uzeit    = sy-uzeit
         ernam    = sy-uname

@@ -171,7 +171,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         AND bandeira = @bandeira.
 
     IF sy-subrc <> 0.
-      INSERT ztbq2c_log_mgr FROM @VALUE #(
+      INSERT ztbq2c_log_mgr FROM @( VALUE #(
         pedido   = pedido
         bandeira = bandeira
         id_ref   = id_ref
@@ -180,7 +180,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         datum    = sy-datum
         uzeit    = sy-uzeit
         ernam    = sy-uname
-      ).
+      ) ).
     ENDIF.
   ENDMETHOD.
 

@@ -1,0 +1,214 @@
+*&---------------------------------------------------------------------*
+*& Program  : ZTEST_INSERT_MGR_DATA
+*& Descrição: Carga de dados de teste para tabelas MGR
+*&            ZTBQ2C_ARQ_MGR e ZTBQ2C_LOG_MGR
+*&
+*& COMO USAR NO ADT:
+*& 1. New -> Other ABAP Repository Object -> Program
+*& 2. Nome: ZTEST_INSERT_MGR_DATA
+*& 3. Colar este conteúdo
+*& 4. Ativar (Ctrl+F3)
+*& 5. Executar (F8)
+*&
+*& ATENÇÃO: Executar apenas em sistemas de DEV/QAS, nunca em PRD
+*&---------------------------------------------------------------------*
+REPORT ztest_insert_mgr_data.
+
+*----------------------------------------------------------------------*
+* Constantes de status
+*----------------------------------------------------------------------*
+CONSTANTS:
+  gc_status_pendente   TYPE ztbq2c_arq_mgr-status VALUE 'PENDENTE',
+  gc_status_erro       TYPE ztbq2c_arq_mgr-status VALUE 'ERRO',
+  gc_status_cancelado  TYPE ztbq2c_arq_mgr-status VALUE 'CANCELADO',
+  gc_status_processado TYPE ztbq2c_arq_mgr-status VALUE 'PROCESSADO'.
+
+*----------------------------------------------------------------------*
+* Tela de seleção
+*----------------------------------------------------------------------*
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+  PARAMETERS:
+    p_del  TYPE abap_bool AS CHECKBOX DEFAULT abap_true,   " Limpar antes de inserir
+    p_arq  TYPE abap_bool AS CHECKBOX DEFAULT abap_true,   " Inserir ARQ
+    p_log  TYPE abap_bool AS CHECKBOX DEFAULT abap_true.   " Inserir LOG
+SELECTION-SCREEN END OF BLOCK b1.
+
+INITIALIZATION.
+  TEXT-001 = 'Opções de Carga'.
+
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+
+  IF p_del = abap_true.
+    PERFORM delete_test_data.
+  ENDIF.
+
+  IF p_arq = abap_true.
+    PERFORM insert_arq_data.
+  ENDIF.
+
+  IF p_log = abap_true.
+    PERFORM insert_log_data.
+  ENDIF.
+
+  WRITE: / '===================================='.
+  WRITE: / ' Carga de dados concluída!'.
+  WRITE: / '===================================='.
+
+*----------------------------------------------------------------------*
+FORM delete_test_data.
+  DELETE FROM ztbq2c_log_mgr WHERE pedido LIKE 'PED-TEST%'.
+  WRITE: / |LOG: { sy-dbcnt } registros deletados|.
+
+  DELETE FROM ztbq2c_arq_mgr WHERE pedido LIKE 'PED-TEST%'.
+  WRITE: / |ARQ: { sy-dbcnt } registros deletados|.
+  WRITE: / '------------------------------------'.
+ENDFORM.
+
+*----------------------------------------------------------------------*
+FORM insert_arq_data.
+
+  DATA lt_arq TYPE TABLE OF ztbq2c_arq_mgr.
+
+  " --- Registro 1: ERRO aguardando reprocessamento ---
+  APPEND VALUE ztbq2c_arq_mgr(
+    pedido     = 'PED-TEST-001'
+    bandeira   = 'VISA'
+    tipo_doc   = 'NF'
+    cabec_arq  = 'HEADER::NF::001'
+    conteudo   = '{"pedido":"PED-TEST-001","bandeira":"VISA","valor":1500.00,"itens":[{"sku":"SKU-A","qtd":2}]}'
+    status     = gc_status_erro
+    tentativas = 2
+    datum      = sy-datum
+    uzeit      = sy-uzeit
+    ernam      = sy-uname
+  ) TO lt_arq.
+
+  " --- Registro 2: PENDENTE nunca tentado ---
+  APPEND VALUE ztbq2c_arq_mgr(
+    pedido     = 'PED-TEST-002'
+    bandeira   = 'MASTER'
+    tipo_doc   = 'NF'
+    cabec_arq  = 'HEADER::NF::002'
+    conteudo   = '{"pedido":"PED-TEST-002","bandeira":"MASTER","valor":890.50,"itens":[{"sku":"SKU-B","qtd":1}]}'
+    status     = gc_status_pendente
+    tentativas = 0
+    datum      = sy-datum
+    uzeit      = sy-uzeit
+    ernam      = sy-uname
+  ) TO lt_arq.
+
+  " --- Registro 3: PROCESSADO com sucesso ---
+  APPEND VALUE ztbq2c_arq_mgr(
+    pedido     = 'PED-TEST-003'
+    bandeira   = 'ELO'
+    tipo_doc   = 'BOLETO'
+    cabec_arq  = 'HEADER::BOL::003'
+    conteudo   = '{"pedido":"PED-TEST-003","bandeira":"ELO","valor":320.00}'
+    status     = gc_status_processado
+    tentativas = 1
+    datum      = sy-datum
+    uzeit      = sy-uzeit
+    ernam      = sy-uname
+  ) TO lt_arq.
+
+  " --- Registro 4: CANCELADO pelo usuário ---
+  APPEND VALUE ztbq2c_arq_mgr(
+    pedido     = 'PED-TEST-004'
+    bandeira   = 'AMEX'
+    tipo_doc   = 'NF'
+    cabec_arq  = 'HEADER::NF::004'
+    conteudo   = '{"pedido":"PED-TEST-004","bandeira":"AMEX","valor":5000.00}'
+    status     = gc_status_cancelado
+    tentativas = 1
+    datum      = sy-datum
+    uzeit      = sy-uzeit
+    ernam      = sy-uname
+  ) TO lt_arq.
+
+  " --- Registro 5: ERRO com muitas tentativas ---
+  APPEND VALUE ztbq2c_arq_mgr(
+    pedido     = 'PED-TEST-005'
+    bandeira   = 'VISA'
+    tipo_doc   = 'NFE'
+    cabec_arq  = 'HEADER::NFE::005'
+    conteudo   = '{"pedido":"PED-TEST-005","bandeira":"VISA","valor":210.00}'
+    status     = gc_status_erro
+    tentativas = 5
+    datum      = sy-datum
+    uzeit      = sy-uzeit
+    ernam      = sy-uname
+  ) TO lt_arq.
+
+  INSERT ztbq2c_arq_mgr FROM TABLE lt_arq.
+
+  IF sy-subrc = 0.
+    WRITE: / |ARQ: { lines( lt_arq ) } registros inseridos com sucesso|.
+  ELSE.
+    WRITE: / |ARQ: ERRO na inserção (sy-subrc={ sy-subrc })|.
+  ENDIF.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+FORM insert_log_data.
+
+  DATA lt_log TYPE TABLE OF ztbq2c_log_mgr.
+
+  " LOG para PED-TEST-001 (erro)
+  APPEND VALUE ztbq2c_log_mgr(
+    pedido   = 'PED-TEST-001'
+    bandeira = 'VISA'
+    id_ref   = 'CPI-0001'
+    etapa    = 'ENVIO_CPI'
+    mensagem = 'Timeout na chamada CPI após 30s. Endpoint: /api/mgr/reprocess'
+    datum    = sy-datum
+    uzeit    = sy-uzeit
+    ernam    = sy-uname
+  ) TO lt_log.
+
+  " LOG para PED-TEST-003 (processado)
+  APPEND VALUE ztbq2c_log_mgr(
+    pedido   = 'PED-TEST-003'
+    bandeira = 'ELO'
+    id_ref   = 'CPI-0003'
+    etapa    = 'REPROCESSAMENTO'
+    mensagem = 'Reprocessado com sucesso. Retorno CPI: HTTP 200 OK'
+    datum    = sy-datum
+    uzeit    = sy-uzeit
+    ernam    = sy-uname
+  ) TO lt_log.
+
+  " LOG para PED-TEST-004 (cancelado)
+  APPEND VALUE ztbq2c_log_mgr(
+    pedido   = 'PED-TEST-004'
+    bandeira = 'AMEX'
+    id_ref   = ''
+    etapa    = 'CANCELAMENTO'
+    mensagem = 'Registro cancelado manualmente'
+    datum    = sy-datum
+    uzeit    = sy-uzeit
+    ernam    = sy-uname
+  ) TO lt_log.
+
+  " LOG para PED-TEST-005 (erro persistente)
+  APPEND VALUE ztbq2c_log_mgr(
+    pedido   = 'PED-TEST-005'
+    bandeira = 'VISA'
+    id_ref   = 'CPI-0005'
+    etapa    = 'ENVIO_CPI'
+    mensagem = 'Erro HTTP 500: Internal Server Error. Verifique payload e tente novamente.'
+    datum    = sy-datum
+    uzeit    = sy-uzeit
+    ernam    = sy-uname
+  ) TO lt_log.
+
+  INSERT ztbq2c_log_mgr FROM TABLE lt_log.
+
+  IF sy-subrc = 0.
+    WRITE: / |LOG: { lines( lt_log ) } registros inseridos com sucesso|.
+  ELSE.
+    WRITE: / |LOG: ERRO na inserção (sy-subrc={ sy-subrc })|.
+  ENDIF.
+
+ENDFORM.

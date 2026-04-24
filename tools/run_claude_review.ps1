@@ -4,6 +4,7 @@ param(
     [string]$ApiKey = $env:ANTHROPIC_API_KEY,
     [string]$PromptFile = "tools/claude_review_prompt.txt",
     [string]$OutputFile = "tools/claude_review_output.md",
+    [string]$ReportFile = "tools/claude_corrections_report.md",
     [switch]$AutoApply,
     [int]$MaxFileChars = 12000,
     [int]$MaxFiles = 25
@@ -138,6 +139,44 @@ $($fileBlocks -join "`n`n")
         }
 
         Write-Host "Patch aplicado com sucesso (staged)."
+
+        $stagedFiles = @(git diff --cached --name-only)
+        $stagedStat = git diff --cached --shortstat
+        $stagedDiff = git diff --cached
+
+        $appliedDiffPath = Join-Path (Get-Location) "tools/claude_applied.diff"
+        Set-Content -Path $appliedDiffPath -Value $stagedDiff -Encoding UTF8
+
+        $reportPath = Join-Path (Get-Location) $ReportFile
+        $filesList = if ($stagedFiles.Count -gt 0) {
+            ($stagedFiles | ForEach-Object { "- $_" }) -join "`n"
+        } else {
+            "- Nenhum arquivo staged"
+        }
+
+        $report = @"
+# Claude Corrections Report
+
+- Model: $Model
+- Review output: $OutputFile
+- Patch file: tools/claude_review.patch
+- Applied diff: tools/claude_applied.diff
+- Generated at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+
+## Summary
+$stagedStat
+
+## Corrected Files
+$filesList
+
+## Next Steps
+1. Revisar o conteúdo de tools/claude_applied.diff
+2. Rodar testes/ATC no ADT
+3. Commitar as correções validadas
+"@
+
+        Set-Content -Path $reportPath -Value $report -Encoding UTF8
+        Write-Host "Relatorio salvo em: $reportPath"
     }
 }
 finally {

@@ -7,6 +7,7 @@ strict ( 2 );
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
 persistent table ztbq2c_arq_mgr
 lock master
+authorization master ( global )
 etag master Uzeit
 {
   create;

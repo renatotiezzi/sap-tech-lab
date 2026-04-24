@@ -1,8 +1,8 @@
 @Metadata.layer: #CUSTOMER
 @UI: {
   headerInfo: {
-    typeName: 'Arquivo MGR',
-    typeNamePlural: 'Arquivos MGR',
+    typeName: 'Arquivo',
+    typeNamePlural: 'Arquivos',
     title: { value: 'Pedido' },
     description: { value: 'Bandeira' }
   }
@@ -11,56 +11,63 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
 {
   @UI.facet: [
     { id: 'General', type: #IDENTIFICATION_REFERENCE, label: 'Dados Gerais', position: 10 },
-    { id: 'Log', type: #LINEITEM_REFERENCE, label: 'Log de Processamento', position: 20, targetElement: '_Log' }
+    { id: 'Content', type: #FIELDGROUP_REFERENCE, label: 'Conteúdo do Arquivo', position: 20, targetQualifier: 'FileContent' },
+    { id: 'Log', type: #LINEITEM_REFERENCE, label: 'Log de Processamento', position: 30, targetElement: '_Log' }
   ]
 
+  @EndUserText.label: 'Pedido'
   @UI.selectionField: [ { position: 10 } ]
   @UI.lineItem: [ { position: 10, importance: #HIGH } ]
   @UI.identification: [ { position: 10 } ]
   Pedido;
 
+  @EndUserText.label: 'Bandeira'
   @UI.selectionField: [ { position: 20 } ]
   @UI.lineItem: [ { position: 20, importance: #HIGH } ]
   @UI.identification: [ { position: 20 } ]
   Bandeira;
 
+  @EndUserText.label: 'Tipo de Documento'
   @UI.selectionField: [ { position: 30 } ]
   @UI.lineItem: [ { position: 30 } ]
   @UI.identification: [ { position: 30 } ]
   TipoDoc;
 
+  @EndUserText.label: 'Status MGR'
   @UI.selectionField: [ { position: 40 } ]
   @UI.lineItem: [
     { position: 40, importance: #HIGH },
-    { position: 90, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
-    { position: 91, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
+    { position: 10, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
+    { position: 11, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
   ]
-  @UI.identification: [
-    { position: 40 },
-    { position: 90, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
-    { position: 91, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
-  ]
+  @UI.identification: [ { position: 40 } ]
   Status;
 
+  @EndUserText.label: 'Tentativas'
   @UI.lineItem: [ { position: 50 } ]
   @UI.identification: [ { position: 50 } ]
   Tentativas;
 
+  @EndUserText.label: 'Data'
+  @UI.selectionField: [ { position: 50 } ]
   @UI.lineItem: [ { position: 60 } ]
   @UI.identification: [ { position: 60 } ]
   Datum;
 
+  @EndUserText.label: 'Hora'
   @UI.lineItem: [ { position: 70 } ]
-  @UI.identification: [ { position: 70 } ]
   Uzeit;
 
+  @EndUserText.label: 'Usuário'
+  @UI.selectionField: [ { position: 60 } ]
   @UI.lineItem: [ { position: 80 } ]
-  @UI.identification: [ { position: 80 } ]
   Ernam;
 
-  @UI.identification: [ { position: 100 } ]
+  @EndUserText.label: 'Cabeçalho do Arquivo'
+  @UI.fieldGroup: [ { qualifier: 'FileContent', position: 10 } ]
   CabecArq;
 
-  @UI.identification: [ { position: 110 } ]
+  @EndUserText.label: 'Conteúdo do Arquivo'
+  @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
   Conteudo;
 }

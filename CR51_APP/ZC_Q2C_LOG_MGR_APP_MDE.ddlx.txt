@@ -1,26 +1,32 @@
 @Metadata.layer: #CUSTOMER
 annotate view ZC_Q2C_LOG_MGR_APP with
 {
+  @EndUserText.label: 'Etapa'
   @UI.lineItem: [ { position: 10, importance: #HIGH } ]
   @UI.identification: [ { position: 10 } ]
   Etapa;
 
+  @EndUserText.label: 'Mensagem'
   @UI.lineItem: [ { position: 20, importance: #HIGH } ]
   @UI.identification: [ { position: 20 } ]
   Mensagem;
 
+  @EndUserText.label: 'ID Arquivo'
   @UI.lineItem: [ { position: 30 } ]
   @UI.identification: [ { position: 30 } ]
   IdRef;
 
+  @EndUserText.label: 'Data'
   @UI.lineItem: [ { position: 40 } ]
   @UI.identification: [ { position: 40 } ]
   Datum;
 
+  @EndUserText.label: 'Hora'
   @UI.lineItem: [ { position: 50 } ]
   @UI.identification: [ { position: 50 } ]
   Uzeit;
 
+  @EndUserText.label: 'Usuário'
   @UI.lineItem: [ { position: 60 } ]
   @UI.identification: [ { position: 60 } ]
   Ernam;

@@ -140,19 +140,6 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
             mensagem = |Erro: { exc->get_text( ) }|
           ).
 
-          " Retornar erro funcional tratado para o Fiori (evita popup técnico genérico)
-          APPEND VALUE #(
-            %tky = entity-%tky
-          ) TO failed-arqmgr.
-
-          APPEND VALUE #(
-            %tky = entity-%tky
-            %msg = new_message_with_text(
-              severity = if_abap_behv_message=>severity-error
-              text     = |Falha ao reprocessar Pedido { entity-Pedido }/{ entity-Bandeira }: { exc->get_text( ) }|
-            )
-          ) TO reported-arqmgr.
-
       ENDTRY.
     ENDLOOP.
 

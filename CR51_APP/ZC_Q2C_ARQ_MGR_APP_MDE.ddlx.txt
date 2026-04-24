@@ -1,0 +1,66 @@
+@Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Arquivo MGR',
+    typeNamePlural: 'Arquivos MGR',
+    title: { value: 'Pedido' },
+    description: { value: 'Bandeira' }
+  }
+}
+annotate view ZC_Q2C_ARQ_MGR_APP with
+{
+  @UI.facet: [
+    { id: 'General', type: #IDENTIFICATION_REFERENCE, label: 'Dados Gerais', position: 10 },
+    { id: 'Log', type: #LINEITEM_REFERENCE, label: 'Log de Processamento', position: 20, targetElement: '_Log' }
+  ]
+
+  @UI.selectionField: [ { position: 10 } ]
+  @UI.lineItem: [ { position: 10, importance: #HIGH } ]
+  @UI.identification: [ { position: 10 } ]
+  Pedido;
+
+  @UI.selectionField: [ { position: 20 } ]
+  @UI.lineItem: [ { position: 20, importance: #HIGH } ]
+  @UI.identification: [ { position: 20 } ]
+  Bandeira;
+
+  @UI.selectionField: [ { position: 30 } ]
+  @UI.lineItem: [ { position: 30 } ]
+  @UI.identification: [ { position: 30 } ]
+  TipoDoc;
+
+  @UI.selectionField: [ { position: 40 } ]
+  @UI.lineItem: [
+    { position: 40, importance: #HIGH },
+    { position: 90, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
+    { position: 91, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
+  ]
+  @UI.identification: [
+    { position: 40 },
+    { position: 90, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
+    { position: 91, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
+  ]
+  Status;
+
+  @UI.lineItem: [ { position: 50 } ]
+  @UI.identification: [ { position: 50 } ]
+  Tentativas;
+
+  @UI.lineItem: [ { position: 60 } ]
+  @UI.identification: [ { position: 60 } ]
+  Datum;
+
+  @UI.lineItem: [ { position: 70 } ]
+  @UI.identification: [ { position: 70 } ]
+  Uzeit;
+
+  @UI.lineItem: [ { position: 80 } ]
+  @UI.identification: [ { position: 80 } ]
+  Ernam;
+
+  @UI.identification: [ { position: 100 } ]
+  CabecArq;
+
+  @UI.identification: [ { position: 110 } ]
+  Conteudo;
+}

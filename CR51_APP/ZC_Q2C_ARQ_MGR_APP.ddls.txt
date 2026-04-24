@@ -15,6 +15,12 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       Datum,
       Uzeit,
       Ernam,
+      LogIdRef,
+      LogEtapa,
+      LogMensagem,
+      LogDatum,
+      LogUzeit,
+      LogErnam,
 
       /* Compositions */
       _Log : redirected to composition child ZC_Q2C_LOG_MGR_APP

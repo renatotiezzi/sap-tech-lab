@@ -21,6 +21,12 @@ define root view entity ZI_Q2C_ARQ_MGR
       datum         as Datum,
       uzeit         as Uzeit,
       ernam         as Ernam,
+      _Log.IdRef     as LogIdRef,
+      _Log.Etapa     as LogEtapa,
+      _Log.Mensagem  as LogMensagem,
+      _Log.Datum     as LogDatum,
+      _Log.Uzeit     as LogUzeit,
+      _Log.Ernam     as LogErnam,
 
       /* Associations */
       _Log

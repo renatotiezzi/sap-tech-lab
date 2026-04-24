@@ -26,10 +26,10 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
       position: 20,
       targetQualifier: 'FileContent' },
     { id: 'Log',
-      type: #LINEITEM_REFERENCE,
+      type: #FIELDGROUP_REFERENCE,
       label: 'Log de Processamento',
       position: 20,
-      targetElement: '_Log' }
+      targetQualifier: 'ProcessingLog' }
   ]
 
   @EndUserText.label: 'Pedido'
@@ -88,4 +88,29 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.multiLineText: true
   @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
   Conteudo;
+
+  @EndUserText.label: 'Etapa do Log'
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 10 } ]
+  LogEtapa;
+
+  @EndUserText.label: 'Mensagem do Log'
+  @UI.multiLineText: true
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 20 } ]
+  LogMensagem;
+
+  @EndUserText.label: 'ID de Referência'
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 30 } ]
+  LogIdRef;
+
+  @EndUserText.label: 'Data do Log'
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 40 } ]
+  LogDatum;
+
+  @EndUserText.label: 'Hora do Log'
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 50 } ]
+  LogUzeit;
+
+  @EndUserText.label: 'Usuário do Log'
+  @UI.fieldGroup: [ { qualifier: 'ProcessingLog', position: 60 } ]
+  LogErnam;
 }

@@ -7,6 +7,7 @@ O objetivo e entregar uma experiencia de List Report (pagina unica) com operacao
 ## Principios da Solucao
 - Nomenclatura dedicada com sufixo LR para evitar conflito com a versao anterior.
 - Separacao em 3 camadas/pastas: base comum, servico tecnico e app FE.
+- Uma unica ZI de leitura (join ARQ + LOG) e uma unica ZC de consumo da app.
 - Campos do ultimo log expostos no root da app para simplificar UX.
 - Actions de negocio mantidas no root: Reprocess e Cancel.
 
@@ -17,13 +18,12 @@ Contem os objetos de dominio/interface e implementacao RAP.
 
 Objetos:
 - ZI_Q2C_ARQLR_MGR.ddls.txt
-- ZI_Q2C_LOGLR_MGR.ddls.txt
 - ZI_Q2C_ARQLR_MGR.bdef.txt
 - ZBP_I_Q2C_ARQLR_MGR.clas.txt
 - ZBP_I_Q2C_ARQLR_MGR.clas.locals_imp.txt
 
 Responsabilidades:
-- Definir entidade raiz e entidade de log.
+- Definir entidade raiz unica com left outer join de ARQ e LOG para leitura.
 - Mapear para tabelas persistentes ZTBQ2C_ARQ_MGR e ZTBQ2C_LOG_MGR.
 - Implementar determinacoes administrativas (Datum/Uzeit/Ernam).
 - Implementar actions Reprocess e Cancel.
@@ -33,14 +33,11 @@ Responsabilidades:
 Contem a projection para exposicao de servico tecnico.
 
 Objetos:
-- ZC_Q2C_ARQLR_MGR.ddls.txt
-- ZC_Q2C_ARQLR_MGR.bdef.txt
 - ZSD_Q2C_MGRLR.srvd.txt
 - ZSB_Q2C_MGRLR.srvb.txt (instrucao de criacao no ADT)
 
 Responsabilidades:
-- Expor a projection root para integracao tecnica.
-- Disponibilizar CRUD + actions do BO root.
+- Expor o consumo da app (ZC_Q2C_ARQLR_MGR_APP) via servico tecnico.
 
 ### CR51_Page_Unica_APP (Projection da app Fiori Elements)
 Contem projection da app e anotacoes UI.
@@ -80,7 +77,7 @@ Essa abordagem remove a necessidade de tratar log como item navegavel na app.
 - Servico APP (UI): ZSD_Q2C_MGRLR_APP
   - Entity set: ArqMgrApp
 - Servico SRV (tecnico): ZSD_Q2C_MGRLR
-  - Entity set: ArqMgr
+  - Entity set: ArqMgrApp
 
 ## Boas Praticas de Deploy
 - Ativar em ordem: Base comum -> SRV -> APP.

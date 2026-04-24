@@ -11,34 +11,28 @@ Este guia descreve a ordem exata para implementar no ambiente SAP a solucao RAP 
 
 ## Estrutura de Implementacao
 - Base comum (BO/interface/behavior): CR51_Page_Unica
-- Projection de servico tecnico: CR51_Page_Unica_SRV
-- Projection da app FE + metadata: CR51_Page_Unica_APP
+- App FE (consumo read-only + actions): CR51_Page_Unica_APP
+- Servico (SRVD/SRVB): CR51_Page_Unica_SRV
 
 ## Ordem Recomendada de Criacao e Ativacao
 
 ### Fase 1 - Base comum (obrigatoria)
-1. ZI_Q2C_LOGLR_MGR (DDLS)
-2. ZI_Q2C_ARQLR_MGR (DDLS)
-3. ZBP_I_Q2C_ARQLR_MGR (classe global)
-4. ZI_Q2C_ARQLR_MGR (BDEF)
-5. ZBP_I_Q2C_ARQLR_MGR (CCIMP / locals_imp)
+1. ZI_Q2C_ARQLR_MGR (DDLS)
+2. ZBP_I_Q2C_ARQLR_MGR (classe global)
+3. ZI_Q2C_ARQLR_MGR (BDEF)
+4. ZBP_I_Q2C_ARQLR_MGR (CCIMP / locals_imp)
 
 Arquivos de referencia:
-- CR51_Page_Unica/ZI_Q2C_LOGLR_MGR.ddls.txt
 - CR51_Page_Unica/ZI_Q2C_ARQLR_MGR.ddls.txt
 - CR51_Page_Unica/ZBP_I_Q2C_ARQLR_MGR.clas.txt
 - CR51_Page_Unica/ZI_Q2C_ARQLR_MGR.bdef.txt
 - CR51_Page_Unica/ZBP_I_Q2C_ARQLR_MGR.clas.locals_imp.txt
 
 ### Fase 2 - Projection de servico tecnico (SRV)
-1. ZC_Q2C_ARQLR_MGR (DDLS)
-2. ZC_Q2C_ARQLR_MGR (BDEF)
-3. ZSD_Q2C_MGRLR (SRVD)
-4. Criar no ADT o Binding ZSB_Q2C_MGRLR (OData V4 - UI), ativar e publicar
+1. ZSD_Q2C_MGRLR (SRVD)
+2. Criar no ADT o Binding ZSB_Q2C_MGRLR (OData V4 - UI), ativar e publicar
 
 Arquivos de referencia:
-- CR51_Page_Unica_SRV/ZC_Q2C_ARQLR_MGR.ddls.txt
-- CR51_Page_Unica_SRV/ZC_Q2C_ARQLR_MGR.bdef.txt
 - CR51_Page_Unica_SRV/ZSD_Q2C_MGRLR.srvd.txt
 - CR51_Page_Unica_SRV/ZSB_Q2C_MGRLR.srvb.txt
 
@@ -92,5 +86,6 @@ Arquivos de referencia:
 
 ## Observacoes de Projeto
 - A app LR e page-unica/list-report-first.
-- O log exibido na UI e o ultimo estado (campos achatados no root), evitando navegacao de item filho na app.
-- A modelagem evita o ponto que gerava UX ruim e erro tecnico ao tentar tratar associacao 0..1 como tabela de item.
+- Existe apenas uma ZI (ZI_Q2C_ARQLR_MGR), que faz leitura por left outer join entre ARQ e LOG.
+- Existe apenas uma ZC de consumo (ZC_Q2C_ARQLR_MGR_APP) usada pela app read-only com actions.
+- As actions atualizam as duas tabelas no backend (ARQ e LOG) via behavior implementation.

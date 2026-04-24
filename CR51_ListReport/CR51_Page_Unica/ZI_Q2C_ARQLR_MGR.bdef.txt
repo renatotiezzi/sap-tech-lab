@@ -18,8 +18,6 @@ etag master Uzeit
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
-  association _Log { create; }
-
   mapping for ztbq2c_arq_mgr
   {
     Pedido     = pedido;
@@ -32,34 +30,5 @@ etag master Uzeit
     Datum      = datum;
     Uzeit      = uzeit;
     Ernam      = ernam;
-  }
-}
-
-define behavior for ZI_Q2C_LOGLR_MGR alias LogMgr
-persistent table ztbq2c_log_mgr
-lock dependent by _Arq
-authorization dependent by _Arq
-etag master Uzeit
-{
-  create;
-  update;
-  delete;
-
-  field ( readonly ) Datum, Uzeit, Ernam;
-
-  determination set_admin_fields on modify { create; update; }
-
-  association _Arq;
-
-  mapping for ztbq2c_log_mgr
-  {
-    Pedido   = pedido;
-    Bandeira = bandeira;
-    IdRef    = id_ref;
-    Etapa    = etapa;
-    Mensagem = mensagem;
-    Datum    = datum;
-    Uzeit    = uzeit;
-    Ernam    = ernam;
   }
 }

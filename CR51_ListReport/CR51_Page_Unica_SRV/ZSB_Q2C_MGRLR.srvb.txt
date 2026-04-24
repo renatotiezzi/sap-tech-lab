@@ -21,5 +21,5 @@
 //   /sap/opu/odata4/sap/zsb_q2c_mgrlr/srvd/sap/zsd_q2c_mgrlr/0001/
 //
 // Exposed Entity Sets:
-//   - ArqMgr (root) -> CRUD + Actions (Reprocess, Cancel)
+//   - ArqMgrApp (root) -> READ + Actions (Reprocess, Cancel)
 // -----------------------------------------------------------------------

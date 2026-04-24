@@ -18,9 +18,6 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION arqmgr~cancel
       RESULT result.
 
-    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
-      IMPORTING REQUEST requested_authorizations FOR ArqMgr RESULT result.
-
     " Helper: UPSERT do LOG (sobrescreve última informação de processamento)
     " Tenta UPDATE; se LOG não existir (primeira execução), cria via composição _Log
     METHODS upsert_log
@@ -33,17 +30,6 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
 ENDCLASS.
 
 CLASS lhc_arq_mgr IMPLEMENTATION.
-
-  METHOD get_global_authorizations.
-    " Sem verificação de autorização customizada — permite todas as operações
-    result = VALUE #(
-      %create                 = if_abap_behv=>auth-allowed
-      %update                 = if_abap_behv=>auth-allowed
-      %delete                 = if_abap_behv=>auth-allowed
-      %action-Reprocess       = if_abap_behv=>auth-allowed
-      %action-Cancel          = if_abap_behv=>auth-allowed
-    ).
-  ENDMETHOD.
 
   METHOD set_admin_fields.
 

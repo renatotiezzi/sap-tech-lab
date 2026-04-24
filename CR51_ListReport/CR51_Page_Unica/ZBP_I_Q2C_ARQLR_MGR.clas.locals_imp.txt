@@ -14,9 +14,6 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION arqmgr~cancel
       RESULT result.
 
-    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
-      IMPORTING REQUEST requested_authorizations FOR ARQMGR RESULT result.
-
     METHODS upsert_log
       IMPORTING
         pedido   TYPE ztbq2c_arq_mgr-pedido
@@ -27,14 +24,6 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
 ENDCLASS.
 
 CLASS lhc_arq_mgr IMPLEMENTATION.
-
-  METHOD get_global_authorizations.
-    result = VALUE #(
-      %create = if_abap_behv=>auth-allowed
-      %delete = if_abap_behv=>auth-allowed
-      %update = if_abap_behv=>auth-allowed
-    ).
-  ENDMETHOD.
 
   METHOD set_admin_fields.
     READ ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE

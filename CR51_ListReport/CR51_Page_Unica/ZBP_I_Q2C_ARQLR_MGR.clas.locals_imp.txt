@@ -64,15 +64,6 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     DATA(cpi_caller) = NEW zcl_q2c_cpi_caller( ).
 
     LOOP AT entities INTO DATA(entity).
-      MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
-        ENTITY arqmgr
-          UPDATE FIELDS ( Tentativas Status )
-          WITH VALUE #( (
-            %key       = entity-%key
-            Tentativas = entity-Tentativas + 1
-            Status     = 'EM_PROCESSAMENTO'
-          ) ).
-
       TRY.
           cpi_caller->call_cpi_reprocess(
             EXPORTING
@@ -86,10 +77,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
           MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status )
+              UPDATE FIELDS ( Tentativas Status )
               WITH VALUE #( (
-                %key   = entity-%key
-                Status = 'PROCESSADO'
+                %key       = entity-%key
+                Tentativas = entity-Tentativas + 1
+                Status     = 'PROCESSADO'
               ) ).
 
           upsert_log(
@@ -103,10 +95,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CATCH cx_root INTO DATA(exc).
           MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status )
+              UPDATE FIELDS ( Tentativas Status )
               WITH VALUE #( (
-                %key   = entity-%key
-                Status = 'ERRO'
+                %key       = entity-%key
+                Tentativas = entity-Tentativas + 1
+                Status     = 'ERRO'
               ) ).
 
           upsert_log(

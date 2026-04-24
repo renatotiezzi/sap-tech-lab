@@ -11,6 +11,7 @@ etag master Uzeit
   delete;
 
   field ( readonly ) Datum, Uzeit, Ernam;
+  field ( readonly ) LogIdRef, LogEtapa, LogMensagem, LogDatum, LogUzeit, LogErnam;
   field ( readonly : update ) Pedido, Bandeira;
 
   determination set_admin_fields on modify { create; update; }

@@ -6,15 +6,13 @@ persistent table ztbq2c_arq_mgr
 lock master
 etag master Uzeit
 {
-  create;
   update;
-  delete;
 
   field ( readonly ) Datum, Uzeit, Ernam;
   field ( readonly ) LogIdRef, LogEtapa, LogMensagem, LogDatum, LogUzeit, LogErnam;
   field ( readonly : update ) Pedido, Bandeira;
 
-  determination set_admin_fields on modify { create; update; }
+  determination set_admin_fields on modify { update; }
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;

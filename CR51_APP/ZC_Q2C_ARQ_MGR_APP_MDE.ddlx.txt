@@ -10,9 +10,26 @@
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
   @UI.facet: [
-    { id: 'General', type: #IDENTIFICATION_REFERENCE, label: 'Dados Gerais', position: 10 },
-    { id: 'Content', type: #FIELDGROUP_REFERENCE, label: 'Conteúdo do Arquivo', position: 20, targetQualifier: 'FileContent' },
-    { id: 'Log', type: #LINEITEM_REFERENCE, label: 'Log de Processamento', position: 30, targetElement: '_Log' }
+    { id: 'Detalhes',
+      type: #COLLECTION,
+      label: 'Detalhes do Arquivo',
+      position: 10 },
+    { id: 'General',
+      parentId: 'Detalhes',
+      type: #IDENTIFICATION_REFERENCE,
+      label: 'Dados Gerais',
+      position: 10 },
+    { id: 'Content',
+      parentId: 'Detalhes',
+      type: #FIELDGROUP_REFERENCE,
+      label: 'Conteúdo',
+      position: 20,
+      targetQualifier: 'FileContent' },
+    { id: 'Log',
+      type: #LINEITEM_REFERENCE,
+      label: 'Log de Processamento',
+      position: 20,
+      targetElement: '_Log' }
   ]
 
   @EndUserText.label: 'Pedido'
@@ -37,8 +54,8 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.selectionField: [ { position: 40 } ]
   @UI.lineItem: [
     { position: 40, importance: #HIGH },
-    { position: 10, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
-    { position: 11, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar' }
+    { position: 110, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
+    { position: 120, type: #FOR_ACTION, dataAction: 'Cancel',    label: 'Cancelar' }
   ]
   @UI.identification: [ { position: 40 } ]
   Status;
@@ -67,7 +84,8 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.fieldGroup: [ { qualifier: 'FileContent', position: 10 } ]
   CabecArq;
 
-  @EndUserText.label: 'Conteúdo do Arquivo'
+  @EndUserText.label: 'Conteúdo do Arquivo (JSON)'
+  @UI.multiLineText: true
   @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
   Conteudo;
 }

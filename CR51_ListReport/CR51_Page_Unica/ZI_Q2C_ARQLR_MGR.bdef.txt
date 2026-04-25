@@ -9,7 +9,6 @@ etag master Uzeit
   update;
 
   field ( readonly ) Datum, Uzeit, Ernam;
-  field ( readonly ) StatusCriticality;
   field ( readonly ) LogIdRef, LogEtapa, LogMensagem, LogDatum, LogUzeit, LogErnam;
   field ( readonly : update ) Pedido, Bandeira;
 

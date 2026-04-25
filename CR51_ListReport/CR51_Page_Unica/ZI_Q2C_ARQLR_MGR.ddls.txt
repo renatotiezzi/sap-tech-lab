@@ -19,6 +19,14 @@ define root view entity ZI_Q2C_ARQLR_MGR
       arq.cabec_arq as CabecArq,
       arq.conteudo  as Conteudo,
       arq.status    as Status,
+      cast(
+        case arq.status
+          when 'ERRO'       then 1
+          when 'PENDENTE'   then 2
+          when 'PROCESSADO' then 3
+          when 'CANCELADO'  then 3
+          else 0
+        end as abap.int1 ) as StatusCriticality,
       arq.tentativas as Tentativas,
       arq.datum     as Datum,
       arq.uzeit     as Uzeit,

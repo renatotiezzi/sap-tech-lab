@@ -36,12 +36,15 @@ annotate view ZC_Q2C_ARQLR_MGR_APP with
   @EndUserText.label: 'Status do Processamento'
   @UI.selectionField: [ { position: 10 } ]
   @UI.lineItem: [
-    { position: 10, importance: #HIGH },
+    { position: 10, importance: #HIGH, criticality: 'StatusCriticality' },
     { position: 110, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
     { position: 120, type: #FOR_ACTION, dataAction: 'Cancel', label: 'Cancelar Erro' }
   ]
   @UI.identification: [ { position: 40 } ]
   Status;
+
+  @UI.hidden: true
+  StatusCriticality;
 
   @EndUserText.label: 'Etapa do Erro'
   @UI.lineItem: [ { position: 60, importance: #HIGH } ]

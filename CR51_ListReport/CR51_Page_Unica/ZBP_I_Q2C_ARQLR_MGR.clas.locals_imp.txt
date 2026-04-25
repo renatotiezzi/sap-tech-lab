@@ -3,9 +3,6 @@
 
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
-    METHODS set_admin_fields FOR DETERMINE ON MODIFY
-      IMPORTING keys FOR arqmgr~set_admin_fields.
-
     METHODS reprocess FOR MODIFY
       IMPORTING keys FOR ACTION arqmgr~reprocess
       RESULT result.
@@ -24,35 +21,6 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
 ENDCLASS.
 
 CLASS lhc_arq_mgr IMPLEMENTATION.
-
-  METHOD set_admin_fields.
-    READ ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
-      ENTITY arqmgr
-        FIELDS ( Pedido Bandeira )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(entries).
-
-    DATA updates TYPE TABLE FOR UPDATE zi_q2c_arqlr_mgr\\arqmgr.
-
-    LOOP AT entries INTO DATA(entry).
-      APPEND VALUE #(
-        %tky     = entry-%tky
-        datum    = sy-datum
-        uzeit    = sy-uzeit
-        ernam    = sy-uname
-        %control = VALUE #(
-          datum = if_abap_behv=>mk-on
-          uzeit = if_abap_behv=>mk-on
-          ernam = if_abap_behv=>mk-on
-        )
-      ) TO updates.
-    ENDLOOP.
-
-    MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
-      ENTITY arqmgr
-        UPDATE FIELDS ( Datum Uzeit Ernam )
-        WITH updates.
-  ENDMETHOD.
 
   METHOD reprocess.
     READ ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
@@ -77,11 +45,14 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
           MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Tentativas Status )
+              UPDATE FIELDS ( Tentativas Status Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Tentativas = entity-Tentativas + 1
                 Status     = 'PROCESSADO'
+                Datum      = sy-datum
+                Uzeit      = sy-uzeit
+                Ernam      = sy-uname
               ) ).
 
           upsert_log(
@@ -95,11 +66,14 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CATCH cx_root INTO DATA(exc).
           MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Tentativas Status )
+              UPDATE FIELDS ( Tentativas Status Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Tentativas = entity-Tentativas + 1
                 Status     = 'ERRO'
+                Datum      = sy-datum
+                Uzeit      = sy-uzeit
+                Ernam      = sy-uname
               ) ).
 
           upsert_log(
@@ -132,10 +106,13 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
     MODIFY ENTITIES OF zi_q2c_arqlr_mgr IN LOCAL MODE
       ENTITY arqmgr
-        UPDATE FIELDS ( Status )
+        UPDATE FIELDS ( Status Datum Uzeit Ernam )
         WITH VALUE #( FOR key IN keys (
           %key   = key-%key
           Status = 'CANCELADO'
+          Datum  = sy-datum
+          Uzeit  = sy-uzeit
+          Ernam  = sy-uname
         ) ).
 
     LOOP AT entities INTO DATA(entity).

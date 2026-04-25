@@ -10,7 +10,16 @@ define root view entity ZC_Q2C_ARQLR_MGR_APP
       TipoDoc,
       CabecArq,
       Conteudo,
+      @Consumption.valueHelpDefinition: [
+        {
+          entity: {
+            name: 'ZC_Q2C_STATUS_VH_APP',
+            element: 'Status'
+          }
+        }
+      ]
       Status,
+      StatusCriticality,
       Tentativas,
       Datum,
       Uzeit,

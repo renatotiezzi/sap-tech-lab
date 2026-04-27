@@ -23,10 +23,12 @@ CLASS zcl_q2c_cpi_caller DEFINITION
         ev_status TYPE string.
 
   PRIVATE SECTION.
+    " Destino RFC configurado na SM59 (tipo G - HTTP p/ sistema externo)
+    " Host/Path já definidos no destino; não codificar URL aqui.
+    CONSTANTS c_destination TYPE string VALUE 'CPI_MGR_REPROCESSO'.
+
     METHODS prepare_payload
       IMPORTING
-        pedido    TYPE ztbq2c_arq_mgr-pedido
-        bandeira  TYPE ztbq2c_arq_mgr-bandeira
         conteudo  TYPE ztbq2c_arq_mgr-conteudo
         tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
       RETURNING
@@ -43,62 +45,138 @@ ENDCLASS.
 CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
   METHOD call_cpi_reprocess.
-    DATA payload   TYPE string.
-    DATA response  TYPE string.
+    DATA payload  TYPE string.
+    DATA response TYPE string.
 
     TRY.
-        " 1. Preparar payload JSON
+        " 1. Montar payload JSON para o iFlow de reprocessamento
         payload = prepare_payload(
-          pedido   = pedido
-          bandeira = bandeira
           conteudo = conteudo
           tipo_doc = tipo_doc
         ).
 
-        " 2. Executar chamada HTTP/REST para CPI
+        " 2. Executar chamada HTTP via RFC Destination CPI_MGR_REPROCESSO
         response = execute_http_call( payload ).
 
-        " 3. Retornar status
+        " 3. Retornar body da resposta como status de sucesso
         ev_status = response.
 
     CATCH cx_root INTO DATA(exc).
-        ev_status = 'Erro na chamada CPI: ' && exc->get_text( ).
+        " Propaga mensagem de erro para o behavior pool registrar no LOG
+        ev_status = |Erro CPI: { exc->get_text( ) }|.
+        RAISE EXCEPTION exc.
     ENDTRY.
 
   ENDMETHOD.
 
   METHOD prepare_payload.
-    " NOTA: Customize este método com a estrutura JSON esperada pelo CPI
-    " Exemplo genérico:
+    " Payload esperado pelo iFlow CPI /http/mgr/reprocessamento:
     " {
-    "   "pedido": "123456",
-    "   "bandeira": "FORD",
-    "   "tipo_doc": "ZVTF",
-    "   "conteudo": "TXT original..."
+    "   "filename": "<tipo_doc>",     <- código do arquivo (ex: PMDREN, PMDFORD)
+    "   "conteudo": "<base64>"        <- linhas do pedido em Base64 (campo ZTBQ2C_ARQ_MGR-conteudo)
     " }
-
-    DATA json_data TYPE string.
-
-    " TODO: Implementar serialização JSON com seus campos específicos
-    " rs_payload = json_data.
-
-    """ Template de string ABAP: \{ e \} = chaves literais; { var } = interpolação
-    rs_payload = |\{ "pedido": "{ pedido }", "bandeira": "{ bandeira }", "tipo_doc": "{ tipo_doc }", "conteudo": "{ conteudo }" \}|.
+    rs_payload = |\{ "filename": "{ tipo_doc }", "conteudo": "{ conteudo }" \}|.
 
   ENDMETHOD.
 
   METHOD execute_http_call.
-    " NOTA: Customize este método com sua chamada CPI/API específica
-    " Pode usar: cl_http_client, REST APIs, ou seu mecanismo integração preferido
+    DATA: lo_client    TYPE REF TO if_http_client,
+          lv_body_xstr TYPE xstring,
+          lv_http_code TYPE i,
+          lv_reason    TYPE string,
+          lv_response  TYPE string.
 
-    " TODO: Implementar chamada HTTP POST/GET conforme seu CPI
-    " Exemplo estrutura:
-    " - URL do endpoint CPI
-    " - Headers (Content-Type, Authorization)
-    " - Body (payload JSON)
-    " - Tratamento de resposta
+    " 1. Criar cliente HTTP via RFC Destination (SM59: CPI_MGR_REPROCESSO, tipo G)
+    "    Host e path já configurados no destino — não codificar URL aqui.
+    cl_http_client=>create_by_destination(
+      EXPORTING
+        destination              = c_destination
+      IMPORTING
+        client                   = lo_client
+      EXCEPTIONS
+        argument_not_found       = 1
+        destination_not_found    = 2
+        destination_no_authority = 3
+        plugin_not_active        = 4
+        internal_error           = 5
+        OTHERS                   = 6
+    ).
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION NEW cx_abap_illegal_argument(
+        parameter = |Destino RFC '{ c_destination }' não encontrado/acessível (sy-subrc={ sy-subrc })|
+      ).
+    ENDIF.
 
-    rs_response = 'Chamada CPI executada com sucesso'. " Placeholder
+    " 2. Método POST
+    lo_client->request->set_method( if_http_request=>co_request_method_post ).
+
+    " 3. Content-Type JSON
+    lo_client->request->set_header_field(
+      name  = 'Content-Type'
+      value = 'application/json'
+    ).
+
+    " 4. Converter payload string → xstring e setar como body
+    cl_bcs_convert=>string_to_xstring(
+      EXPORTING iv_string  = payload
+      RECEIVING ev_xstring = lv_body_xstr
+    ).
+    lo_client->request->set_data( lv_body_xstr ).
+
+    " 5. Enviar requisição
+    lo_client->send(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        OTHERS                     = 3
+    ).
+    IF sy-subrc <> 0.
+      lo_client->close( ).
+      RAISE EXCEPTION NEW cx_abap_illegal_argument(
+        parameter = |Falha de comunicação HTTP ao enviar para CPI (sy-subrc={ sy-subrc })|
+      ).
+    ENDIF.
+
+    " 6. Aguardar e receber resposta
+    lo_client->receive(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        http_processing_failed     = 3
+        OTHERS                     = 4
+    ).
+    IF sy-subrc <> 0.
+      lo_client->close( ).
+      RAISE EXCEPTION NEW cx_abap_illegal_argument(
+        parameter = |Falha ao receber resposta do CPI (sy-subrc={ sy-subrc })|
+      ).
+    ENDIF.
+
+    " 7. Verificar HTTP status code
+    lo_client->response->get_status(
+      IMPORTING
+        code   = lv_http_code
+        reason = lv_reason
+    ).
+
+    " 8. Ler body da resposta
+    lv_response = lo_client->response->get_cdata( ).
+
+    " 9. Fechar conexão
+    lo_client->close( ).
+
+    " 10. 2xx = sucesso; outros = erro com detalhes para o LOG
+    IF lv_http_code >= 200 AND lv_http_code < 300.
+      rs_response = COND #(
+        WHEN lv_response IS NOT INITIAL
+        THEN lv_response
+        ELSE |CPI OK (HTTP { lv_http_code })|
+      ).
+    ELSE.
+      RAISE EXCEPTION NEW cx_abap_illegal_argument(
+        parameter = |CPI retornou HTTP { lv_http_code } ({ lv_reason }): { lv_response }|
+      ).
+    ENDIF.
 
   ENDMETHOD.
 

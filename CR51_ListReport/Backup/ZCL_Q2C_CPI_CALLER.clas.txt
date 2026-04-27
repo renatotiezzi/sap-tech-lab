@@ -13,6 +13,10 @@ CLASS zcl_q2c_cpi_caller DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
+    " Detalhe do último erro de comunicação CPI.
+    " Disponível no CATCH cx_root do behavior pool via cpi_caller->mv_error_detail.
+    DATA mv_error_detail TYPE string READ-ONLY.
+
     METHODS call_cpi_reprocess
       IMPORTING
         pedido    TYPE ztbq2c_arq_mgr-pedido
@@ -34,6 +38,8 @@ CLASS zcl_q2c_cpi_caller DEFINITION
       RETURNING
         VALUE(rs_payload) TYPE string.
 
+    " execute_http_call não lança exceções — erros sinalizados via mv_error_detail.
+    " rs_response vazio + mv_error_detail preenchido = chamada com erro.
     METHODS execute_http_call
       IMPORTING
         payload   TYPE string
@@ -45,27 +51,27 @@ ENDCLASS.
 CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
   METHOD call_cpi_reprocess.
-    DATA payload  TYPE string.
-    DATA response TYPE string.
+    " Resetar detalhe de erro da chamada anterior
+    CLEAR me->mv_error_detail.
 
-    TRY.
-        " 1. Montar payload JSON para o iFlow de reprocessamento
-        payload = prepare_payload(
-          conteudo = conteudo
-          tipo_doc = tipo_doc
-        ).
+    " 1. Montar payload JSON
+    DATA(lv_payload) = prepare_payload(
+      conteudo = conteudo
+      tipo_doc = tipo_doc
+    ).
 
-        " 2. Executar chamada HTTP via RFC Destination CPI_MGR_REPROCESSO
-        response = execute_http_call( payload ).
+    " 2. Executar chamada HTTP — erros sinalizados via mv_error_detail
+    DATA(lv_response) = execute_http_call( lv_payload ).
 
-        " 3. Retornar body da resposta como status de sucesso
-        ev_status = response.
+    " 3. Se mv_error_detail preenchido: execute_http_call detectou erro
+    "    cx_sy_no_handler é no-check (não precisa de RAISING) e é
+    "    capturado pelo CATCH cx_root do behavior pool.
+    IF me->mv_error_detail IS NOT INITIAL.
+      RAISE EXCEPTION TYPE cx_sy_no_handler.
+    ENDIF.
 
-    CATCH cx_root INTO DATA(exc).
-        " Propaga mensagem de erro para o behavior pool registrar no LOG
-        ev_status = |Erro CPI: { exc->get_text( ) }|.
-        RAISE EXCEPTION exc.
-    ENDTRY.
+    " 4. Sucesso: retornar body da resposta CPI
+    ev_status = lv_response.
 
   ENDMETHOD.
 
@@ -83,11 +89,10 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     DATA: lo_client    TYPE REF TO if_http_client,
           lv_body_xstr TYPE xstring,
           lv_http_code TYPE i,
-          lv_reason    TYPE string,
-          lv_response  TYPE string.
+          lv_reason    TYPE string.
 
     " 1. Criar cliente HTTP via RFC Destination (SM59: CPI_MGR_REPROCESSO, tipo G)
-    "    Host e path já configurados no destino — não codificar URL aqui.
+    "    Host e path (Port 443 + /http/mgr/reprocessamento) já definidos no destino.
     cl_http_client=>create_by_destination(
       EXPORTING
         destination              = c_destination
@@ -102,9 +107,8 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                   = 6
     ).
     IF sy-subrc <> 0.
-      RAISE EXCEPTION NEW cx_abap_illegal_argument(
-        parameter = |Destino RFC '{ c_destination }' não encontrado/acessível (sy-subrc={ sy-subrc })|
-      ).
+      me->mv_error_detail = |Destino RFC '{ c_destination }' não encontrado/acessível (subrc={ sy-subrc })|.
+      RETURN.
     ENDIF.
 
     " 2. Método POST
@@ -116,7 +120,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       value = 'application/json'
     ).
 
-    " 4. Converter payload string → xstring e setar como body
+    " 4. Converter payload string → xstring e setar body
     cl_bcs_convert=>string_to_xstring(
       EXPORTING iv_string  = payload
       RECEIVING ev_xstring = lv_body_xstr
@@ -131,13 +135,12 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 3
     ).
     IF sy-subrc <> 0.
+      me->mv_error_detail = |Falha de comunicação HTTP ao enviar para CPI (subrc={ sy-subrc })|.
       lo_client->close( ).
-      RAISE EXCEPTION NEW cx_abap_illegal_argument(
-        parameter = |Falha de comunicação HTTP ao enviar para CPI (sy-subrc={ sy-subrc })|
-      ).
+      RETURN.
     ENDIF.
 
-    " 6. Aguardar e receber resposta
+    " 6. Receber resposta
     lo_client->receive(
       EXCEPTIONS
         http_communication_failure = 1
@@ -146,10 +149,9 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 4
     ).
     IF sy-subrc <> 0.
+      me->mv_error_detail = |Falha ao receber resposta do CPI (subrc={ sy-subrc })|.
       lo_client->close( ).
-      RAISE EXCEPTION NEW cx_abap_illegal_argument(
-        parameter = |Falha ao receber resposta do CPI (sy-subrc={ sy-subrc })|
-      ).
+      RETURN.
     ENDIF.
 
     " 7. Verificar HTTP status code
@@ -159,23 +161,14 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         reason = lv_reason
     ).
 
-    " 8. Ler body da resposta
-    lv_response = lo_client->response->get_cdata( ).
-
-    " 9. Fechar conexão
+    " 8. Ler body e fechar conexão
+    rs_response = lo_client->response->get_cdata( ).
     lo_client->close( ).
 
-    " 10. 2xx = sucesso; outros = erro com detalhes para o LOG
-    IF lv_http_code >= 200 AND lv_http_code < 300.
-      rs_response = COND #(
-        WHEN lv_response IS NOT INITIAL
-        THEN lv_response
-        ELSE |CPI OK (HTTP { lv_http_code })|
-      ).
-    ELSE.
-      RAISE EXCEPTION NEW cx_abap_illegal_argument(
-        parameter = |CPI retornou HTTP { lv_http_code } ({ lv_reason }): { lv_response }|
-      ).
+    " 9. HTTP != 2xx = erro de negócio CPI; sinalizar via mv_error_detail
+    IF lv_http_code < 200 OR lv_http_code >= 300.
+      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rs_response }|.
+      CLEAR rs_response.
     ENDIF.
 
   ENDMETHOD.

@@ -144,11 +144,17 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
                 Status = 'ERRO'
               ) ).
 
+          " mv_error_detail carrega o texto real do erro CPI (HTTP code, body, etc.)
+          " exc->get_text() é fallback para exceções de sistema inesperadas
           upsert_log(
             pedido   = entity-Pedido
             bandeira = entity-Bandeira
             etapa    = 'REPROCESSAMENTO'
-            mensagem = |Erro: { exc->get_text( ) }|
+            mensagem = COND #(
+              WHEN cpi_caller->mv_error_detail IS NOT INITIAL
+              THEN cpi_caller->mv_error_detail
+              ELSE |Erro: { exc->get_text( ) }|
+            )
           ).
 
       ENDTRY.

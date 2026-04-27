@@ -15,7 +15,7 @@ define view entity ZI_Q2C_LOG_MGR
 {
   key pedido    as Pedido,
   key bandeira  as Bandeira,
-  key id_ref    as IdRef,
+      id_ref    as IdRef,
       etapa     as Etapa,
       mensagem  as Mensagem,
       datum     as Datum,

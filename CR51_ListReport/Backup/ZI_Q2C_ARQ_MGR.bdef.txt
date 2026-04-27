@@ -57,7 +57,8 @@ lock dependent by _Arq
 authorization dependent by _Arq
 etag master Uzeit
 {
-  create;
+  // create: não declarar aqui — filho lock-dependent em strict(2)
+  // A criação do LOG ocorre exclusivamente via association _Log { create; } do pai
   update;
   delete;
 

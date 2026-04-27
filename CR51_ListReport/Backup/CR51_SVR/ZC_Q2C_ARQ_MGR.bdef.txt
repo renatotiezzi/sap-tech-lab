@@ -19,7 +19,7 @@ define behavior for ZC_Q2C_ARQ_MGR alias ArqMgr
 // -----------------------------------------------------------------------
 define behavior for ZC_Q2C_LOG_MGR alias LogMgr
 {
-  use create;
+  // use create: removido — filho só é criado via use association _Log { create; } do pai
   use update;
   use delete;
 

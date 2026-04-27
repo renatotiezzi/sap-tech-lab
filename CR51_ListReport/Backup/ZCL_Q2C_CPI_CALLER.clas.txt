@@ -121,12 +121,14 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       value = 'application/json'
     ).
 
-    " 4. Converter payload string → xstring e setar body
+    " 4. Converter payload JSON → xstring → Base64 → setar como body
+    " O iFlow CPI espera o body em Base64 (não JSON puro)
     cl_bcs_convert=>string_to_xstring(
       EXPORTING iv_string  = payload
       RECEIVING ev_xstring = lv_body_xstr
     ).
-    lo_client->request->set_data( lv_body_xstr ).
+    DATA(lv_body_b64) = cl_http_utility=>encode_base64( unencoded = lv_body_xstr ).
+    lo_client->request->set_cdata( data = lv_body_b64 ).
 
     " 5. Enviar requisição
     lo_client->send(

@@ -80,9 +80,18 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     " Payload esperado pelo iFlow CPI /http/mgr/reprocessamento:
     " {
     "   "filename": "<tipo_doc>",     <- código do arquivo (ex: PMDREN, PMDFORD)
-    "   "conteudo": "<base64>"        <- linhas do pedido em Base64 (campo ZTBQ2C_ARQ_MGR-conteudo)
+    "   "conteudo": "<base64>"        <- conteudo do pedido codificado em Base64
     " }
-    rs_payload = |\{ "filename": "{ tipo_doc }", "conteudo": "{ conteudo }" \}|.
+
+    " conteudo está na tabela como string (linhas do arquivo) — precisa ser Base64
+    DATA lv_xstr TYPE xstring.
+    cl_bcs_convert=>string_to_xstring(
+      EXPORTING iv_string  = conteudo
+      RECEIVING ev_xstring = lv_xstr
+    ).
+    DATA(lv_conteudo_b64) = cl_http_utility=>encode_base64( unencoded = lv_xstr ).
+
+    rs_payload = |\{ "filename": "{ tipo_doc }", "conteudo": "{ lv_conteudo_b64 }" \}|.
 
   ENDMETHOD.
 
@@ -121,14 +130,13 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       value = 'application/json'
     ).
 
-    " 4. Converter payload JSON → xstring → Base64 → setar como body
-    " O iFlow CPI espera o body em Base64 (não JSON puro)
+    " 4. Converter payload JSON (string) → xstring e setar como body
+    " O body é JSON puro; apenas o campo conteudo dentro do JSON é Base64
     cl_bcs_convert=>string_to_xstring(
       EXPORTING iv_string  = payload
       RECEIVING ev_xstring = lv_body_xstr
     ).
-    DATA(lv_body_b64) = cl_http_utility=>encode_base64( unencoded = lv_body_xstr ).
-    lo_client->request->set_cdata( data = lv_body_b64 ).
+    lo_client->request->set_data( lv_body_xstr ).
 
     " 5. Enviar requisição
     lo_client->send(

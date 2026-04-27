@@ -29,7 +29,8 @@ CLASS zcl_q2c_cpi_caller DEFINITION
   PRIVATE SECTION.
     " Destino RFC configurado na SM59 (tipo G - HTTP p/ sistema externo)
     " Host/Path já definidos no destino; não codificar URL aqui.
-    CONSTANTS c_destination TYPE string VALUE 'CPI_MGR_REPROCESSO'.
+    " rfcdest = CHAR 32, tipo nativo do parâmetro destination do cl_http_client
+    CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
 
     METHODS prepare_payload
       IMPORTING

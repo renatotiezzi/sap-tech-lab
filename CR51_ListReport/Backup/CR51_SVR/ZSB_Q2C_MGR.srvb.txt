@@ -1,6 +1,8 @@
 // -----------------------------------------------------------------------
 // Service Binding: ZSB_Q2C_MGR
-// Type    : OData V4 - UI
+// Type    : OData V4 - Web API   ← IMPORTANTE: Web API, não UI
+//                                  Web API = machine-to-machine (CPI, RFC)
+//                                  UI      = Fiori/browser only
 // Service : ZSD_Q2C_MGR
 // Version : 0001
 // -----------------------------------------------------------------------
@@ -12,8 +14,8 @@
 //   2. Navigate to: Business Services > Service Binding
 //   3. Fill in:
 //        Name        : ZSB_Q2C_MGR
-//        Description : Service Binding Q2C MGR
-//        Binding Type: OData V4 - UI
+//        Description : Service Binding Q2C MGR - Integracao CPI
+//        Binding Type: OData V4 - Web API   ← NÃO usar UI
 //        Service Def : ZSD_Q2C_MGR
 //   4. Activate and click "Publish" to register the OData endpoint.
 //

@@ -85,11 +85,25 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
     " conteudo está na tabela como string (linhas do arquivo) — precisa ser Base64
     DATA lv_xstr TYPE xstring.
+    DATA lv_conteudo_b64 TYPE string.
+
     cl_bcs_convert=>string_to_xstring(
       EXPORTING iv_string  = conteudo
       RECEIVING ev_xstring = lv_xstr
     ).
-    DATA(lv_conteudo_b64) = cl_http_utility=>encode_base64( unencoded = lv_xstr ).
+
+    " SSFC_BASE64_ENCODE: xstring → Base64 string (disponível em todas as versões SAP)
+    CALL FUNCTION 'SSFC_BASE64_ENCODE'
+      EXPORTING
+        bindata       = lv_xstr
+      IMPORTING
+        b64data       = lv_conteudo_b64
+      EXCEPTIONS
+        ssf_krn_error = 1
+        OTHERS        = 2.
+    IF sy-subrc <> 0.
+      lv_conteudo_b64 = conteudo. " fallback: envia sem codificar
+    ENDIF.
 
     rs_payload = |\{ "filename": "{ tipo_doc }", "conteudo": "{ lv_conteudo_b64 }" \}|.
 

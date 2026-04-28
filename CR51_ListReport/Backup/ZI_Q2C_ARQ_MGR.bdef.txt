@@ -61,8 +61,12 @@ authorization dependent by _Arq
   update;
   delete;
 
+  // Campos de chave pai: obrigatório declarar readonly em strict(2) quando usados
+  // no ON clause da association _Arq (parent dependency)
+  field ( readonly ) Pedido, Bandeira;
+
   // Datum/Uzeit/Ernam são preenchidos diretamente no upsert_log (behavior pool)
-  // Determination não é permitida em strict(2) lock-dependent
+  // com IN LOCAL MODE, que bypassa o field control
   field ( readonly ) Datum, Uzeit, Ernam;
 
   association _Arq;

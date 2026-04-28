@@ -65,9 +65,14 @@ authorization dependent by _Arq
   // no ON clause da association _Arq (parent dependency)
   field ( readonly ) Pedido, Bandeira;
 
-  // Datum/Uzeit/Ernam são preenchidos diretamente no upsert_log (behavior pool)
-  // com IN LOCAL MODE, que bypassa o field control
+  // Datum/Uzeit/Ernam preenchidos pela determination abaixo
   field ( readonly ) Datum, Uzeit, Ernam;
+
+  // Disparar somente em campos de negócio do LOG.
+  // NÃO incluir Pedido/Bandeira — são preenchidos pelo RAP no create-by-association
+  // e causar loop (RAP preenche → determination dispara → loop).
+  determination set_admin_fields on modify
+    { field IdRef; field Etapa; field Mensagem; }
 
   association _Arq;
 

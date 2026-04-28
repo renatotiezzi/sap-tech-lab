@@ -25,6 +25,22 @@ CLASS zcl_mdfe_monitor DEFINITION
       gc_amb_homol TYPE char1 VALUE '2'.
 
     "--------------------------------------------------------------------
+    " Constantes de OK-codes (Funcoes GUI Status Bar)
+    " Devem coincidir exatamente com os codigos definidos no Menu Painter (SE41)
+    "--------------------------------------------------------------------
+    CONSTANTS:
+      gc_fc_criar     TYPE syucomm VALUE 'CRIAR',
+      gc_fc_enviar    TYPE syucomm VALUE 'ENVIAR',
+      gc_fc_consultar TYPE syucomm VALUE 'CONSULTAR',
+      gc_fc_encerrar  TYPE syucomm VALUE 'ENCERRAR',
+      gc_fc_cancelar  TYPE syucomm VALUE 'CANCELAR',
+      gc_fc_imprimir  TYPE syucomm VALUE 'IMPRIMIR',
+      gc_fc_atualizar TYPE syucomm VALUE 'ATUALIZAR',
+      gc_fc_add_nf    TYPE syucomm VALUE 'ADD_NF',
+      gc_fc_del_nf    TYPE syucomm VALUE 'DEL_NF',
+      gc_fc_salvar    TYPE syucomm VALUE 'SALVAR'.
+
+    "--------------------------------------------------------------------
     " Tipo: linha do monitor (grid ALV Tela 02)
     "--------------------------------------------------------------------
     TYPES:

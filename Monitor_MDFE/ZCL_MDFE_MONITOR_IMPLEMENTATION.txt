@@ -18,7 +18,25 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     CLEAR et_monitor.
 
     "---------------------------------------------------------------
-    " 1. Buscar NF-es a partir dos filtros de NF (J_1BNFDOC)
+    " 1. Montar ranges dinamicas (range vazia = sem filtro)
+    "    VALUE rseloption() com low/high vazios cria BT '' '' que
+    "    filtra TODOS os registros – usar tabelas de range dinamicas.
+    "---------------------------------------------------------------
+    DATA: lt_r_bukrs  TYPE rseloption,
+          lt_r_branch TYPE rseloption,
+          lt_r_docnum TYPE rseloption,
+          lt_r_nfenum TYPE rseloption,
+          lt_r_series TYPE rseloption,
+          lt_r_credat TYPE rseloption.
+    IF is_sel-bukrs_low  IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-bukrs_low  high = is_sel-bukrs_high  ) TO lt_r_bukrs.  ENDIF.
+    IF is_sel-branch_low IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-branch_low high = is_sel-branch_high ) TO lt_r_branch. ENDIF.
+    IF is_sel-docnum_low IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-docnum_low high = is_sel-docnum_high ) TO lt_r_docnum. ENDIF.
+    IF is_sel-nfenum_low IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-nfenum_low high = is_sel-nfenum_high ) TO lt_r_nfenum. ENDIF.
+    IF is_sel-series_low IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-series_low high = is_sel-series_high ) TO lt_r_series. ENDIF.
+    IF is_sel-credat_low IS NOT INITIAL. APPEND VALUE #( sign = 'I' option = 'BT' low = is_sel-credat_low high = is_sel-credat_high ) TO lt_r_credat. ENDIF.
+
+    "---------------------------------------------------------------
+    " 2. Buscar NF-es a partir dos filtros de NF (J_1BNFDOC)
     "---------------------------------------------------------------
     SELECT nf~bukrs,
            nf~branch,
@@ -32,30 +50,22 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
            nf~gewei,
            nf~nftot
       FROM j_1bnfdoc AS nf
-      WHERE nf~bukrs  IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-bukrs_low
-                                               high = is_sel-bukrs_high ) ))
-        AND nf~branch IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-branch_low
-                                               high = is_sel-branch_high ) ))
-        AND nf~docnum IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-docnum_low
-                                               high = is_sel-docnum_high ) ))
-        AND nf~nfenum IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-nfenum_low
-                                               high = is_sel-nfenum_high ) ))
-        AND nf~series IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-series_low
-                                               high = is_sel-series_high ) ))
-        AND nf~credat IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
-                                               low  = is_sel-credat_low
-                                               high = is_sel-credat_high ) ))
+      WHERE nf~bukrs  IN @lt_r_bukrs
+        AND nf~branch IN @lt_r_branch
+        AND nf~docnum IN @lt_r_docnum
+        AND nf~nfenum IN @lt_r_nfenum
+        AND nf~series IN @lt_r_series
+        AND nf~credat IN @lt_r_credat
       INTO TABLE @DATA(lt_nfdoc).
 
     "---------------------------------------------------------------
-    " 2. Para cada NF-e, tenta ler o status do MDF-e em ZMDFE_STATUS
+    " 3. Para cada NF-e, tenta ler o status do MDF-e em ZMDFE_STATUS
+    "    Vinculo: ZMDFE_NFKEYS.DOCNUM = J_1BNFDOC.DOCNUM
+    "    (SELECT SINGLE nao suporta ORDER BY – lookup em dois passos)
     "---------------------------------------------------------------
+    DATA ls_status TYPE zmdfe_status.
     LOOP AT lt_nfdoc INTO DATA(ls_nf).
+      CLEAR ls_status.
       DATA(ls_row) = VALUE ty_monitor(
         bukrs   = ls_nf-bukrs
         branch  = ls_nf-branch
@@ -65,13 +75,19 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
         ernam   = sy-uname
       ).
 
-      "--- Buscar na tabela de status ---
-      SELECT SINGLE *
-        FROM zmdfe_status
-        WHERE bukrs  = @ls_nf-bukrs
-          AND branch = @ls_nf-branch
-        ORDER BY credat DESCENDING, crezet DESCENDING
-        INTO @DATA(ls_status).
+      "--- Buscar MDF-e via ZMDFE_NFKEYS pelo docnum da NF-e ---
+      SELECT SINGLE mdfe_number
+        FROM zmdfe_nfkeys
+        WHERE mandt  = @sy-mandt
+          AND docnum = @ls_nf-docnum
+        INTO @DATA(lv_mdfe_num).
+
+      IF sy-subrc = 0.
+        SELECT SINGLE *
+          FROM zmdfe_status
+          WHERE mdfe_number = @lv_mdfe_num
+          INTO @ls_status.
+      ENDIF.
 
       IF sy-subrc = 0.
         ls_row-mdfe_number = ls_status-mdfe_number.
@@ -157,6 +173,27 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     IF sy-subrc = 0.
       RETURN.   " Erros de validacao – nao persiste
     ENDIF.
+
+    "--- (EF V2) Stub: BAPI_J_1B_NF_CREATEFROMDATA
+    "    Ativar quando o fluxo de criacao de NF via J1B1N for requerido.
+    "    Confirmar tipos e parametros exatos no sistema antes de implementar.
+    "
+    "   DATA: ls_nf_header TYPE bapi_j_1b_nf_header,    " confirmar tipo real
+    "         lt_nf_items  TYPE bapi_j_1b_nf_items_t,   " confirmar tipo real
+    "         lt_ret_bapi  TYPE bapiret2_t.
+    "
+    "   CALL FUNCTION 'BAPI_J_1B_NF_CREATEFROMDATA'
+    "     EXPORTING nf_header = ls_nf_header
+    "     TABLES    nf_items  = lt_nf_items
+    "               return    = lt_ret_bapi.
+    "
+    "   CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+    "     EXPORTING wait = abap_true.
+    "
+    "   APPEND LINES OF lt_ret_bapi TO et_messages.
+    "   READ TABLE et_messages WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+    "   IF sy-subrc = 0. RETURN. ENDIF.
+    "--- fim stub BAPI ---
 
     "--- Preparar cabecalho para gravar ---
     es_header           = is_header.
@@ -472,11 +509,31 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     ENDLOOP.
     DATA(lv_keys_str) = concat_lines_of( table = lt_keys_json sep = `,` ).
 
-    "--- Formatar peso e valor sem separador de milhar (EF: regra critica) ---
-    DATA(lv_peso)  = |{ is_header-brgew STYLE = SIMPLE }|.
-    DATA(lv_valor) = |{ is_header-nftot STYLE = SIMPLE }|.
+    "--- Formatar peso e valor SEM separador de milhar (EF V2 Secao 5 – regra critica)
+    "    STYLE = SIMPLE nao garante ausencia de milhar em todos os locales SAP.
+    "    WRITE...NO-GROUPING suprime o separador de milhar de forma deterministica.
+    DATA lv_peso  TYPE string.
+    DATA lv_valor TYPE string.
+    WRITE is_header-brgew TO lv_peso  NO-GROUPING LEFT-JUSTIFIED.
+    WRITE is_header-nftot TO lv_valor NO-GROUPING LEFT-JUSTIFIED.
+    CONDENSE lv_peso  NO-GAPS.
+    CONDENSE lv_valor NO-GAPS.
     REPLACE ALL OCCURRENCES OF ',' IN lv_peso  WITH '.'.
     REPLACE ALL OCCURRENCES OF ',' IN lv_valor WITH '.'.
+
+    "--- Placa sem traco (EF V2: vehicleInfo.plate sem traco) ---
+    DATA(lv_placa) = CONV string( is_header-placa ).
+    REPLACE ALL OCCURRENCES OF '-' IN lv_placa WITH ''.
+
+    "--- CEP: somente digitos, 8 posicoes com zeros a esquerda (EF V2: exatamente 8 digitos) ---
+    DATA lv_cep_carga  TYPE string.
+    DATA lv_cep_descar TYPE string.
+    lv_cep_carga  = is_header-cep_carga.
+    lv_cep_descar = is_header-cep_descar.
+    REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cep_carga  WITH ''.
+    REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cep_descar WITH ''.
+    lv_cep_carga  = |{ lv_cep_carga  WIDTH = 8 ALIGN = RIGHT PAD = '0' }|.
+    lv_cep_descar = |{ lv_cep_descar WIDTH = 8 ALIGN = RIGHT PAD = '0' }|.
 
     "--- Ambiente: padrao Producao, parametrizavel ---
     DATA(lv_amb) = gc_amb_prod.
@@ -487,17 +544,161 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       `"environmentType":` && lv_amb && `,` &&
       `"issuingType":"1",` &&
       `"loadingCity":"` && is_header-mun_orig && `",` &&
-      `"loadingPostalCode":"` && is_header-cep_carga && `",` &&
+      `"loadingPostalCode":"` && lv_cep_carga  && `",` &&
       `"unloadingCity":"` && is_header-mun_dest && `",` &&
-      `"unloadingPostalCode":"` && is_header-cep_descar && `",` &&
+      `"unloadingPostalCode":"` && lv_cep_descar && `",` &&
       `"totalQuantity":` && lv_peso && `,` &&
       `"cargoTotalValue":` && lv_valor && `,` &&
-      `"vehicleInfo":{"plate":"` && is_header-placa && `"},` &&
+      `"vehicleInfo":{"plate":"` && lv_placa && `"},` &&
       `"conductor":[{"cpf":"` && is_header-cpf_motor && `","name":"` && is_header-motorista && `"}],` &&
       `"road":{"anttInfo":"` && is_header-rntrc && `"},` &&
       `"nfeKeys":[` && lv_keys_str && `]` &&
       `}`.
   ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_STATUS (PRIVADO)
+  " MODIFY em ZMDFE_STATUS (INSERT se novo, UPDATE se existente).
+  "=================================================================
+  METHOD save_status.
+    CLEAR et_messages.
+    MODIFY zmdfe_status FROM @is_header.
+    IF sy-subrc <> 0.
+      APPEND VALUE #(
+        type    = 'E'
+        message = |Erro ao gravar MDF-e { is_header-mdfe_number } (MODIFY sy-subrc={ sy-subrc })|
+      ) TO et_messages.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_NFKEYS (PRIVADO)
+  " DELETE + INSERT para garantir consistencia das chaves NF-e.
+  " O DELETE apaga versao anterior e INSERT reinsere todos os itens.
+  "=================================================================
+  METHOD save_nfkeys.
+    CLEAR et_messages.
+
+    "--- Apagar versao anterior (limpa todos os itens do MDF-e) ---
+    DELETE FROM zmdfe_nfkeys
+      WHERE mandt       = @sy-mandt
+        AND mdfe_number = @iv_mdfe_number.
+
+    "--- Reinserir todos os itens do parametro ---
+    DATA ls_key TYPE zmdfe_nfkeys.
+    LOOP AT it_nfkeys INTO DATA(ls_nf_key).
+      ls_key = VALUE #(
+        mandt       = sy-mandt
+        mdfe_number = iv_mdfe_number
+        item_num    = ls_nf_key-item_num
+        accesskey   = ls_nf_key-accesskey
+        docnum      = ls_nf_key-docnum
+        nfenum      = ls_nf_key-nfenum
+        series      = ls_nf_key-series
+      ).
+      INSERT zmdfe_nfkeys FROM @ls_key.
+      IF sy-subrc <> 0.
+        APPEND VALUE #(
+          type    = 'W'
+          message = |Item { ls_nf_key-item_num } – conflito de chave primaria (ignorado)|
+        ) TO et_messages.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_BRANCH_GEO (PRIVADO)
+  " Busca UF, municipio (TAXJURCODE) e CEP da filial via J_1BBRANCH/ADRC.
+  "
+  " CORRECAO CRITICA: em ABAP nao e possivel usar +strlen()-N(N) com
+  " chamada de funcao diretamente no offset do operador de substring.
+  " A correcao calcula o offset em uma variavel intermediaria separada:
+  "   DATA(lv_offset) = lv_len - 7.
+  "   ev_mun_orig = ls_adrc-taxjurcode+lv_offset(7).
+  "=================================================================
+  METHOD get_branch_geo.
+    CLEAR: ev_uf_orig, ev_mun_orig, ev_cep.
+
+    "--- 1. Ler ADRNR da filial em J_1BBRANCH ---
+    SELECT SINGLE adrnr
+      FROM j_1bbranch
+      WHERE bukrs  = @iv_bukrs
+        AND branch = @iv_branch
+      INTO @DATA(lv_adrnr).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    "--- 2. Ler endereco em ADRC ---
+    SELECT SINGLE region, taxjurcode, post_code1
+      FROM adrc
+      WHERE addrnumber = @lv_adrnr
+      INTO @DATA(ls_adrc).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    ev_uf_orig = ls_adrc-region.
+    ev_cep     = ls_adrc-post_code1.
+
+    "--- 3. Municipio: ultimos 7 digitos do TAXJURCODE ---
+    DATA(lv_taxjur_len) = strlen( ls_adrc-taxjurcode ).
+    IF lv_taxjur_len >= 7.
+      DATA(lv_offset_br) = lv_taxjur_len - 7.
+      ev_mun_orig = ls_adrc-taxjurcode+lv_offset_br(7).
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_DEST_GEO (PRIVADO)
+  " Busca UF, municipio (TXJCD) e CEP destino via J_1BNFDOC.
+  "
+  " CORRECAO CRITICA: mesma logica de offset via variavel intermediaria
+  " para o campo TXJCD (Tax Jurisdiction Code do destino).
+  "=================================================================
+  METHOD get_dest_geo.
+    CLEAR: ev_uf_dest, ev_mun_dest, ev_cep.
+
+    SELECT SINGLE regio, txjcd, pstlz
+      FROM j_1bnfdoc
+      WHERE docnum = @iv_docnum
+      INTO @DATA(ls_nf_dest).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    ev_uf_dest = ls_nf_dest-regio.
+    ev_cep     = ls_nf_dest-pstlz.
+
+    "--- Municipio: ultimos 7 digitos do TXJCD ---
+    DATA(lv_txjcd_len) = strlen( ls_nf_dest-txjcd ).
+    IF lv_txjcd_len >= 7.
+      DATA(lv_offset_dt) = lv_txjcd_len - 7.
+      ev_mun_dest = ls_nf_dest-txjcd+lv_offset_dt(7).
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_INFCOMP (PRIVADO)
+  " Grava texto complementar em LOGBR_NF_TEXTS tipo 'C' (infcomp).
+  " EF V2: texto vinculado ao DOCNUM da NF-e principal do MDF-e.
+  "=================================================================
+  METHOD save_infcomp.
+    DATA ls_text TYPE logbr_nf_texts.
+    ls_text-mandt    = sy-mandt.
+    ls_text-docnum   = iv_docnum.
+    ls_text-txttyp   = 'C'.           " C = informacoes complementares
+    ls_text-tdformat = '*'.
+    ls_text-tdline   = iv_text(MIN #( strlen( iv_text ) 132 )).
+    MODIFY logbr_nf_texts FROM @ls_text.
+  ENDMETHOD.
+
+ENDCLASS.
 
 
   "=================================================================

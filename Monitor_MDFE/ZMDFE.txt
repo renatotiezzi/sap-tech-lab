@@ -33,7 +33,7 @@ SELECTION-SCREEN END OF BLOCK b1.
 
 SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-b02.
   SELECT-OPTIONS:
-    s_chave  FOR j_1bnfe_active-docnum9,    " Chave de acesso NF-e (referencia)
+    s_chave  FOR zmdfe_nfkeys-accesskey,    " Chave de acesso NF-e (44 digitos – j_1bchvnfe)
     s_mdfnum FOR zmdfe_status-mdfe_number,  " Nº MDF-e
     s_mcrdat FOR zmdfe_status-credat.       " Data emissao MDF-e
 SELECTION-SCREEN END OF BLOCK b2.

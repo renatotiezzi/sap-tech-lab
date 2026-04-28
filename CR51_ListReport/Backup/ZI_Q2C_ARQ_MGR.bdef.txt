@@ -66,8 +66,11 @@ etag master Uzeit
   field ( readonly ) Datum, Uzeit, Ernam;
 
   // Mesma regra: disparar apenas em campos de negócio do LOG.
+  // NÃO incluir Pedido/Bandeira — são chave herdada do pai, preenchidas pelo
+  // RAP automaticamente no create-by-association. Incluí-las causaria loop
+  // (RAP preenche → determination dispara → RAP detecta mudança → loop).
   determination set_admin_fields on modify
-    { field Pedido; field Bandeira; field IdRef; field Etapa; field Mensagem; }
+    { field IdRef; field Etapa; field Mensagem; }
 
   association _Arq;
 

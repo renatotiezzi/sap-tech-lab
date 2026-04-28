@@ -1,0 +1,373 @@
+*&---------------------------------------------------------------------*
+*& Report          ZMDFE
+*& Descricao       Monitor MDF-e – Entry Point
+*&
+*& Arquitetura:
+*&   Este report é apenas o "entry point" da transacao ZMDFE.
+*&   Toda a logica de negocio esta encapsulada em ZCL_MDFE_MONITOR.
+*&
+*& Telas:
+*&   100 – Monitor ALV (Grid com semaforo de status)
+*&   200 – Detalhe / Criacao / Edicao do MDF-e
+*&
+*& EF Referencia:  EF V2 (prioridade) + EF V1
+*& Autorizacoes:   Mesmos objetos de autorizacao da J1BNFE
+*&---------------------------------------------------------------------*
+REPORT zmdfe.
+
+"----------------------------------------------------------------------
+" Declaracoes globais
+"----------------------------------------------------------------------
+DATA go_monitor TYPE REF TO zcl_mdfe_monitor.
+
+"--- Parametros de selecao (Tela 01 – Selection Screen) ---
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-b01.
+  SELECT-OPTIONS:
+    s_bukrs  FOR j_1bnfdoc-bukrs,          " Empresa
+    s_branch FOR j_1bnfdoc-branch,          " Local de negocio
+    s_docnum FOR j_1bnfdoc-docnum,          " Nº Documento NF-e
+    s_nfnum  FOR j_1bnfdoc-nfenum,          " Nº NF-e
+    s_series FOR j_1bnfdoc-series,          " Serie
+    s_credat FOR j_1bnfdoc-credat.          " Data emissao NF-e
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-b02.
+  SELECT-OPTIONS:
+    s_chave  FOR j_1bnfe_active-docnum9,    " Chave de acesso NF-e (referencia)
+    s_mdfnum FOR zmdfe_status-mdfe_number,  " Nº MDF-e
+    s_mcrdat FOR zmdfe_status-credat.       " Data emissao MDF-e
+SELECTION-SCREEN END OF BLOCK b2.
+
+SELECTION-SCREEN BEGIN OF BLOCK b3 WITH FRAME TITLE TEXT-b03.
+  PARAMETERS:
+    p_pend  AS CHECKBOX DEFAULT 'X',        " Pendentes / Erros
+    p_enc   AS CHECKBOX DEFAULT ' '.        " Encerrados
+SELECTION-SCREEN END OF BLOCK b3.
+
+"--- Container e ALV da Tela 100 ---
+DATA: go_cont_100   TYPE REF TO cl_gui_custom_container,
+      go_alv_100    TYPE REF TO cl_gui_alv_grid,
+      gs_layout_100 TYPE lvc_s_layo,
+      gt_fcat_100   TYPE lvc_t_fcat,
+      gt_monitor    TYPE zcl_mdfe_monitor=>tt_monitor,
+      gs_monitor    TYPE zcl_mdfe_monitor=>ty_monitor.
+
+"--- Container e ALV da Tela 200 ---
+DATA: go_cont_200   TYPE REF TO cl_gui_custom_container,
+      go_alv_200    TYPE REF TO cl_gui_alv_grid,
+      gs_layout_200 TYPE lvc_s_layo,
+      gt_fcat_200   TYPE lvc_t_fcat,
+      gs_detail     TYPE zmdfe_status,
+      gt_nfkeys_ui  TYPE zcl_mdfe_monitor=>tt_nfkey,
+      gv_mode_200   TYPE char1,             " 'C'=Create 'E'=Edit 'D'=Display
+      gv_add_key    TYPE j_1bchvnfe,
+      gv_add_docnum TYPE j_1bdocnum,
+      gv_infcomp    TYPE string.
+
+DATA gv_ok_code TYPE syucomm.
+
+"----------------------------------------------------------------------
+" START-OF-SELECTION
+"----------------------------------------------------------------------
+START-OF-SELECTION.
+  go_monitor = NEW zcl_mdfe_monitor( ).
+  CALL SCREEN 100.
+
+
+"======================================================================
+" MODULE POOL – Tela 100 (Monitor ALV)
+"======================================================================
+
+MODULE status_0100 OUTPUT.
+  SET PF-STATUS 'STATUS_100'.
+  SET TITLEBAR  'TITLE_100'.
+
+  IF go_cont_100 IS INITIAL.
+    go_cont_100 = NEW cl_gui_custom_container( container_name = 'CC_ALV_100' ).
+    go_alv_100  = NEW cl_gui_alv_grid(
+                        i_parent      = go_cont_100
+                        i_appl_events = abap_true ).
+
+    "--- Fieldcatalog ---
+    PERFORM build_fcat_100 CHANGING gt_fcat_100.
+
+    "--- Layout ---
+    gs_layout_100 = VALUE lvc_s_layo(
+      zebra      = abap_true
+      sel_mode   = 'A'
+      cwidth_opt = abap_true ).
+
+    go_alv_100->set_table_for_first_display(
+      EXPORTING
+        is_layout       = gs_layout_100
+      CHANGING
+        it_outtab       = gt_monitor
+        it_fieldcatalog = gt_fcat_100 ).
+  ELSE.
+    go_alv_100->refresh_table_display( ).
+  ENDIF.
+ENDMODULE.
+
+MODULE user_command_0100 INPUT.
+  gv_ok_code = sy-ucomm.
+  CLEAR sy-ucomm.
+
+  CASE gv_ok_code.
+    WHEN 'BACK' OR 'EXIT' OR 'CANCEL'.
+      LEAVE PROGRAM.
+
+    WHEN 'EXECUTE'.
+      PERFORM load_monitor.
+      go_alv_100->refresh_table_display( ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_criar.
+      CLEAR gs_detail.
+      CLEAR gt_nfkeys_ui.
+      gv_mode_200 = 'C'.
+      CALL SCREEN 200.
+
+    WHEN zcl_mdfe_monitor=>gc_fc_enviar.
+      PERFORM action_mass( 'SEND' ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_consultar.
+      PERFORM action_mass( 'CONSULT' ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_encerrar.
+      PERFORM action_mass( 'CLOSE' ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_cancelar.
+      PERFORM action_mass( 'CANCEL' ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_imprimir.
+      PERFORM action_mass( 'PRINT' ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_atualizar.
+      PERFORM load_monitor.
+      go_alv_100->refresh_table_display( ).
+
+  ENDCASE.
+ENDMODULE.
+
+
+"======================================================================
+" MODULE POOL – Tela 200 (Detalhe / Criacao)
+"======================================================================
+
+MODULE status_0200 OUTPUT.
+  CASE gv_mode_200.
+    WHEN 'C'. SET PF-STATUS 'STATUS_200_CRE'. SET TITLEBAR 'TITLE_200_CRE'.
+    WHEN 'E'. SET PF-STATUS 'STATUS_200_EDT'. SET TITLEBAR 'TITLE_200_EDT'.
+    WHEN 'D'. SET PF-STATUS 'STATUS_200_DSP'. SET TITLEBAR 'TITLE_200_DSP'.
+  ENDCASE.
+
+  IF go_cont_200 IS INITIAL.
+    go_cont_200 = NEW cl_gui_custom_container( container_name = 'CC_ALV_200' ).
+    go_alv_200  = NEW cl_gui_alv_grid( i_parent = go_cont_200 ).
+
+    PERFORM build_fcat_200 CHANGING gt_fcat_200.
+
+    gs_layout_200 = VALUE lvc_s_layo(
+      zebra      = abap_true
+      no_toolbar = abap_false ).
+
+    go_alv_200->set_table_for_first_display(
+      EXPORTING is_layout       = gs_layout_200
+      CHANGING  it_outtab       = gt_nfkeys_ui
+                it_fieldcatalog = gt_fcat_200 ).
+  ELSE.
+    go_alv_200->refresh_table_display( ).
+  ENDIF.
+ENDMODULE.
+
+MODULE user_command_0200 INPUT.
+  gv_ok_code = sy-ucomm.
+  CLEAR sy-ucomm.
+
+  CASE gv_ok_code.
+    WHEN 'BACK' OR 'CANCEL'.
+      LEAVE TO SCREEN 100.
+
+    WHEN zcl_mdfe_monitor=>gc_fc_add_nf.
+      "--- Adicionar chave NF-e ao sub-ALV ---
+      IF gv_add_key IS NOT INITIAL OR gv_add_docnum IS NOT INITIAL.
+        DATA(lv_next) = lines( gt_nfkeys_ui ) + 1.
+        DATA(lv_key)  = COND j_1bchvnfe(
+          WHEN gv_add_key IS NOT INITIAL
+          THEN gv_add_key
+          ELSE go_monitor->get_nfe_accesskey(
+                 iv_bukrs  = gs_detail-bukrs
+                 iv_branch = gs_detail-branch
+                 iv_docnum = gv_add_docnum ) ).
+
+        APPEND VALUE zcl_mdfe_monitor=>ty_nfkey(
+          item_num  = lv_next
+          accesskey = lv_key
+          docnum    = gv_add_docnum
+        ) TO gt_nfkeys_ui.
+
+        CLEAR: gv_add_key, gv_add_docnum.
+        go_alv_200->refresh_table_display( ).
+      ENDIF.
+
+    WHEN zcl_mdfe_monitor=>gc_fc_del_nf.
+      "--- Remover chaves selecionadas ---
+      DATA lt_sel TYPE lvc_t_row.
+      go_alv_200->get_selected_rows( IMPORTING et_index_rows = lt_sel ).
+      SORT lt_sel BY index DESCENDING.
+      LOOP AT lt_sel INTO DATA(ls_sel).
+        DELETE gt_nfkeys_ui INDEX ls_sel-index.
+      ENDLOOP.
+      go_alv_200->refresh_table_display( ).
+
+    WHEN zcl_mdfe_monitor=>gc_fc_salvar.
+      "--- Gravar e Enviar ---
+      go_alv_200->check_changed_data( ).
+      DATA lt_msg TYPE bapiret2_t.
+
+      IF gv_mode_200 = 'C'.
+        go_monitor->create_mdfe(
+          EXPORTING
+            is_header  = gs_detail
+            it_nfkeys  = gt_nfkeys_ui
+            iv_infcomp = gv_infcomp
+          IMPORTING
+            es_header   = gs_detail
+            et_messages = lt_msg ).
+      ENDIF.
+
+      READ TABLE lt_msg WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        "--- Apos criar: enviar ao DRC ---
+        go_monitor->send_mdfe(
+          EXPORTING iv_mdfe_number = gs_detail-mdfe_number
+          IMPORTING et_messages    = lt_msg ).
+      ENDIF.
+
+      PERFORM show_messages( lt_msg ).
+      READ TABLE lt_msg WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        PERFORM load_monitor.
+        LEAVE TO SCREEN 100.
+      ENDIF.
+
+  ENDCASE.
+ENDMODULE.
+
+
+"======================================================================
+" FORMS AUXILIARES
+"======================================================================
+
+FORM load_monitor.
+  DATA(ls_sel) = VALUE zcl_mdfe_monitor=>ty_sel(
+    bukrs_low    = s_bukrs-low    bukrs_high    = s_bukrs-high
+    branch_low   = s_branch-low   branch_high   = s_branch-high
+    docnum_low   = s_docnum-low   docnum_high   = s_docnum-high
+    nfenum_low   = s_nfnum-low    nfenum_high   = s_nfnum-high
+    series_low   = s_series-low   series_high   = s_series-high
+    credat_low   = s_credat-low   credat_high   = s_credat-high
+    mdfe_low     = s_mdfnum-low   mdfe_high     = s_mdfnum-high
+    mcredat_low  = s_mcrdat-low   mcredat_high  = s_mcrdat-high
+    cb_pendente  = p_pend
+    cb_encerrado = p_enc ).
+
+  TRY.
+    go_monitor->select_data(
+      EXPORTING is_sel     = ls_sel
+      IMPORTING et_monitor = gt_monitor ).
+  CATCH cx_root INTO DATA(lx).
+    MESSAGE lx->get_text( ) TYPE 'E'.
+  ENDTRY.
+ENDFORM.
+
+FORM action_mass USING iv_action TYPE string.
+  DATA lt_rows TYPE lvc_t_row.
+  DATA lt_msg  TYPE bapiret2_t.
+  go_alv_100->get_selected_rows( IMPORTING et_index_rows = lt_rows ).
+  IF lt_rows IS INITIAL.
+    MESSAGE 'Selecione ao menos uma linha.' TYPE 'I'.
+    RETURN.
+  ENDIF.
+
+  LOOP AT lt_rows INTO DATA(ls_row).
+    READ TABLE gt_monitor INTO DATA(ls_mon) INDEX ls_row-index.
+    CHECK ls_mon-mdfe_number IS NOT INITIAL.
+    CASE iv_action.
+      WHEN 'SEND'.
+        go_monitor->send_mdfe(
+          EXPORTING iv_mdfe_number = ls_mon-mdfe_number
+          IMPORTING et_messages    = lt_msg ).
+      WHEN 'CONSULT'.
+        go_monitor->consult_mdfe(
+          EXPORTING iv_mdfe_number = ls_mon-mdfe_number
+          IMPORTING et_messages    = lt_msg ).
+      WHEN 'CLOSE'.
+        go_monitor->close_mdfe(
+          EXPORTING iv_mdfe_number = ls_mon-mdfe_number
+          IMPORTING et_messages    = lt_msg ).
+      WHEN 'CANCEL'.
+        go_monitor->cancel_mdfe(
+          EXPORTING iv_mdfe_number = ls_mon-mdfe_number
+          IMPORTING et_messages    = lt_msg ).
+      WHEN 'PRINT'.
+        go_monitor->print_mdfe( iv_mdfe_number = ls_mon-mdfe_number ).
+    ENDCASE.
+  ENDLOOP.
+
+  PERFORM show_messages( lt_msg ).
+  PERFORM load_monitor.
+  go_alv_100->refresh_table_display( ).
+ENDFORM.
+
+FORM show_messages USING it_msg TYPE bapiret2_t.
+  LOOP AT it_msg INTO DATA(ls_msg).
+    MESSAGE ls_msg-message TYPE COND #( WHEN ls_msg-type = 'E' THEN 'I'
+                                         ELSE ls_msg-type ).
+  ENDLOOP.
+ENDFORM.
+
+FORM build_fcat_100 CHANGING ct_fcat TYPE lvc_t_fcat.
+  CLEAR ct_fcat.
+  DATA ls_fc TYPE lvc_s_fcat.
+
+  DEFINE add_col.
+    CLEAR ls_fc.
+    ls_fc-fieldname = &1. ls_fc-coltext = &2.
+    ls_fc-outputlen = &3. ls_fc-icon    = &4.
+    APPEND ls_fc TO ct_fcat.
+  END-OF-DEFINITION.
+
+  add_col 'STATUS_ICON' 'Status'         4  abap_true.
+  add_col 'MDFE_NUMBER' 'Nº MDF-e'      10  abap_false.
+  add_col 'SERIES'      'Série'           4  abap_false.
+  add_col 'BUKRS'       'Empresa'         6  abap_false.
+  add_col 'BRANCH'      'Local Neg.'      6  abap_false.
+  add_col 'CREDAT'      'Data Emissão'   10  abap_false.
+  add_col 'UF_ORIG'     'UF Orig.'        4  abap_false.
+  add_col 'UF_DEST'     'UF Dest.'        4  abap_false.
+  add_col 'PLACA'       'Placa'           8  abap_false.
+  add_col 'MOTORISTA'   'Motorista'      20  abap_false.
+  add_col 'ACCESS_KEY'  'Chave MDF-e'   44  abap_false.
+  add_col 'NPROT'       'Protocolo'      15  abap_false.
+  add_col 'BRGEW'       'Peso (kg)'      12  abap_false.
+  add_col 'NFTOT'       'Vl. Total'      15  abap_false.
+  add_col 'LAST_MSG'    'Última Mensagem' 50 abap_false.
+ENDFORM.
+
+FORM build_fcat_200 CHANGING ct_fcat TYPE lvc_t_fcat.
+  CLEAR ct_fcat.
+  DATA ls_fc TYPE lvc_s_fcat.
+
+  DEFINE add_col2.
+    CLEAR ls_fc.
+    ls_fc-fieldname = &1. ls_fc-coltext = &2.
+    ls_fc-outputlen = &3. ls_fc-edit    = &4.
+    APPEND ls_fc TO ct_fcat.
+  END-OF-DEFINITION.
+
+  add_col2 'ITEM_NUM'  'Item'           4   abap_false.
+  add_col2 'ACCESSKEY' 'Chave NF-e'    44   abap_true.
+  add_col2 'DOCNUM'    'Nº Documento'  10   abap_true.
+  add_col2 'NFENUM'    'Nº NF-e'        9   abap_false.
+  add_col2 'SERIES'    'Série'           4   abap_false.
+ENDFORM.

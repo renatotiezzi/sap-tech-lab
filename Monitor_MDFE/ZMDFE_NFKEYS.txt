@@ -1,0 +1,29 @@
+@EndUserText.label : 'Monitor MDF-e - Chaves de Acesso NF-e vinculadas'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+define table zmdfe_nfkeys {
+
+  " ----------------------------------------------------------------
+  " Chave primária composta
+  " ----------------------------------------------------------------
+  key mandt         : mandt not null;
+  key mdfe_number   : j_1bdocnum not null;   " FK -> ZMDFE_STATUS-MDFE_NUMBER
+  key item_num      : numc3 not null;         " Sequencial do item (001, 002, ...)
+
+  " ----------------------------------------------------------------
+  " Chave de acesso da NF-e (44 dígitos)
+  " Concatenação de: REGIO + NFYEAR + NFMONTH + STCD1 + MODEL +
+  "                  SERIE + NFNUM9 + TPEMIS + DOCNUM9 + CDV
+  " Origem: J_1BNFE_ACTIVE
+  " ----------------------------------------------------------------
+  accesskey         : j_1bchvnfe;             " Chave de Acesso NF-e (44)
+
+  " ----------------------------------------------------------------
+  " Dados de referência da NF-e para exibição no monitor
+  " ----------------------------------------------------------------
+  bukrs             : bukrs;                  " Empresa
+  branch            : j_1bbranch;             " Local de negócio
+  docnum            : j_1bdocnum;             " Nº Documento NF-e (J_1BNFDOC-DOCNUM)
+  nfenum            : char9;                  " Nº NF-e (J_1BNFDOC-NFENUM)
+  series            : j_1bseries;             " Série NF-e
+
+}

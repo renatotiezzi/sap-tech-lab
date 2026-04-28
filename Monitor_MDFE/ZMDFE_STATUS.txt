@@ -1,0 +1,78 @@
+@EndUserText.label : 'Monitor MDF-e - Tabela de Status e Controle'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+define table zmdfe_status {
+
+  " ----------------------------------------------------------------
+  " Chave primária
+  " ----------------------------------------------------------------
+  key mandt         : mandt not null;
+  key mdfe_number   : j_1bdocnum not null;   " Número do MDF-e (CHAR9)
+
+  " ----------------------------------------------------------------
+  " Identificação do documento
+  " ----------------------------------------------------------------
+  bukrs             : bukrs;                 " Empresa
+  branch            : j_1bbranch;            " Local de negócio
+  series            : j_1bseries;            " Série MDF-e (CHAR3)
+
+  " ----------------------------------------------------------------
+  " Status e controle DRC (V2 – Seção 5.6)
+  " 1=Pendente, 2=Enviado, 3=Autorizado, 4=Erro, 5=Encerrado, 6=Cancelado
+  " ----------------------------------------------------------------
+  doc_status        : char1;
+  access_key        : j_1bchvnfe;            " Chave de Acesso MDF-e (44 dígitos)
+  nprot             : j_1b_authcode;         " Protocolo de Autorização
+  uuid_drc          : sysuuid_c32;           " UUID da comunicação DRC
+
+  " ----------------------------------------------------------------
+  " Campos administrativos
+  " ----------------------------------------------------------------
+  credat            : erdat;                 " Data de criação (SY-DATUM)
+  crezet            : erzet;                 " Hora de criação (SY-UZEIT)
+  ernam             : ernam;                 " Criado por (SY-UNAME)
+  last_msg          : bapi_msg;              " Última mensagem de retorno SEFAZ
+
+  " ----------------------------------------------------------------
+  " Informações geográficas – mapeadas na Tela 03
+  " ----------------------------------------------------------------
+  uf_orig           : regio;                 " UF Origem  (de J_1BBRANCH via ADRC-REGION)
+  mun_orig          : char7;                 " Município Origem (últimos 7 dígitos de ADRC-TAXJURCODE)
+  uf_dest           : regio;                 " UF Destino (de J_1BNFDOC-REGIO)
+  mun_dest          : char7;                 " Município Destino (últimos 7 dígitos de J_1BNFDOC-TXJCD)
+  cep_carga         : char8;                 " CEP Carga  (ADRC-POST_CODE1 da filial)
+  cep_descar        : char8;                 " CEP Descarga (J_1BNFDOC-PSTLZ)
+
+  " ----------------------------------------------------------------
+  " Dados de carga
+  " ----------------------------------------------------------------
+  brgew             : brgew;                 " Peso Bruto Total (J_1BNFDOC-BRGEW)
+  gewei             : gewei;                 " Unidade de Medida de Peso (J_1BNFDOC-GEWEI)
+  nftot             : abgrs;                 " Valor Total da Carga (J_1BNFDOC-NFTOT)
+
+  " ----------------------------------------------------------------
+  " Dados do motorista e veículo – V2: gravados na tabela Z
+  " ----------------------------------------------------------------
+  motorista         : char20;                " Nome do Motorista (manual)
+  cpf_motor         : char11;                " CPF do Motorista (somente números)
+  placa             : char7;                 " Placa do Veículo (sem traço)
+  rntrc             : char20;                " RNTRC do Transportador
+
+  " ----------------------------------------------------------------
+  " Vale Pedágio – V2
+  " ----------------------------------------------------------------
+  ped_cnpj_resp     : stcd1;                 " CNPJ Responsável pelo Pedágio
+  ped_cnpj_forn     : stcd1;                 " CNPJ Fornecedor do Pedágio
+  ped_comprov       : char20;                " N. Comprovante do Pedágio
+
+  " ----------------------------------------------------------------
+  " Responsável pelo Seguro – V2
+  " ----------------------------------------------------------------
+  seguradora        : char60;                " Nome da Seguradora
+  apolice           : char30;                " Número da Apólice
+
+  " ----------------------------------------------------------------
+  " JSON enviado ao DRC (para auditoria)
+  " ----------------------------------------------------------------
+  json_enviado      : sstring;               " Payload JSON enviado
+
+}

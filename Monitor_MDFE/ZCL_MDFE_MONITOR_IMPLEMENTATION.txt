@@ -1,0 +1,610 @@
+CLASS zcl_mdfe_monitor IMPLEMENTATION.
+
+  METHOD constructor.
+    "---------------------------------------------------------------
+    " Instancia a classe processadora DRC uma unica vez por objeto
+    "---------------------------------------------------------------
+    mo_proc = NEW cl_nfe_cloud_mdfe_processor( ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SELECT_DATA
+  " Tela 01 → Tela 02
+  " Lê ZMDFE_STATUS para os filtros informados.
+  " NF-es sem entrada em ZMDFE_STATUS aparecem como Pendente.
+  "=================================================================
+  METHOD select_data.
+    CLEAR et_monitor.
+
+    "---------------------------------------------------------------
+    " 1. Buscar NF-es a partir dos filtros de NF (J_1BNFDOC)
+    "---------------------------------------------------------------
+    SELECT nf~bukrs,
+           nf~branch,
+           nf~docnum,
+           nf~nfenum,
+           nf~series,
+           nf~credat,
+           nf~regio    AS uf_dest,
+           nf~pstlz    AS cep_descar,
+           nf~brgew,
+           nf~gewei,
+           nf~nftot
+      FROM j_1bnfdoc AS nf
+      WHERE nf~bukrs  IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-bukrs_low
+                                               high = is_sel-bukrs_high ) ))
+        AND nf~branch IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-branch_low
+                                               high = is_sel-branch_high ) ))
+        AND nf~docnum IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-docnum_low
+                                               high = is_sel-docnum_high ) ))
+        AND nf~nfenum IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-nfenum_low
+                                               high = is_sel-nfenum_high ) ))
+        AND nf~series IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-series_low
+                                               high = is_sel-series_high ) ))
+        AND nf~credat IN @(VALUE rseloption( ( sign = 'I' option = 'BT'
+                                               low  = is_sel-credat_low
+                                               high = is_sel-credat_high ) ))
+      INTO TABLE @DATA(lt_nfdoc).
+
+    "---------------------------------------------------------------
+    " 2. Para cada NF-e, tenta ler o status do MDF-e em ZMDFE_STATUS
+    "---------------------------------------------------------------
+    LOOP AT lt_nfdoc INTO DATA(ls_nf).
+      DATA(ls_row) = VALUE ty_monitor(
+        bukrs   = ls_nf-bukrs
+        branch  = ls_nf-branch
+        brgew   = ls_nf-brgew
+        nftot   = ls_nf-nftot
+        uf_dest = ls_nf-uf_dest
+        ernam   = sy-uname
+      ).
+
+      "--- Buscar na tabela de status ---
+      SELECT SINGLE *
+        FROM zmdfe_status
+        WHERE bukrs  = @ls_nf-bukrs
+          AND branch = @ls_nf-branch
+        ORDER BY credat DESCENDING, crezet DESCENDING
+        INTO @DATA(ls_status).
+
+      IF sy-subrc = 0.
+        ls_row-mdfe_number = ls_status-mdfe_number.
+        ls_row-series      = ls_status-series.
+        ls_row-doc_status  = ls_status-doc_status.
+        ls_row-access_key  = ls_status-access_key.
+        ls_row-nprot       = ls_status-nprot.
+        ls_row-credat      = ls_status-credat.
+        ls_row-crezet      = ls_status-crezet.
+        ls_row-placa       = ls_status-placa.
+        ls_row-motorista   = ls_status-motorista.
+        ls_row-last_msg    = ls_status-last_msg.
+        ls_row-uuid_drc    = ls_status-uuid_drc.
+        ls_row-uf_orig     = ls_status-uf_orig.
+        ls_row-ernam       = ls_status-ernam.
+      ELSE.
+        "--- NF-e sem MDF-e: trata como Pendente ---
+        ls_row-doc_status = gc_st_pendente.
+        ls_row-credat     = ls_nf-credat.
+      ENDIF.
+
+      "--- Aplicar filtros de status (checkboxes Tela 01) ---
+      IF is_sel-cb_pendente = abap_true
+         AND ls_row-doc_status <> gc_st_pendente
+         AND ls_row-doc_status <> gc_st_erro.
+        CONTINUE.
+      ENDIF.
+      IF is_sel-cb_encerrado = abap_true
+         AND ls_row-doc_status <> gc_st_encerrado.
+        CONTINUE.
+      ENDIF.
+
+      "--- Atribuir icone semaforo ---
+      ls_row-status_icon = get_status_icon( ls_row-doc_status ).
+
+      APPEND ls_row TO et_monitor.
+    ENDLOOP.
+
+    "---------------------------------------------------------------
+    " 3. Filtro adicional por Nº MDF-e / Data MDF-e
+    "---------------------------------------------------------------
+    IF is_sel-mdfe_low IS NOT INITIAL OR is_sel-mcredat_low IS NOT INITIAL.
+      DELETE et_monitor WHERE
+        ( mdfe_number < is_sel-mdfe_low AND is_sel-mdfe_low IS NOT INITIAL )
+        OR ( mdfe_number > is_sel-mdfe_high AND is_sel-mdfe_high IS NOT INITIAL )
+        OR ( credat < is_sel-mcredat_low AND is_sel-mcredat_low IS NOT INITIAL )
+        OR ( credat > is_sel-mcredat_high AND is_sel-mcredat_high IS NOT INITIAL ).
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  "=================================================================
+  " CREATE_MDFE
+  " Tela 03 – Cria o MDF-e:
+  "   V2: usa BAPI_J_1B_NF_CREATEFROMDATA para criar NF no J1B1N
+  "       depois persiste ZMDFE_STATUS e ZMDFE_NFKEYS
+  "=================================================================
+  METHOD create_mdfe.
+    CLEAR: es_header, et_messages.
+
+    "--- Validacoes obrigatorias ---
+    IF is_header-bukrs IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'Empresa é obrigatória' ) TO et_messages.
+    ENDIF.
+    IF is_header-branch IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'Local de negócio é obrigatório' ) TO et_messages.
+    ENDIF.
+    IF is_header-placa IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'Placa do veículo é obrigatória' ) TO et_messages.
+    ENDIF.
+    IF is_header-rntrc IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'RNTRC do transportador é obrigatório' ) TO et_messages.
+    ENDIF.
+    IF is_header-cpf_motor IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'CPF do motorista é obrigatório' ) TO et_messages.
+    ENDIF.
+    IF it_nfkeys IS INITIAL.
+      APPEND VALUE #( type = 'E' message = 'Informe ao menos uma chave de acesso NF-e' ) TO et_messages.
+    ENDIF.
+
+    READ TABLE et_messages WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      RETURN.   " Erros de validacao – nao persiste
+    ENDIF.
+
+    "--- Preparar cabecalho para gravar ---
+    es_header           = is_header.
+    es_header-doc_status = gc_st_pendente.
+    es_header-credat    = sy-datum.
+    es_header-crezet    = sy-uzeit.
+    es_header-ernam     = sy-uname.
+
+    "--- Derivar dados geograficos ---
+    me->get_branch_geo(
+      EXPORTING
+        iv_bukrs    = es_header-bukrs
+        iv_branch   = es_header-branch
+      IMPORTING
+        ev_uf_orig  = es_header-uf_orig
+        ev_mun_orig = es_header-mun_orig
+        ev_cep      = es_header-cep_carga ).
+
+    IF it_nfkeys IS NOT INITIAL.
+      DATA(ls_first_nf) = it_nfkeys[ 1 ].
+      me->get_dest_geo(
+        EXPORTING
+          iv_docnum   = ls_first_nf-docnum
+        IMPORTING
+          ev_uf_dest  = es_header-uf_dest
+          ev_mun_dest = es_header-mun_dest
+          ev_cep      = es_header-cep_descar ).
+    ENDIF.
+
+    "--- Persistir ---
+    me->save_status(
+      EXPORTING is_header   = es_header
+      IMPORTING et_messages = et_messages ).
+
+    me->save_nfkeys(
+      EXPORTING
+        iv_mdfe_number = es_header-mdfe_number
+        it_nfkeys      = it_nfkeys
+      IMPORTING et_messages = et_messages ).
+
+    "--- Gravar informacoes complementares em LOGBR_NF_TEXTS (V2) ---
+    IF iv_infcomp IS NOT INITIAL AND ls_first_nf-docnum IS NOT INITIAL.
+      me->save_infcomp(
+        iv_docnum = ls_first_nf-docnum
+        iv_text   = iv_infcomp ).
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SEND_MDFE
+  " Monta JSON e chama CL_NFE_CLOUD_MDFE_PROCESSOR->SEND_REQUEST_JSON
+  "=================================================================
+  METHOD send_mdfe.
+    CLEAR: es_status, et_messages.
+
+    "--- Carregar cabecalho ---
+    me->read_header(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING es_header      = es_status ).
+
+    "--- Carregar chaves NF-e ---
+    DATA lt_nfkeys TYPE tt_nfkey.
+    me->read_nfkeys(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING et_nfkeys      = lt_nfkeys ).
+
+    "--- Montar JSON ---
+    DATA(lv_json) = me->build_json_payload(
+                      is_header  = es_status
+                      it_nfkeys  = lt_nfkeys ).
+
+    "--- Chamar DRC ---
+    "   Assinatura esperada (a confirmar no sistema):
+    "   mo_proc->send_request_json(
+    "     EXPORTING iv_request_json = lv_json
+    "     IMPORTING rs_response     = DATA(ls_resp) ).
+    "
+    "   Abaixo: stub que simula o padrao descrito na EF V2 secao 5
+    "------------ INICIO CHAMADA DRC --------------------------------
+    DATA ls_resp TYPE REF TO data.    " Substituir pelo tipo real rs_response
+
+    TRY.
+        mo_proc->send_request_json(
+          EXPORTING
+            iv_request_json = lv_json
+          IMPORTING
+            rs_response     = ls_resp ).
+
+        "--- Tratar retorno: status 100/101 = Autorizado ---
+        ASSIGN ls_resp->* TO FIELD-SYMBOL(<ls_r>).
+        IF <ls_r> IS ASSIGNED.
+          ASSIGN COMPONENT 'STATUS_CODE' OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<code>).
+          ASSIGN COMPONENT 'CONTENT'     OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<content>).
+          ASSIGN COMPONENT 'UUID'        OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<uuid>).
+          ASSIGN COMPONENT 'NPROT'       OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<nprot>).
+
+          IF <code> IS ASSIGNED AND ( <code> = '100' OR <code> = '101' ).
+            es_status-doc_status = gc_st_autorizado.
+            IF <nprot> IS ASSIGNED.   es_status-nprot    = <nprot>.   ENDIF.
+            IF <uuid>  IS ASSIGNED.   es_status-uuid_drc = <uuid>.    ENDIF.
+          ELSE.
+            es_status-doc_status = gc_st_erro.
+            IF <content> IS ASSIGNED. es_status-last_msg = <content>. ENDIF.
+          ENDIF.
+        ENDIF.
+
+    CATCH cx_root INTO DATA(lx).
+        es_status-doc_status = gc_st_erro.
+        es_status-last_msg   = lx->get_text( ).
+        APPEND VALUE #( type = 'E' message = es_status-last_msg ) TO et_messages.
+        RETURN.
+    ENDTRY.
+    "------------ FIM CHAMADA DRC -----------------------------------
+
+    "--- Gravar JSON enviado para auditoria ---
+    es_status-json_enviado = lv_json.
+
+    "--- Atualizar status na tabela ---
+    me->save_status(
+      EXPORTING is_header   = es_status
+      IMPORTING et_messages = et_messages ).
+
+    APPEND VALUE #(
+      type    = COND #( WHEN es_status-doc_status = gc_st_autorizado THEN 'S' ELSE 'E' )
+      message = COND #( WHEN es_status-doc_status = gc_st_autorizado
+                        THEN |MDF-e autorizado. Protocolo: { es_status-nprot }|
+                        ELSE es_status-last_msg )
+    ) TO et_messages.
+
+  ENDMETHOD.
+
+
+  "=================================================================
+  " CONSULT_MDFE
+  " Consulta status DRC e atualiza ZMDFE_STATUS
+  "=================================================================
+  METHOD consult_mdfe.
+    CLEAR: es_status, et_messages.
+    me->read_header(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING es_header      = es_status ).
+
+    "--- Stub: chamar DRC para consulta de status ---
+    "   mo_proc->get_status( iv_uuid = es_status-uuid_drc ... )
+    "   Implementar apos confirmar assinatura do metodo no sistema.
+
+    me->save_status(
+      EXPORTING is_header   = es_status
+      IMPORTING et_messages = et_messages ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " CLOSE_MDFE – Evento de Encerramento
+  "=================================================================
+  METHOD close_mdfe.
+    CLEAR et_messages.
+    DATA ls_status TYPE zmdfe_status.
+    me->read_header(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING es_header      = ls_status ).
+
+    IF ls_status-doc_status <> gc_st_autorizado.
+      APPEND VALUE #( type = 'E' message = 'Somente MDF-e Autorizado pode ser encerrado' ) TO et_messages.
+      RETURN.
+    ENDIF.
+
+    "--- Stub: chamar DRC evento encerramento ---
+    "   mo_proc->close_mdfe( iv_uuid = ls_status-uuid_drc ... )
+
+    ls_status-doc_status = gc_st_encerrado.
+    me->save_status(
+      EXPORTING is_header   = ls_status
+      IMPORTING et_messages = et_messages ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " CANCEL_MDFE – Evento de Cancelamento
+  "=================================================================
+  METHOD cancel_mdfe.
+    CLEAR et_messages.
+    DATA ls_status TYPE zmdfe_status.
+    me->read_header(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING es_header      = ls_status ).
+
+    IF ls_status-doc_status = gc_st_cancelado.
+      APPEND VALUE #( type = 'E' message = 'MDF-e já foi cancelado' ) TO et_messages.
+      RETURN.
+    ENDIF.
+    IF ls_status-doc_status = gc_st_encerrado.
+      APPEND VALUE #( type = 'E' message = 'MDF-e encerrado não pode ser cancelado' ) TO et_messages.
+      RETURN.
+    ENDIF.
+
+    "--- Stub: chamar DRC evento cancelamento ---
+    "   mo_proc->cancel_mdfe( iv_uuid = ls_status-uuid_drc ... )
+
+    ls_status-doc_status = gc_st_cancelado.
+    me->save_status(
+      EXPORTING is_header   = ls_status
+      IMPORTING et_messages = et_messages ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " PRINT_MDFE – Chama Adobe Form ZEDO_FORM_MDFe
+  " Somente MDF-e Autorizado pode ser impresso
+  "=================================================================
+  METHOD print_mdfe.
+    DATA ls_status TYPE zmdfe_status.
+    me->read_header(
+      EXPORTING iv_mdfe_number = iv_mdfe_number
+      IMPORTING es_header      = ls_status ).
+
+    IF ls_status-doc_status <> gc_st_autorizado.
+      MESSAGE 'Somente MDF-e Autorizado pode ser impresso.' TYPE 'E'.
+      RETURN.
+    ENDIF.
+
+    "--- Chamar FM do Adobe Form ---
+    "   O FM precisa ser criado conforme EF Formulário (ZEDO_FORM_MDFe)
+    "   e busca dados via CDS I_BR_NFDOCUMENT / I_BR_NFDOCUMENTREFERENCE
+    "   Stub abaixo:
+    "
+    "   CALL FUNCTION 'ZMDFE_PRINT'
+    "     EXPORTING
+    "       iv_mdfe_number = iv_mdfe_number
+    "       iv_output_form = 'ZEDO_FORM_MDFe'.
+
+  ENDMETHOD.
+
+
+  "=================================================================
+  " READ_HEADER
+  "=================================================================
+  METHOD read_header.
+    SELECT SINGLE *
+      FROM zmdfe_status
+      WHERE mdfe_number = @iv_mdfe_number
+      INTO @es_header.
+    rv_found = COND #( WHEN sy-subrc = 0 THEN abap_true ELSE abap_false ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " READ_NFKEYS
+  "=================================================================
+  METHOD read_nfkeys.
+    SELECT item_num, accesskey, docnum, nfenum, series
+      FROM zmdfe_nfkeys
+      WHERE mdfe_number = @iv_mdfe_number
+      ORDER BY item_num
+      INTO TABLE @et_nfkeys.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_NFE_ACCESSKEY
+  " Concatena campos de J_1BNFE_ACTIVE para montar chave 44 digitos
+  "=================================================================
+  METHOD get_nfe_accesskey.
+    SELECT SINGLE
+        regio, nfyear, nfmonth, stcd1, model, serie,
+        nfnum9, tpemis, docnum9, cdv
+      FROM j_1bnfe_active
+      WHERE docnum = @iv_docnum
+      INTO @DATA(ls_nfe).
+
+    IF sy-subrc = 0.
+      rv_key = ls_nfe-regio    &&
+               ls_nfe-nfyear  &&
+               ls_nfe-nfmonth &&
+               ls_nfe-stcd1   &&
+               ls_nfe-model   &&
+               ls_nfe-serie   &&
+               ls_nfe-nfnum9  &&
+               ls_nfe-tpemis  &&
+               ls_nfe-docnum9 &&
+               ls_nfe-cdv.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_STATUS_ICON (CLASS METHOD)
+  "=================================================================
+  CLASS-METHOD get_status_icon.
+    rv_icon = SWITCH #( iv_status
+      WHEN gc_st_autorizado THEN icon_led_green   " @5B Verde
+      WHEN gc_st_pendente   THEN icon_led_yellow  " @5D Amarelo
+      WHEN gc_st_enviado    THEN icon_led_yellow  " @5D Amarelo
+      WHEN gc_st_erro       THEN icon_led_red     " @5C Vermelho
+      WHEN gc_st_encerrado  THEN icon_led_green   " @5B Verde (encerrado OK)
+      WHEN gc_st_cancelado  THEN icon_led_red     " @5C Vermelho
+      ELSE                       icon_led_yellow ).
+  ENDMETHOD.
+
+
+  "=================================================================
+  " BUILD_JSON_PAYLOAD (PRIVADO)
+  " Monta payload JSON conforme mapeamento EF V2 Secao 5
+  " issuingState, environmentType, issuingType, vehicleInfo, conductor, etc.
+  "=================================================================
+  METHOD build_json_payload.
+    "--- Chaves de acesso NF-e: lista para o JSON ---
+    DATA lt_keys_json TYPE string_table.
+    LOOP AT it_nfkeys INTO DATA(ls_nf).
+      APPEND |"{ ls_nf-accesskey }"| TO lt_keys_json.
+    ENDLOOP.
+    DATA(lv_keys_str) = concat_lines_of( table = lt_keys_json sep = `,` ).
+
+    "--- Formatar peso e valor sem separador de milhar (EF: regra critica) ---
+    DATA(lv_peso)  = |{ is_header-brgew STYLE = SIMPLE }|.
+    DATA(lv_valor) = |{ is_header-nftot STYLE = SIMPLE }|.
+    REPLACE ALL OCCURRENCES OF ',' IN lv_peso  WITH '.'.
+    REPLACE ALL OCCURRENCES OF ',' IN lv_valor WITH '.'.
+
+    "--- Ambiente: padrao Producao, parametrizavel ---
+    DATA(lv_amb) = gc_amb_prod.
+
+    rv_json =
+      `{` &&
+      `"issuingState":"` && is_header-uf_orig && `",` &&
+      `"environmentType":` && lv_amb && `,` &&
+      `"issuingType":"1",` &&
+      `"loadingCity":"` && is_header-mun_orig && `",` &&
+      `"loadingPostalCode":"` && is_header-cep_carga && `",` &&
+      `"unloadingCity":"` && is_header-mun_dest && `",` &&
+      `"unloadingPostalCode":"` && is_header-cep_descar && `",` &&
+      `"totalQuantity":` && lv_peso && `,` &&
+      `"cargoTotalValue":` && lv_valor && `,` &&
+      `"vehicleInfo":{"plate":"` && is_header-placa && `"},` &&
+      `"conductor":[{"cpf":"` && is_header-cpf_motor && `","name":"` && is_header-motorista && `"}],` &&
+      `"road":{"anttInfo":"` && is_header-rntrc && `"},` &&
+      `"nfeKeys":[` && lv_keys_str && `]` &&
+      `}`.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_STATUS (PRIVADO)
+  "=================================================================
+  METHOD save_status.
+    CLEAR et_messages.
+    MODIFY zmdfe_status FROM @is_header.
+    IF sy-subrc <> 0.
+      APPEND VALUE #( type = 'E'
+        message = |Erro ao gravar ZMDFE_STATUS: { sy-subrc }| )
+        TO et_messages.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_NFKEYS (PRIVADO)
+  "=================================================================
+  METHOD save_nfkeys.
+    CLEAR et_messages.
+    DATA lt_db TYPE TABLE OF zmdfe_nfkeys.
+    DATA(lv_item) = 0.
+
+    LOOP AT it_nfkeys INTO DATA(ls_nf).
+      lv_item += 1.
+      APPEND VALUE zmdfe_nfkeys(
+        mandt        = sy-mandt
+        mdfe_number  = iv_mdfe_number
+        item_num     = lv_item
+        accesskey    = ls_nf-accesskey
+        docnum       = ls_nf-docnum
+        nfenum       = ls_nf-nfenum
+        series       = ls_nf-series
+      ) TO lt_db.
+    ENDLOOP.
+
+    "--- Apagar registros anteriores e regravar ---
+    DELETE FROM zmdfe_nfkeys WHERE mdfe_number = @iv_mdfe_number.
+    INSERT zmdfe_nfkeys FROM TABLE @lt_db.
+    IF sy-subrc <> 0.
+      APPEND VALUE #( type = 'E'
+        message = |Erro ao gravar ZMDFE_NFKEYS: { sy-subrc }| )
+        TO et_messages.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_BRANCH_GEO (PRIVADO)
+  " Busca UF, Município e CEP da filial: J_1BBRANCH → ADRC
+  "=================================================================
+  METHOD get_branch_geo.
+    SELECT SINGLE adrnr
+      FROM j_1bbranch
+      WHERE bukrs = @iv_bukrs AND branch = @iv_branch
+      INTO @DATA(lv_adrnr).
+
+    IF sy-subrc = 0.
+      SELECT SINGLE region, taxjurcode, post_code1
+        FROM adrc
+        WHERE addrnumber = @lv_adrnr
+        INTO @DATA(ls_adrc).
+
+      ev_uf_orig  = ls_adrc-region.
+      ev_mun_orig = ls_adrc-taxjurcode+STRLEN( ls_adrc-taxjurcode ) - 7.
+      ev_cep      = ls_adrc-post_code1.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " GET_DEST_GEO (PRIVADO)
+  " Busca UF, Município e CEP do destino: J_1BNFDOC
+  "=================================================================
+  METHOD get_dest_geo.
+    SELECT SINGLE regio, txjcd, pstlz
+      FROM j_1bnfdoc
+      WHERE docnum = @iv_docnum
+      INTO @DATA(ls_nfdoc).
+
+    IF sy-subrc = 0.
+      ev_uf_dest  = ls_nfdoc-regio.
+      ev_mun_dest = ls_nfdoc-txjcd+STRLEN( ls_nfdoc-txjcd ) - 7.
+      ev_cep      = ls_nfdoc-pstlz.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=================================================================
+  " SAVE_INFCOMP (PRIVADO)
+  " Grava texto em LOGBR_NF_TEXTS tipo 'C' (campo TEXT)  – V2
+  "=================================================================
+  METHOD save_infcomp.
+    DATA ls_text TYPE logbr_nf_texts.
+
+    SELECT SINGLE *
+      FROM logbr_nf_texts
+      WHERE docnum  = @iv_docnum
+        AND txttype = 'C'
+      INTO @ls_text.
+
+    ls_text-docnum  = iv_docnum.
+    ls_text-txttype = 'C'.
+    ls_text-text    = iv_text(250).    " Limite de 250 chars conforme EF V2
+
+    MODIFY logbr_nf_texts FROM @ls_text.
+  ENDMETHOD.
+
+ENDCLASS.

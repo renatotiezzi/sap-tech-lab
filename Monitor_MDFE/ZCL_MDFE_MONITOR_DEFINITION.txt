@@ -1,0 +1,295 @@
+CLASS zcl_mdfe_monitor DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    "--------------------------------------------------------------------
+    " Constantes de Status do Documento
+    " 1=Pendente  2=Enviado  3=Autorizado  4=Erro  5=Encerrado  6=Cancelado
+    "--------------------------------------------------------------------
+    CONSTANTS:
+      gc_st_pendente   TYPE char1 VALUE '1',
+      gc_st_enviado    TYPE char1 VALUE '2',
+      gc_st_autorizado TYPE char1 VALUE '3',
+      gc_st_erro       TYPE char1 VALUE '4',
+      gc_st_encerrado  TYPE char1 VALUE '5',
+      gc_st_cancelado  TYPE char1 VALUE '6'.
+
+    "--------------------------------------------------------------------
+    " Constantes de Ambiente DRC
+    "--------------------------------------------------------------------
+    CONSTANTS:
+      gc_amb_prod  TYPE char1 VALUE '1',
+      gc_amb_homol TYPE char1 VALUE '2'.
+
+    "--------------------------------------------------------------------
+    " Tipo: linha do monitor (grid ALV Tela 02)
+    "--------------------------------------------------------------------
+    TYPES:
+      BEGIN OF ty_monitor,
+        status_icon  TYPE icon-id,
+        doc_status   TYPE char1,
+        mdfe_number  TYPE j_1bdocnum,
+        series       TYPE j_1bseries,
+        bukrs        TYPE bukrs,
+        branch       TYPE j_1bbranch,
+        credat       TYPE erdat,
+        crezet       TYPE erzet,
+        uf_orig      TYPE regio,
+        uf_dest      TYPE regio,
+        placa        TYPE char7,
+        motorista    TYPE char20,
+        access_key   TYPE j_1bchvnfe,
+        nprot        TYPE j_1b_authcode,
+        brgew        TYPE brgew,
+        nftot        TYPE abgrs,
+        last_msg     TYPE bapi_msg,
+        uuid_drc     TYPE sysuuid_c32,
+        ernam        TYPE ernam,
+      END OF ty_monitor,
+      tt_monitor TYPE STANDARD TABLE OF ty_monitor WITH DEFAULT KEY.
+
+    "--------------------------------------------------------------------
+    " Tipo: chave de acesso NF-e (sub-ALV Tela 03)
+    "--------------------------------------------------------------------
+    TYPES:
+      BEGIN OF ty_nfkey,
+        item_num  TYPE numc3,
+        accesskey TYPE j_1bchvnfe,
+        docnum    TYPE j_1bdocnum,
+        nfenum    TYPE char9,
+        series    TYPE j_1bseries,
+      END OF ty_nfkey,
+      tt_nfkey TYPE STANDARD TABLE OF ty_nfkey WITH DEFAULT KEY.
+
+    "--------------------------------------------------------------------
+    " Tipo: parametros de selecao (Tela 01)
+    "--------------------------------------------------------------------
+    TYPES:
+      BEGIN OF ty_sel,
+        bukrs_low    TYPE bukrs,
+        bukrs_high   TYPE bukrs,
+        branch_low   TYPE j_1bbranch,
+        branch_high  TYPE j_1bbranch,
+        docnum_low   TYPE j_1bdocnum,
+        docnum_high  TYPE j_1bdocnum,
+        nfenum_low   TYPE char9,
+        nfenum_high  TYPE char9,
+        series_low   TYPE j_1bseries,
+        series_high  TYPE j_1bseries,
+        credat_low   TYPE erdat,
+        credat_high  TYPE erdat,
+        chave_low    TYPE j_1bchvnfe,
+        chave_high   TYPE j_1bchvnfe,
+        mdfe_low     TYPE j_1bdocnum,
+        mdfe_high    TYPE j_1bdocnum,
+        mcredat_low  TYPE erdat,
+        mcredat_high TYPE erdat,
+        "--- checkboxes de filtro de status ---
+        cb_pendente  TYPE abap_bool,
+        cb_erro      TYPE abap_bool,
+        cb_encerrado TYPE abap_bool,
+      END OF ty_sel.
+
+    "--------------------------------------------------------------------
+    " CONSTRUCTOR
+    "--------------------------------------------------------------------
+    METHODS constructor.
+
+    "--------------------------------------------------------------------
+    " SELECAO – Tela 01 → Tela 02
+    " Lê ZMDFE_STATUS + J_1BNFDOC + J_1BNFE_ACTIVE e monta gt_monitor
+    "--------------------------------------------------------------------
+    METHODS select_data
+      IMPORTING
+        is_sel         TYPE ty_sel
+      EXPORTING
+        et_monitor     TYPE tt_monitor
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " CRIAR – Tela 03 modo Create
+    " Valida + chama BAPI_J_1B_NF_CREATEFROMDATA + grava ZMDFE_STATUS/ZMDFE_NFKEYS
+    " (V2: cria NF na J1B1N e alimenta J_1BNFDOC, J_1BNFLIN, J_1BNFE_ACTIVE, LOGBR_NF_TEXTS)
+    "--------------------------------------------------------------------
+    METHODS create_mdfe
+      IMPORTING
+        is_header      TYPE zmdfe_status
+        it_nfkeys      TYPE tt_nfkey
+        iv_infcomp     TYPE string OPTIONAL
+      EXPORTING
+        es_header      TYPE zmdfe_status
+        et_messages    TYPE bapiret2_t
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " ENVIAR – Monta JSON e chama CL_NFE_CLOUD_MDFE_PROCESSOR->SEND_REQUEST_JSON
+    "--------------------------------------------------------------------
+    METHODS send_mdfe
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        es_status      TYPE zmdfe_status
+        et_messages    TYPE bapiret2_t
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " CONSULTAR – Consulta status atual no DRC e atualiza ZMDFE_STATUS
+    "--------------------------------------------------------------------
+    METHODS consult_mdfe
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        es_status      TYPE zmdfe_status
+        et_messages    TYPE bapiret2_t
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " ENCERRAR – Envia evento de encerramento ao DRC
+    "--------------------------------------------------------------------
+    METHODS close_mdfe
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        et_messages    TYPE bapiret2_t
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " CANCELAR – Envia evento de cancelamento ao DRC
+    "--------------------------------------------------------------------
+    METHODS cancel_mdfe
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        et_messages    TYPE bapiret2_t
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " IMPRIMIR – Chama Adobe Form ZEDO_FORM_MDFe
+    "--------------------------------------------------------------------
+    METHODS print_mdfe
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      RAISING
+        cx_sy_dyn_call_error.
+
+    "--------------------------------------------------------------------
+    " LER CABECALHO – Carrega registro ZMDFE_STATUS
+    "--------------------------------------------------------------------
+    METHODS read_header
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        es_header      TYPE zmdfe_status
+      RETURNING
+        VALUE(rv_found) TYPE abap_bool.
+
+    "--------------------------------------------------------------------
+    " LER CHAVES NF – Carrega ZMDFE_NFKEYS para um MDF-e
+    "--------------------------------------------------------------------
+    METHODS read_nfkeys
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+      EXPORTING
+        et_nfkeys      TYPE tt_nfkey.
+
+    "--------------------------------------------------------------------
+    " HELPER – Deriva chave de acesso NF-e a partir de NFENUM / DOCNUM
+    " Concatena: REGIO+NFYEAR+NFMONTH+STCD1+MODEL+SERIE+NFNUM9+TPEMIS+DOCNUM9+CDV
+    "--------------------------------------------------------------------
+    METHODS get_nfe_accesskey
+      IMPORTING
+        iv_bukrs  TYPE bukrs
+        iv_branch TYPE j_1bbranch
+        iv_docnum TYPE j_1bdocnum
+      RETURNING
+        VALUE(rv_key) TYPE j_1bchvnfe.
+
+    "--------------------------------------------------------------------
+    " HELPER – Resolve icone de semaforo a partir do status
+    "--------------------------------------------------------------------
+    CLASS-METHODS get_status_icon
+      IMPORTING
+        iv_status      TYPE char1
+      RETURNING
+        VALUE(rv_icon) TYPE icon-id.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Monta estrutura JSON para o DRC
+    " Campos mapeados conforme secao 5 da EF V2
+    "--------------------------------------------------------------------
+    METHODS build_json_payload
+      IMPORTING
+        is_header    TYPE zmdfe_status
+        it_nfkeys    TYPE tt_nfkey
+      RETURNING
+        VALUE(rv_json) TYPE string.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Grava / Atualiza ZMDFE_STATUS
+    "--------------------------------------------------------------------
+    METHODS save_status
+      IMPORTING
+        is_header    TYPE zmdfe_status
+      EXPORTING
+        et_messages  TYPE bapiret2_t.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Grava ZMDFE_NFKEYS
+    "--------------------------------------------------------------------
+    METHODS save_nfkeys
+      IMPORTING
+        iv_mdfe_number TYPE j_1bdocnum
+        it_nfkeys      TYPE tt_nfkey
+      EXPORTING
+        et_messages    TYPE bapiret2_t.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Busca dados geograficos da filial (J_1BBRANCH/ADRC)
+    "--------------------------------------------------------------------
+    METHODS get_branch_geo
+      IMPORTING
+        iv_bukrs    TYPE bukrs
+        iv_branch   TYPE j_1bbranch
+      EXPORTING
+        ev_uf_orig  TYPE regio
+        ev_mun_orig TYPE char7
+        ev_cep      TYPE char8.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Busca dados geograficos do destino (J_1BNFDOC)
+    "--------------------------------------------------------------------
+    METHODS get_dest_geo
+      IMPORTING
+        iv_docnum   TYPE j_1bdocnum
+      EXPORTING
+        ev_uf_dest  TYPE regio
+        ev_mun_dest TYPE char7
+        ev_cep      TYPE char8.
+
+    "--------------------------------------------------------------------
+    " HELPER INTERNO – Grava texto complementar em LOGBR_NF_TEXTS tipo 'C'
+    "--------------------------------------------------------------------
+    METHODS save_infcomp
+      IMPORTING
+        iv_docnum   TYPE j_1bdocnum
+        iv_text     TYPE string.
+
+    "--------------------------------------------------------------------
+    " Atributo: instancia da classe processadora DRC
+    "--------------------------------------------------------------------
+    DATA mo_proc TYPE REF TO cl_nfe_cloud_mdfe_processor.
+
+ENDCLASS.

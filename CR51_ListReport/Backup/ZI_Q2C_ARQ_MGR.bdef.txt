@@ -55,7 +55,6 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
 persistent table ztbq2c_log_mgr
 lock dependent by _Arq
 authorization dependent by _Arq
-etag master Uzeit
 {
   // create: não declarar aqui — filho lock-dependent em strict(2)
   // A criação do LOG ocorre exclusivamente via association _Log { create; } do pai

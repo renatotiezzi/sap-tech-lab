@@ -1,29 +1,22 @@
-@EndUserText.label : 'Monitor MDF-e - Chaves de Acesso NF-e vinculadas'
+﻿@EndUserText.label : 'Monitor MDF-e - Chaves de Acesso NF-e vinculadas'
 @AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.tableCategory : #TRANSPARENT
 define table zmdfe_nfkeys {
 
-  " ----------------------------------------------------------------
-  " Chave primária composta
-  " ----------------------------------------------------------------
+  // Chave primaria composta
   key mandt         : mandt not null;
-  key mdfe_number   : j_1bdocnum not null;   " FK -> ZMDFE_STATUS-MDFE_NUMBER
-  key item_num      : abap.numc(3) not null;  " Sequencial do item (001, 002, ...)
+  key mdfe_number   : j_1bdocnum not null;   // FK -> ZMDFE_STATUS-MDFE_NUMBER
+  key item_num      : abap.numc(3) not null;  // Sequencial do item (001, 002, ...)
 
-  " ----------------------------------------------------------------
-  " Chave de acesso da NF-e (44 dígitos)
-  " Concatenação de: REGIO + NFYEAR + NFMONTH + STCD1 + MODEL +
-  "                  SERIE + NFNUM9 + TPEMIS + DOCNUM9 + CDV
-  " Origem: J_1BNFE_ACTIVE
-  " ----------------------------------------------------------------
-  accesskey         : j_1bchvnfe;             " Chave de Acesso NF-e (44)
+  // Chave de acesso da NF-e (44 digitos)
+  accesskey         : j_1bchvnfe;             // Chave de Acesso NF-e (44)
 
-  " ----------------------------------------------------------------
-  " Dados de referência da NF-e para exibição no monitor
-  " ----------------------------------------------------------------
-  bukrs             : bukrs;                  " Empresa
-  branch            : j_1bbranc_;             " Local de negócio (DE: J_1BBRANC_, CHAR4)
-  docnum            : j_1bdocnum;             " Nº Documento NF-e (J_1BNFDOC-DOCNUM)
-  nfenum            : j_1bnfnum9;             " Nº NF-e (J_1BNFDOC-NFENUM, DE: J_1BNFNUM9, CHAR9)
-  series            : j_1bseries;             " Série NF-e
+  // Dados de referencia da NF-e para exibicao no monitor
+  bukrs             : bukrs;                  // Empresa
+  branch            : j_1bbranc_;             // Local de negocio (DE: J_1BBRANC_, CHAR4)
+  docnum            : j_1bdocnum;             // N. Documento NF-e (J_1BNFDOC-DOCNUM)
+  nfenum            : j_1bnfnum9;             // N. NF-e (J_1BNFDOC-NFENUM, CHAR9)
+  series            : j_1bseries;             // Serie NF-e
 
 }

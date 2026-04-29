@@ -72,7 +72,7 @@
     "--------------------------------------------------------------------
     TYPES:
       BEGIN OF ty_nfkey,
-        item_num  TYPE n LENGTH 3,
+        item_num  TYPE zmdfe_itemnum,
         accesskey TYPE zmdfe_accesskey,
         docnum    TYPE j_1bdocnum,
         nfenum    TYPE j_1bnfdoc-nfenum,
@@ -388,11 +388,11 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       ).
 
       "--- Buscar MDF-e via ZMDFE_NFKEYS pelo docnum da NF-e ---
+      DATA lv_mdfe_num TYPE j_1bdocnum.
       SELECT SINGLE mdfe_number
         FROM zmdfe_nfkeys
-        WHERE mandt  = @sy-mandt
-          AND docnum = @ls_nf-docnum
-        INTO @DATA(lv_mdfe_num).
+        WHERE docnum = @ls_nf-docnum
+        INTO @lv_mdfe_num.
 
       IF sy-subrc = 0.
         SELECT SINGLE *
@@ -441,12 +441,13 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "---------------------------------------------------------------
     " 3. Filtro adicional por Nº MDF-e / Data MDF-e
     "---------------------------------------------------------------
-    IF is_sel-mdfe_low IS NOT INITIAL OR is_sel-mcredat_low IS NOT INITIAL.
-      DELETE et_monitor WHERE
-        ( mdfe_number < is_sel-mdfe_low AND is_sel-mdfe_low IS NOT INITIAL )
-        OR ( mdfe_number > is_sel-mdfe_high AND is_sel-mdfe_high IS NOT INITIAL )
-        OR ( credat < is_sel-mcredat_low AND is_sel-mcredat_low IS NOT INITIAL )
-        OR ( credat > is_sel-mcredat_high AND is_sel-mcredat_high IS NOT INITIAL ).
+    IF is_sel-mdfe_low IS NOT INITIAL.
+      DELETE et_monitor WHERE mdfe_number < is_sel-mdfe_low
+                           OR mdfe_number > is_sel-mdfe_high.
+    ENDIF.
+    IF is_sel-mcredat_low IS NOT INITIAL.
+      DELETE et_monitor WHERE credat < is_sel-mcredat_low
+                           OR credat > is_sel-mcredat_high.
     ENDIF.
 
   ENDMETHOD.
@@ -587,32 +588,15 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "
     "   Abaixo: stub que simula o padrao descrito na EF V2 secao 5
     "------------ INICIO CHAMADA DRC --------------------------------
-    DATA ls_resp TYPE REF TO data.    " Substituir pelo tipo real rs_response
-
     TRY.
-        mo_proc->send_request_json(
-          EXPORTING
-            iv_request_json = lv_json
-          IMPORTING
-            rs_response     = ls_resp ).
-
-        "--- Tratar retorno: status 100/101 = Autorizado ---
-        ASSIGN ls_resp->* TO FIELD-SYMBOL(<ls_r>).
-        IF <ls_r> IS ASSIGNED.
-          ASSIGN COMPONENT 'STATUS_CODE' OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<code>).
-          ASSIGN COMPONENT 'CONTENT'     OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<content>).
-          ASSIGN COMPONENT 'UUID'        OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<uuid>).
-          ASSIGN COMPONENT 'NPROT'       OF STRUCTURE <ls_r> TO FIELD-SYMBOL(<nprot>).
-
-          IF <code> IS ASSIGNED AND ( <code> = '100' OR <code> = '101' ).
-            es_status-doc_status = gc_st_autorizado.
-            IF <nprot> IS ASSIGNED.   es_status-nprot    = <nprot>.   ENDIF.
-            IF <uuid>  IS ASSIGNED.   es_status-uuid_drc = <uuid>.    ENDIF.
-          ELSE.
-            es_status-doc_status = gc_st_erro.
-            IF <content> IS ASSIGNED. es_status-last_msg = <content>. ENDIF.
-          ENDIF.
-        ENDIF.
+*       --- STUB: descomentar e ajustar assinatura real antes de ativar ---
+*       DATA ls_resp TYPE REF TO data.
+*       mo_proc->send_request_json(
+*         EXPORTING iv_request_json = lv_json
+*         IMPORTING rs_response     = ls_resp ).
+        "--- Stub ativo: marca como Enviado ate que DRC seja configurado ---
+        es_status-doc_status = gc_st_enviado.
+        es_status-last_msg   = 'JSON montado – envio DRC pendente de configuracao'.
 
     CATCH cx_root INTO DATA(lx).
         es_status-doc_status = gc_st_erro.
@@ -620,7 +604,6 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
         APPEND VALUE #( type = 'E' message = es_status-last_msg ) TO et_messages.
         RETURN.
     ENDTRY.
-    "------------ FIM CHAMADA DRC -----------------------------------
 
     "--- Gravar JSON enviado para auditoria ---
     es_status-json_enviado = lv_json.
@@ -631,9 +614,9 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       IMPORTING et_messages = et_messages ).
 
     APPEND VALUE #(
-      type    = COND #( WHEN es_status-doc_status = gc_st_autorizado THEN 'S' ELSE 'E' )
-      message = COND #( WHEN es_status-doc_status = gc_st_autorizado
-                        THEN |MDF-e autorizado. Protocolo: { es_status-nprot }|
+      type    = COND #( WHEN es_status-doc_status = gc_st_enviado THEN 'S' ELSE 'W' )
+      message = COND #( WHEN es_status-doc_status = gc_st_enviado
+                        THEN |MDF-e enviado ao DRC. Aguardando autorizacao SEFAZ.|
                         ELSE es_status-last_msg )
     ) TO et_messages.
 
@@ -796,7 +779,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   "=================================================================
   " GET_STATUS_ICON (CLASS METHOD)
   "=================================================================
-  CLASS-METHOD get_status_icon.
+  METHOD get_status_icon.
     rv_icon = SWITCH #( iv_status
       WHEN gc_st_autorizado THEN icon_led_green   " @5B Verde
       WHEN gc_st_pendente   THEN icon_led_yellow  " @5D Amarelo
@@ -824,8 +807,8 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "--- Formatar peso e valor SEM separador de milhar (EF V2 Secao 5 – regra critica)
     "    STYLE = SIMPLE nao garante ausencia de milhar em todos os locales SAP.
     "    WRITE...NO-GROUPING suprime o separador de milhar de forma deterministica.
-    DATA lv_peso  TYPE string.
-    DATA lv_valor TYPE string.
+    DATA lv_peso  TYPE c LENGTH 30.
+    DATA lv_valor TYPE c LENGTH 30.
     WRITE is_header-brgew TO lv_peso  NO-GROUPING LEFT-JUSTIFIED.
     WRITE is_header-nftot TO lv_valor NO-GROUPING LEFT-JUSTIFIED.
     CONDENSE lv_peso  NO-GAPS.
@@ -895,8 +878,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
 
     "--- Apagar versao anterior (limpa todos os itens do MDF-e) ---
     DELETE FROM zmdfe_nfkeys
-      WHERE mandt       = @sy-mandt
-        AND mdfe_number = @iv_mdfe_number.
+      WHERE mdfe_number = @iv_mdfe_number.
 
     "--- Reinserir todos os itens do parametro ---
     DATA ls_key TYPE zmdfe_nfkeys.
@@ -1001,14 +983,20 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   " EF V2: texto vinculado ao DOCNUM da NF-e principal do MDF-e.
   "=================================================================
   METHOD save_infcomp.
-    DATA ls_text TYPE logbr_nf_texts.
-    ls_text-mandt    = sy-mandt.
-    ls_text-docnum   = iv_docnum.
-    ls_text-txttyp   = 'C'.           " C = informacoes complementares
-    ls_text-tdformat = '*'.
-    DATA(lv_tdlen) = COND i( WHEN strlen( iv_text ) <= 132 THEN strlen( iv_text ) ELSE 132 ).
-    ls_text-tdline   = iv_text(lv_tdlen).
-    MODIFY logbr_nf_texts FROM @ls_text.
+*   --- STUB: verificar campos reais de LOGBR_NF_TEXTS no SE11 antes de implementar ---
+*   Abrir SE11 -> LOGBR_NF_TEXTS -> Fields e identificar:
+*     - campo do tipo de texto (equivalente a TXTTYP)
+*     - campo da linha de texto (equivalente a TDLINE)
+*     - campo de formatacao (equivalente a TDFORMAT)
+*   Depois descomentar e ajustar:
+*
+*   DATA ls_text TYPE logbr_nf_texts.
+*   ls_text-docnum            = iv_docnum.
+*   ls_text-<campo_tipo>      = 'C'.
+*   ls_text-<campo_formato>   = '*'.
+*   DATA(lv_len) = COND i( WHEN strlen( iv_text ) <= 132 THEN strlen( iv_text ) ELSE 132 ).
+*   ls_text-<campo_linha>     = iv_text(lv_len).
+*   MODIFY logbr_nf_texts FROM @ls_text.
   ENDMETHOD.
 
 ENDCLASS.

@@ -4,19 +4,16 @@
 @AbapCatalog.tableCategory : #TRANSPARENT
 define table zmdfe_nfkeys {
 
-  // Chave primaria composta
   key mandt         : mandt not null;
-  key mdfe_number   : j_1bdocnum not null;   // FK -> ZMDFE_STATUS-MDFE_NUMBER
-  key item_num      : abap.numc(3) not null;  // Sequencial do item (001, 002, ...)
+  key mdfe_number   : j_1bdocnum not null;
+  key item_num      : abap.numc(3) not null;
 
-  // Chave de acesso da NF-e (44 digitos)
-  accesskey         : j_1bchvnfe;             // Chave de Acesso NF-e (44)
+  accesskey         : j_1bchvnfe;
 
-  // Dados de referencia da NF-e para exibicao no monitor
-  bukrs             : bukrs;                  // Empresa
-  branch            : j_1bbranc_;             // Local de negocio (DE: J_1BBRANC_, CHAR4)
-  docnum            : j_1bdocnum;             // N. Documento NF-e (J_1BNFDOC-DOCNUM)
-  nfenum            : j_1bnfnum9;             // N. NF-e (J_1BNFDOC-NFENUM, CHAR9)
-  series            : j_1bseries;             // Serie NF-e
+  bukrs             : bukrs;
+  branch            : j_1bbranc_;
+  docnum            : j_1bdocnum;
+  nfenum            : j_1bnfnum9;
+  series            : j_1bseries;
 
 }

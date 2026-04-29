@@ -77,6 +77,8 @@
         docnum    TYPE j_1bdocnum,
         nfenum    TYPE j_1bnfdoc-nfenum,
         series    TYPE j_1bseries,
+        bukrs     TYPE bukrs,
+        branch    TYPE j_1bbranc_,
       END OF ty_nfkey,
       tt_nfkey TYPE STANDARD TABLE OF ty_nfkey WITH DEFAULT KEY.
 
@@ -431,6 +433,10 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
          AND ls_row-doc_status <> gc_st_encerrado.
         CONTINUE.
       ENDIF.
+      IF is_sel-cb_erro = abap_true
+         AND ls_row-doc_status <> gc_st_erro.
+        CONTINUE.
+      ENDIF.
 
       "--- Atribuir icone semaforo ---
       ls_row-status_icon = get_status_icon( ls_row-doc_status ).
@@ -507,6 +513,18 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "   READ TABLE et_messages WITH KEY type = 'E' TRANSPORTING NO FIELDS.
     "   IF sy-subrc = 0. RETURN. ENDIF.
     "--- fim stub BAPI ---
+
+    "--- Gerar numero MDF-e via objeto de faixa ZMDFE_NR (criar no SNRO) ---
+    "    Descomentar apos criar o objeto de faixa no SNRO:
+*   CALL FUNCTION 'NUMBER_GET_NEXT'
+*     EXPORTING  nr_range_nr    = '01'
+*                object         = 'ZMDFE_NR'
+*     IMPORTING  number         = es_header-mdfe_number
+*     EXCEPTIONS OTHERS         = 4.
+*   IF sy-subrc <> 0.
+*     APPEND VALUE #( type = 'E' message = 'Erro ao gerar numero MDF-e' ) TO et_messages.
+*     RETURN.
+*   ENDIF.
 
     "--- Preparar cabecalho para gravar ---
     es_header           = is_header.
@@ -674,9 +692,13 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   METHOD cancel_mdfe.
     CLEAR et_messages.
     DATA ls_status TYPE zmdfe_status.
-    me->read_header(
+    DATA(lv_found_c) = me->read_header(
       EXPORTING iv_mdfe_number = iv_mdfe_number
       IMPORTING es_header      = ls_status ).
+    IF lv_found_c = abap_false.
+      APPEND VALUE #( type = 'E' message = |MDF-e { iv_mdfe_number } nao encontrado| ) TO et_messages.
+      RETURN.
+    ENDIF.
 
     IF ls_status-doc_status = gc_st_cancelado.
       APPEND VALUE #( type = 'E' message = 'MDF-e já foi cancelado' ) TO et_messages.
@@ -759,6 +781,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
         nfnum9, tpemis, docnum9, cdv
       FROM j_1bnfe_active
       WHERE docnum = @iv_docnum
+        AND bukrs  = @iv_bukrs
       INTO @DATA(ls_nfe).
 
     IF sy-subrc = 0.
@@ -833,9 +856,16 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "--- Ambiente: padrao Producao, parametrizavel ---
     DATA(lv_amb) = gc_amb_prod.
 
+    DATA(lv_motorista_j) = CONV string( condense( is_header-motorista ) ).
+    DATA(lv_cpf_j)       = CONV string( condense( is_header-cpf_motor ) ).
+    DATA(lv_rntrc_j)     = CONV string( condense( is_header-rntrc ) ).
+    DATA(lv_uf_orig_j)   = CONV string( condense( is_header-uf_orig ) ).
+    DATA(lv_uf_dest_j)   = CONV string( condense( is_header-uf_dest ) ).
+    DATA(lv_placa_j)     = CONV string( condense( is_header-placa ) ).
+
     rv_json =
       `{` &&
-      `"issuingState":"` && is_header-uf_orig && `",` &&
+      `"issuingState":"` && lv_uf_orig_j && `",` &&
       `"environmentType":` && lv_amb && `,` &&
       `"issuingType":"1",` &&
       `"loadingCity":"` && is_header-mun_orig && `",` &&
@@ -845,8 +875,8 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       `"totalQuantity":` && lv_peso && `,` &&
       `"cargoTotalValue":` && lv_valor && `,` &&
       `"vehicleInfo":{"plate":"` && lv_placa && `"},` &&
-      `"conductor":[{"cpf":"` && is_header-cpf_motor && `","name":"` && is_header-motorista && `"}],` &&
-      `"road":{"anttInfo":"` && is_header-rntrc && `"},` &&
+      `"conductor":[{"cpf":"` && lv_cpf_j && `","name":"` && lv_motorista_j && `"}],` &&
+      `"road":{"anttInfo":"` && lv_rntrc_j && `"},` &&
       `"nfeKeys":[` && lv_keys_str && `]` &&
       `}`.
   ENDMETHOD.
@@ -857,7 +887,6 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   " MODIFY em ZMDFE_STATUS (INSERT se novo, UPDATE se existente).
   "=================================================================
   METHOD save_status.
-    CLEAR et_messages.
     MODIFY zmdfe_status FROM @is_header.
     IF sy-subrc <> 0.
       APPEND VALUE #(
@@ -874,7 +903,6 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   " O DELETE apaga versao anterior e INSERT reinsere todos os itens.
   "=================================================================
   METHOD save_nfkeys.
-    CLEAR et_messages.
 
     "--- Apagar versao anterior (limpa todos os itens do MDF-e) ---
     DELETE FROM zmdfe_nfkeys

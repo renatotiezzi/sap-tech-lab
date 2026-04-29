@@ -141,13 +141,14 @@ No ABAP e no DDIC, `TYPE c LENGTH N` / `abap.char(N)` é um tipo **genérico sem
 | `ZMDFE_COMPROV`  | CHAR      | 20          | Monitor MDF-e: Nº Comprovante Pedágio     | Comprovante Pedágio             |
 | `ZMDFE_SEGURAD`  | CHAR      | 60          | Monitor MDF-e: Nome da Seguradora         | Seguradora                      |
 | `ZMDFE_APOLICE`  | CHAR      | 30          | Monitor MDF-e: Número da Apólice          | Nº Apólice                      |
+| `ZMDFE_ACCESSKEY`| CHAR      | 44          | Monitor MDF-e: Chave de Acesso NF-e/MDF-e (44 dígitos) | Chave de Acesso   |
 
 > **`SYSUUID_C32`** (usado para o campo `UUID_DRC`) é um data element **SAP padrão** — já existe no sistema, não precisa criar.
 
 ### Ordem de criação obrigatória
 
 ```
-[1] Criar os 6 DEs Z acima no SE11
+[1] Criar os 7 DEs Z acima no SE11
         ↓
 [2] Criar tabela ZMDFE_STATUS (referencia ZMDFE_MOTORISTA, ZMDFE_MUNCD, ZMDFE_CEP, etc.)
         ↓
@@ -200,7 +201,7 @@ No ADT (Eclipse com plugins SAP), tabelas transparentes podem ser criadas como *
 | Campo        | Tipo DDIC     | Comprimento | Descrição                                               |
 |-------------|---------------|-------------|---------------------------------------------------------|
 | `DOC_STATUS` | CHAR1         | 1           | Status: 1=Pend 2=Env 3=Aut 4=Erro 5=Enc 6=Canc         |
-| `ACCESS_KEY` | J_1BCHVNFE    | 44          | Chave de acesso MDF-e (44 dígitos)                      |
+| `ACCESS_KEY` | ZMDFE_ACCESSKEY | 44          | Chave de acesso MDF-e (44 dígitos)                      |
 | `NPROT`      | J_1BNFEAUTHCODE | 15          | Protocolo de autorização SEFAZ (J_1BNFDOC-AUTHCOD)         |
 | `UUID_DRC`   | SYSUUID_C32     | 32          | UUID da comunicação com o DRC (DE SAP padrão)           |
 
@@ -283,7 +284,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 
 | Campo      | Tipo DDIC  | Comprimento | Descrição                                              |
 |-----------|------------|-------------|--------------------------------------------------------|
-| `ACCESSKEY`| J_1BCHVNFE | 44          | Chave de acesso NF-e (44 dígitos, somente números)    |
+| `ACCESSKEY`| ZMDFE_ACCESSKEY | 44          | Chave de acesso NF-e (44 dígitos, somente números)    |
 | `BUKRS`    | BUKRS      | 4           | Empresa                                                |
 | `BRANCH`   | J_1BBRANC_ | 4           | Local de negócio                                       |
 | `DOCNUM`   | J_1BDOCNUM | 9           | Nº documento NF-e (`J_1BNFDOC-DOCNUM`) — chave de vínculo |

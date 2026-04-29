@@ -57,7 +57,7 @@
         uf_dest      TYPE regio,
         placa        TYPE j_1bnfdoc-placa,
         motorista    TYPE zmdfe_motorista,
-        access_key   TYPE j_1bchvnfe,
+        access_key   TYPE zmdfe_accesskey,
         nprot        TYPE j_1bnfdoc-authcod,
         brgew        TYPE j_1bnfdoc-brgew,
         nftot        TYPE j_1bnfdoc-nftot,
@@ -73,7 +73,7 @@
     TYPES:
       BEGIN OF ty_nfkey,
         item_num  TYPE n LENGTH 3,
-        accesskey TYPE j_1bchvnfe,
+        accesskey TYPE zmdfe_accesskey,
         docnum    TYPE j_1bdocnum,
         nfenum    TYPE j_1bnfdoc-nfenum,
         series    TYPE j_1bseries,
@@ -97,8 +97,8 @@
         series_high  TYPE j_1bseries,
         credat_low   TYPE j_1bnfdoc-credat,
         credat_high  TYPE j_1bnfdoc-credat,
-        chave_low    TYPE j_1bchvnfe,
-        chave_high   TYPE j_1bchvnfe,
+        chave_low    TYPE zmdfe_accesskey,
+        chave_high   TYPE zmdfe_accesskey,
         mdfe_low     TYPE j_1bdocnum,
         mdfe_high    TYPE j_1bdocnum,
         mcredat_low  TYPE j_1bcredat,
@@ -227,7 +227,7 @@
         iv_branch TYPE j_1bbranc_
         iv_docnum TYPE j_1bdocnum
       RETURNING
-        VALUE(rv_key) TYPE j_1bchvnfe.
+        VALUE(rv_key) TYPE zmdfe_accesskey.
 
     "--------------------------------------------------------------------
     " HELPER – Resolve icone de semaforo a partir do status

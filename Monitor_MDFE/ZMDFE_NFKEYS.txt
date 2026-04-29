@@ -7,7 +7,7 @@ define table zmdfe_nfkeys {
   key mdfe_number   : j_1bdocnum not null;
   key item_num      : abap.numc(3) not null;
 
-  accesskey         : j_1bchvnfe;
+  accesskey         : zmdfe_accesskey;
 
   bukrs             : bukrs;
   branch            : j_1bbranc_;

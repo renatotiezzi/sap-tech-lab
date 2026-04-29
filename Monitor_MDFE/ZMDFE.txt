@@ -60,7 +60,7 @@ DATA: go_cont_200   TYPE REF TO cl_gui_custom_container,
       gs_detail     TYPE zmdfe_status,
       gt_nfkeys_ui  TYPE zcl_mdfe_monitor=>tt_nfkey,
       gv_mode_200   TYPE char1,             " 'C'=Create 'E'=Edit 'D'=Display
-      gv_add_key    TYPE j_1bchvnfe,
+      gv_add_key    TYPE zmdfe_accesskey,
       gv_add_docnum TYPE j_1bdocnum,
       gv_infcomp    TYPE string.
 
@@ -191,7 +191,7 @@ MODULE user_command_0200 INPUT.
       "--- Adicionar chave NF-e ao sub-ALV ---
       IF gv_add_key IS NOT INITIAL OR gv_add_docnum IS NOT INITIAL.
         DATA(lv_next) = lines( gt_nfkeys_ui ) + 1.
-        DATA(lv_key)  = COND j_1bchvnfe(
+        DATA(lv_key)  = COND zmdfe_accesskey(
           WHEN gv_add_key IS NOT INITIAL
           THEN gv_add_key
           ELSE go_monitor->get_nfe_accesskey(

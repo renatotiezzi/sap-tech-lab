@@ -11,7 +11,7 @@ define table zmdfe_status {
   series            : j_1bseries;
 
   doc_status        : char1;
-  access_key        : j_1bchvnfe;
+  access_key        : zmdfe_accesskey;
   nprot             : j_1bnfeauthcode;
   uuid_drc          : sysuuid_c32;
 

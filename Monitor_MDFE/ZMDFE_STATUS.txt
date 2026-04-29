@@ -43,6 +43,6 @@ define table zmdfe_status {
   seguradora        : zmdfe_segurad;
   apolice           : zmdfe_apolice;
 
-  json_enviado      : abap.sstring(5000);
+  json_enviado      : zmdfe_json;
 
 }

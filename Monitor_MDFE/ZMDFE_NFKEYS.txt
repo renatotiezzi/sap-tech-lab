@@ -5,7 +5,7 @@ define table zmdfe_nfkeys {
 
   key mandt         : mandt not null;
   key mdfe_number   : j_1bdocnum not null;
-  key item_num      : abap.numc(3) not null;
+  key item_num      : zmdfe_itemnum not null;
 
   accesskey         : zmdfe_accesskey;
 

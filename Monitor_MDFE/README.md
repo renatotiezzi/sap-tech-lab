@@ -142,13 +142,15 @@ No ABAP e no DDIC, `TYPE c LENGTH N` / `abap.char(N)` é um tipo **genérico sem
 | `ZMDFE_SEGURAD`  | CHAR      | 60          | Monitor MDF-e: Nome da Seguradora         | Seguradora                      |
 | `ZMDFE_APOLICE`  | CHAR      | 30          | Monitor MDF-e: Número da Apólice          | Nº Apólice                      |
 | `ZMDFE_ACCESSKEY`| CHAR      | 44          | Monitor MDF-e: Chave de Acesso NF-e/MDF-e (44 dígitos) | Chave de Acesso   |
+| `ZMDFE_ITEMNUM`  | NUMC      | 3           | Monitor MDF-e: Nº Sequencial do Item NF-e  | Nº Item                         |
+| `ZMDFE_JSON`     | STRING    | 0           | Monitor MDF-e: JSON enviado ao DRC (auditoria) | JSON DRC                    |
 
 > **`SYSUUID_C32`** (usado para o campo `UUID_DRC`) é um data element **SAP padrão** — já existe no sistema, não precisa criar.
 
 ### Ordem de criação obrigatória
 
 ```
-[1] Criar os 7 DEs Z acima no SE11
+[1] Criar os 9 DEs Z acima no SE11
         ↓
 [2] Criar tabela ZMDFE_STATUS (referencia ZMDFE_MOTORISTA, ZMDFE_MUNCD, ZMDFE_CEP, etc.)
         ↓
@@ -263,7 +265,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 
 | Campo          | Tipo    | Descrição                          |
 |---------------|---------|-------------------------------------|
-| `JSON_ENVIADO` | abap.sstring(5000) | Payload JSON completo enviado ao DRC (máx. 5000 chars)|
+| `JSON_ENVIADO` | ZMDFE_JSON | —  | Payload JSON completo enviado ao DRC|
 
 ---
 

@@ -12,16 +12,17 @@
 1. [Visão Geral](#1-visão-geral)
 2. [Arquitetura da Solução](#2-arquitetura-da-solução)
 3. [Arquivos do Repositório](#3-arquivos-do-repositório)
-4. [Tabelas DDIC — Guia de Criação](#4-tabelas-ddic--guia-de-criação)
-5. [Classe ZCL_MDFE_MONITOR](#5-classe-zcl_mdfe_monitor)
-6. [Report ZMDFE — Module Pool](#6-report-zmdfe--module-pool)
-7. [Guia de Implementação no ADT](#7-guia-de-implementação-no-adt)
-8. [GUI Status — Menu Painter](#8-gui-status--menu-painter)
-9. [Configurações SPRO](#9-configurações-spro)
-10. [Regras Críticas do JSON](#10-regras-críticas-do-json)
-11. [Ciclo de Vida do MDF-e](#11-ciclo-de-vida-do-mdf-e)
-12. [Stubs — O Que Ainda Falta Ativar](#12-stubs--o-que-ainda-falta-ativar)
-13. [Diferenças EF V1 vs EF V2](#13-diferenças-ef-v1-vs-ef-v2)
+4. [Data Elements Z — Pré-requisito](#4-data-elements-z--pré-requisito)
+5. [Tabelas DDIC — Guia de Criação](#5-tabelas-ddic--guia-de-criação)
+6. [Classe ZCL_MDFE_MONITOR](#6-classe-zcl_mdfe_monitor)
+7. [Report ZMDFE — Module Pool](#7-report-zmdfe--module-pool)
+8. [Guia de Implementação no ADT](#8-guia-de-implementação-no-adt)
+9. [GUI Status — Menu Painter](#9-gui-status--menu-painter)
+10. [Configurações SPRO](#10-configurações-spro)
+11. [Regras Críticas do JSON](#11-regras-críticas-do-json)
+12. [Ciclo de Vida do MDF-e](#12-ciclo-de-vida-do-mdf-e)
+13. [Stubs — O Que Ainda Falta Ativar](#13-stubs--o-que-ainda-falta-ativar)
+14. [Diferenças EF V1 vs EF V2](#14-diferenças-ef-v1-vs-ef-v2)
 
 ---
 
@@ -102,7 +103,64 @@ J_1BBRANCH → ADRC → UF/CEP/Município origem ─────┤──→ ZCL
 
 ---
 
-## 4. Tabelas DDIC — Guia de Criação
+## 4. Data Elements Z — Pré-requisito
+
+> **ATENÇÃO — Execute este passo ANTES de criar qualquer tabela.**  
+> As tabelas `ZMDFE_STATUS` e a classe `ZCL_MDFE_MONITOR` referenciam data elements Z customizados.  
+> Se os DEs não existirem no sistema, a **ativação das tabelas e da classe falhará** com erro de tipo desconhecido.
+
+### Por que data elements Z e não `abap.char(N)` diretamente?
+
+No ABAP e no DDIC, `TYPE c LENGTH N` / `abap.char(N)` é um tipo **genérico sem semântica**. Para campos que não existem em nenhuma tabela SAP padrão (calculados, de display ou específicos do processo), o correto é criar um **data element Z** com:
+- Tipo base adequado e comprimento exato
+- Label de campo (Short/Medium/Long) para aparecer corretamente nas telas e no ALV
+- Possibilidade de adicionar ajuda de pesquisa depois
+
+### Como criar um Data Element no SE11 (DDIC)
+
+1. Executar transação **SE11**
+2. Selecionar **Data type** → digitar o nome do DE → **Create**
+3. Na tela seguinte selecionar **Data element** → Enter
+4. Preencher:
+   - **Short description**: conforme tabela abaixo
+   - Aba **Data Type**: selecionar **Elementary Type**
+     - **Predefined ABAP type**: `CHAR`
+     - **Length**: conforme tabela
+   - Aba **Field label**: preencher Short, Medium, Long, Heading
+5. **Salvar** → **Activate (Ctrl+F3)**
+
+> **Alternativa ADT (Eclipse):** botão direito no pacote → New → Other ABAP Repository Object → filtrar `Data Element` → preencher nome e descrição → Next → Finish → editar os campos conforme acima.
+
+### Data Elements a Criar
+
+| Nome DE          | Tipo Base | Comprimento | Descrição (Short Description SE11)         | Label sugerido (Medium)         |
+|-----------------|-----------|-------------|--------------------------------------------|---------------------------------|
+| `ZMDFE_MOTORISTA`| CHAR      | 20          | Monitor MDF-e: Nome do Motorista           | Nome Motorista                  |
+| `ZMDFE_MUNCD`    | CHAR      | 7           | Monitor MDF-e: Cód. IBGE do Município (7 dígitos) | Cód. Município IBGE      |
+| `ZMDFE_CEP`      | CHAR      | 8           | Monitor MDF-e: CEP sem traço (8 dígitos)  | CEP                             |
+| `ZMDFE_COMPROV`  | CHAR      | 20          | Monitor MDF-e: Nº Comprovante Pedágio     | Comprovante Pedágio             |
+| `ZMDFE_SEGURAD`  | CHAR      | 60          | Monitor MDF-e: Nome da Seguradora         | Seguradora                      |
+| `ZMDFE_APOLICE`  | CHAR      | 30          | Monitor MDF-e: Número da Apólice          | Nº Apólice                      |
+
+> **`SYSUUID_C32`** (usado para o campo `UUID_DRC`) é um data element **SAP padrão** — já existe no sistema, não precisa criar.
+
+### Ordem de criação obrigatória
+
+```
+[1] Criar os 6 DEs Z acima no SE11
+        ↓
+[2] Criar tabela ZMDFE_STATUS (referencia ZMDFE_MOTORISTA, ZMDFE_MUNCD, ZMDFE_CEP, etc.)
+        ↓
+[3] Criar tabela ZMDFE_NFKEYS (referencia ZMDFE_STATUS via chave estrangeira)
+        ↓
+[4] Criar classe ZCL_MDFE_MONITOR (referencia os DEs nos tipos locais)
+        ↓
+[5] Criar report ZMDFE, telas, GUI-Status e transação
+```
+
+---
+
+## 5. Tabelas DDIC — Guia de Criação
 
 ### Como criar tabelas DDIC via ADT (DDL Source)
 
@@ -117,7 +175,7 @@ No ADT (Eclipse com plugins SAP), tabelas transparentes podem ser criadas como *
 
 ---
 
-### 4.1 ZMDFE_STATUS
+### 5.1 ZMDFE_STATUS
 
 **Arquivo:** `ZMDFE_STATUS.txt`  
 **Descrição:** Tabela principal de controle do MDF-e. Um registro por MDF-e. Armazena status, dados de autorização, dados do motorista/veículo, endereços, pedágio, seguro e o JSON enviado para auditoria.
@@ -144,7 +202,7 @@ No ADT (Eclipse com plugins SAP), tabelas transparentes podem ser criadas como *
 | `DOC_STATUS` | CHAR1         | 1           | Status: 1=Pend 2=Env 3=Aut 4=Erro 5=Enc 6=Canc         |
 | `ACCESS_KEY` | J_1BCHVNFE    | 44          | Chave de acesso MDF-e (44 dígitos)                      |
 | `NPROT`      | J_1BNFEAUTHCODE | 15          | Protocolo de autorização SEFAZ (J_1BNFDOC-AUTHCOD)         |
-| `UUID_DRC`   | abap.char(32)   | 32          | UUID da comunicação com o DRC                           |
+| `UUID_DRC`   | SYSUUID_C32     | 32          | UUID da comunicação com o DRC (DE SAP padrão)           |
 
 #### Campos Administrativos
 
@@ -162,11 +220,11 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 | Campo       | Tipo  | Comprimento | Origem                                     |
 |------------|-------|-------------|--------------------------------------------|
 | `UF_ORIG`   | REGIO | 3           | `J_1BBRANCH → ADRC-REGION`                 |
-| `MUN_ORIG`  | abap.char(7) | 7           | `ADRC-TAXJURCODE` últimos 7 dígitos         |
+| `MUN_ORIG`  | ZMDFE_MUNCD  | 7           | `ADRC-TAXJURCODE` últimos 7 dígitos (cód. IBGE) |
 | `UF_DEST`   | REGIO | 3           | `J_1BNFDOC-REGIO`                          |
-| `MUN_DEST`  | abap.char(7) | 7           | `J_1BNFDOC-TXJCD` últimos 7 dígitos         |
-| `CEP_CARGA` | abap.char(8) | 8           | `ADRC-POST_CODE1` (8 dígitos, sem traço)   |
-| `CEP_DESCAR`| abap.char(8) | 8           | `J_1BNFDOC-PSTLZ` (8 dígitos, sem traço)  |
+| `MUN_DEST`  | ZMDFE_MUNCD  | 7           | `J_1BNFDOC-TXJCD` últimos 7 dígitos (cód. IBGE) |
+| `CEP_CARGA` | ZMDFE_CEP    | 8           | `ADRC-POST_CODE1` (8 dígitos, sem traço)   |
+| `CEP_DESCAR`| ZMDFE_CEP    | 8           | `J_1BNFDOC-PSTLZ` (8 dígitos, sem traço)  |
 
 #### Dados de Carga
 
@@ -180,7 +238,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 
 | Campo      | Tipo  | Comprimento | Descrição                         |
 |-----------|-------|-------------|-----------------------------------|
-| `MOTORISTA`| abap.char(20)          | 20          | Nome do motorista (entrada manual)|
+| `MOTORISTA`| ZMDFE_MOTORISTA        | 20          | Nome do motorista (entrada manual)|
 | `CPF_MOTOR`| J_1BCPF                | 11          | CPF do motorista (J_1BNFDOC-CPF, NUMC11)|
 | `PLACA`    | J_1B_VEHICLE_LIC_PL    | 7           | Placa do veículo (J_1BNFDOC-PLACA, CHAR7)|
 | `RNTRC`    | J_1B_NAT_CARGO_CARRIER | 20          | RNTRC do transportador (J_1BNFDOC-RNTC)|
@@ -191,14 +249,14 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 |---------------|-------|-------------|---------------------------------|
 | `PED_CNPJ_RESP`| J_1BCGC | 14          | CNPJ do responsável pelo pedágio (J_1BNFDOC-CGC, NUMC14)|
 | `PED_CNPJ_FORN`| J_1BCGC | 14          | CNPJ do fornecedor do pedágio (J_1BNFDOC-CGC, NUMC14)  |
-| `PED_COMPROV`  | abap.char(20)| 20          | Nº do comprovante de pedágio    |
+| `PED_COMPROV`  | ZMDFE_COMPROV| 20          | Nº do comprovante de pedágio    |
 
 #### Seguro (V2)
 
 | Campo       | Tipo  | Comprimento | Descrição              |
 |------------|-------|-------------|------------------------|
-| `SEGURADORA`| abap.char(60)| 60          | Nome da seguradora     |
-| `APOLICE`   | abap.char(30)| 30          | Número da apólice      |
+| `SEGURADORA`| ZMDFE_SEGURAD| 60          | Nome da seguradora     |
+| `APOLICE`   | ZMDFE_APOLICE| 30          | Número da apólice      |
 
 #### Auditoria
 
@@ -208,7 +266,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 
 ---
 
-### 4.2 ZMDFE_NFKEYS
+### 5.2 ZMDFE_NFKEYS
 
 **Arquivo:** `ZMDFE_NFKEYS.txt`  
 **Descrição:** Tabela filha de `ZMDFE_STATUS`. Armazena as chaves de acesso NF-e (44 dígitos) vinculadas a cada MDF-e. Relacionamento 1 MDF-e : N NF-es.
@@ -238,7 +296,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 
 ---
 
-## 5. Classe ZCL_MDFE_MONITOR
+## 6. Classe ZCL_MDFE_MONITOR
 
 **Arquivo:** `ZCL_MDFE_MONITOR.txt`  
 Arquivo único com `CLASS DEFINITION` + `CLASS IMPLEMENTATION`. Cole tudo de uma vez no ADT.
@@ -294,7 +352,7 @@ Arquivo único com `CLASS DEFINITION` + `CLASS IMPLEMENTATION`. Cole tudo de uma
 
 ---
 
-## 6. Report ZMDFE — Module Pool
+## 7. Report ZMDFE — Module Pool
 
 **Arquivo:** `ZMDFE.txt`  
 Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma transação `ZMDFE`.
@@ -357,9 +415,9 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 
 ---
 
-## 7. Guia de Implementação no ADT
+## 8. Guia de Implementação no ADT
 
-### 7.1 Pré-requisitos
+### 8.1 Pré-requisitos
 
 - ADT (Eclipse) instalado com plugins **ABAP Development Tools** para S/4HANA
 - Pacote Z criado (ex: `ZMDFE_PKG` ou conforme padrão da empresa)
@@ -369,11 +427,36 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 - Classe `CL_NFE_CLOUD_MDFE_PROCESSOR` existente e ativa no sistema
 - Tabelas `J_1BNFDOC`, `J_1BNFE_ACTIVE`, `J_1BBRANCH`, `ADRC`, `LOGBR_NF_TEXTS` existentes
 
-### 7.2 Passo a Passo
+### 8.2 Passo a Passo
 
 ---
 
-#### Passo 1 — Criar a tabela ZMDFE_STATUS
+#### Passo 1 — Criar os Data Elements Z (SE11)
+
+> **Obrigatório antes de qualquer outro passo.** As tabelas e a classe não ativam sem esses DEs.
+
+1. Executar transação **SE11** no SAP GUI
+2. Selecionar opção **Data type** → digitar o nome do primeiro DE → **Create**
+3. Selecionar **Data element** → Enter
+4. Preencher conforme a tabela abaixo → **Salvar** → **Activate (Ctrl+F3)**
+5. Repetir para cada DE da lista
+
+| Nome DE          | Aba Data Type           | Comprimento | Aba Field Label — Medium |
+|-----------------|-------------------------|-------------|---------------------------|
+| `ZMDFE_MOTORISTA`| CHAR (Predefined ABAP)  | 20          | Nome Motorista            |
+| `ZMDFE_MUNCD`    | CHAR (Predefined ABAP)  | 7           | Cód. Município IBGE       |
+| `ZMDFE_CEP`      | CHAR (Predefined ABAP)  | 8           | CEP                       |
+| `ZMDFE_COMPROV`  | CHAR (Predefined ABAP)  | 20          | Comprovante Pedágio       |
+| `ZMDFE_SEGURAD`  | CHAR (Predefined ABAP)  | 60          | Seguradora                |
+| `ZMDFE_APOLICE`  | CHAR (Predefined ABAP)  | 30          | Nº Apólice                |
+
+> **`SYSUUID_C32`** — DE SAP padrão para UUID. Não criar — já existe no sistema.
+
+> **ADT (alternativa):** botão direito no pacote → New → Other ABAP Repository Object → `Data Element` → preencher nome → Next → Finish → editar tipo e labels → Activate.
+
+---
+
+#### Passo 2 — Criar a tabela ZMDFE_STATUS
 
 1. ADT → botão direito no pacote → **New → Other ABAP Repository Object**
 2. Filtrar `Database Table` → **Next**
@@ -385,9 +468,9 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 
 ---
 
-#### Passo 2 — Criar a tabela ZMDFE_NFKEYS
+#### Passo 3 — Criar a tabela ZMDFE_NFKEYS
 
-1. Repetir os passos 1–7 do Passo 1, mas com:
+1. Repetir os passos 1–7 do Passo 2, mas com:
    - Nome: `ZMDFE_NFKEYS`
    - Descrição: `Monitor MDF-e - Chaves de Acesso NF-e`
    - Conteúdo: arquivo `ZMDFE_NFKEYS.txt`
@@ -396,7 +479,7 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 
 ---
 
-#### Passo 3 — Criar a classe ZCL_MDFE_MONITOR
+#### Passo 4 — Criar a classe ZCL_MDFE_MONITOR
 
 1. ADT → botão direito no pacote → **New → ABAP Class**
 2. Nome: `ZCL_MDFE_MONITOR` | Descrição: `Monitor MDF-e - Lógica de Negócio` → **Next → Finish**
@@ -410,7 +493,7 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 
 ---
 
-#### Passo 4 — Criar o Report ZMDFE (Module Pool)
+#### Passo 5 — Criar o Report ZMDFE (Module Pool)
 
 1. ADT → botão direito no pacote → **New → Other ABAP Repository Object**
 2. Filtrar `Program` → Next
@@ -423,7 +506,7 @@ Tipo: **PROG/P** (Module Pool). Não executa diretamente — precisa de uma tran
 
 ---
 
-#### Passo 5 — Criar as Telas (Screen Painter)
+#### Passo 6 — Criar as Telas (Screen Painter)
 
 O Screen Painter no ADT fica na aba **Screens** dentro do report.
 
@@ -445,7 +528,7 @@ O Screen Painter no ADT fica na aba **Screens** dentro do report.
 
 ---
 
-#### Passo 6 — Criar GUI-Status (Menu Painter SE41)
+#### Passo 7 — Criar GUI-Status (Menu Painter SE41)
 
 > **Alternativa:** No ADT, abrir o report → aba **GUI Status** → botão **+**
 
@@ -480,7 +563,7 @@ O Screen Painter no ADT fica na aba **Screens** dentro do report.
 
 ---
 
-#### Passo 7 — Criar a Transação ZMDFE (SE93)
+#### Passo 8 — Criar a Transação ZMDFE (SE93)
 
 1. Executar **SE93** no SAP
 2. Nome: `ZMDFE` → **Create**
@@ -493,7 +576,7 @@ O Screen Painter no ADT fica na aba **Screens** dentro do report.
 
 ---
 
-#### Passo 8 — Criar os Textos de Seleção (Text Elements)
+#### Passo 9 — Criar os Textos de Seleção (Text Elements)
 
 No report `ZMDFE`, acessar **Goto → Text elements → Selection texts** e criar:
 
@@ -507,7 +590,7 @@ No report `ZMDFE`, acessar **Goto → Text elements → Selection texts** e cria
 
 ---
 
-#### Passo 9 — Ativação Final e Teste
+#### Passo 10 — Ativação Final e Teste
 
 1. Ativar todos os objetos (F3 → Activate all)
 2. Executar a transação `ZMDFE`
@@ -518,7 +601,7 @@ No report `ZMDFE`, acessar **Goto → Text elements → Selection texts** e cria
 
 ---
 
-## 8. GUI Status — Menu Painter
+## 9. GUI Status — Menu Painter
 
 ### Resumo de todos os OK-codes
 
@@ -540,7 +623,7 @@ No report `ZMDFE`, acessar **Goto → Text elements → Selection texts** e cria
 
 ---
 
-## 9. Configurações SPRO
+## 10. Configurações SPRO
 
 Execute `SPRO` → SAP Reference IMG e configure:
 
@@ -556,7 +639,7 @@ Execute `SPRO` → SAP Reference IMG e configure:
 
 ---
 
-## 10. Regras Críticas do JSON
+## 11. Regras Críticas do JSON
 
 O método `BUILD_JSON_PAYLOAD` monta o payload conforme a **EF V2 Seção 5**. As regras abaixo são críticas — erro em qualquer uma causa rejeição pela SEFAZ.
 
@@ -596,7 +679,7 @@ O método `BUILD_JSON_PAYLOAD` monta o payload conforme a **EF V2 Seção 5**. A
 
 ---
 
-## 11. Ciclo de Vida do MDF-e
+## 12. Ciclo de Vida do MDF-e
 
 ```
 [CRIADO]
@@ -631,7 +714,7 @@ O método `BUILD_JSON_PAYLOAD` monta o payload conforme a **EF V2 Seção 5**. A
 
 ---
 
-## 12. Stubs — O Que Ainda Falta Ativar
+## 13. Stubs — O Que Ainda Falta Ativar
 
 Os itens abaixo estão com código **stub comentado** — precisam ser confirmados no sistema real antes de ativar:
 
@@ -650,7 +733,7 @@ Os itens abaixo estão com código **stub comentado** — precisam ser confirmad
 
 ---
 
-## 13. Diferenças EF V1 vs EF V2
+## 14. Diferenças EF V1 vs EF V2
 
 | Aspecto                          | EF V1                                      | EF V2 (prioridade aplicada)                              |
 |---------------------------------|--------------------------------------------|-----------------------------------------------------------|

@@ -22,7 +22,7 @@ define table zmdfe_status {
   doc_status        : char1;
   access_key        : j_1bchvnfe;            " Chave de Acesso MDF-e (44 dígitos)
   nprot             : j_1bnfeauthcode;        " Protocolo de Autorização (J_1BNFDOC-AUTHCOD, CHAR15)
-  uuid_drc          : abap.char(32);          " UUID da comunicação DRC
+  uuid_drc          : sysuuid_c32;            " UUID da comunicação DRC
 
   " ----------------------------------------------------------------
   " Campos administrativos
@@ -36,11 +36,11 @@ define table zmdfe_status {
   " Informações geográficas – mapeadas na Tela 03
   " ----------------------------------------------------------------
   uf_orig           : regio;                 " UF Origem  (de J_1BBRANCH via ADRC-REGION)
-  mun_orig          : abap.char(7);           " Município Origem (últimos 7 dígitos de ADRC-TAXJURCODE)
+  mun_orig          : zmdfe_muncd;            " Município Origem (cód. IBGE 7 dígitos, de ADRC-TAXJURCODE)
   uf_dest           : regio;                 " UF Destino (de J_1BNFDOC-REGIO)
-  mun_dest          : abap.char(7);           " Município Destino (últimos 7 dígitos de J_1BNFDOC-TXJCD)
-  cep_carga         : abap.char(8);           " CEP Carga  (ADRC-POST_CODE1 da filial)
-  cep_descar        : abap.char(8);           " CEP Descarga (J_1BNFDOC-PSTLZ)
+  mun_dest          : zmdfe_muncd;            " Município Destino (cód. IBGE 7 dígitos, de J_1BNFDOC-TXJCD)
+  cep_carga         : zmdfe_cep;              " CEP Carga  (ADRC-POST_CODE1 da filial, 8 dígitos s/ traço)
+  cep_descar        : zmdfe_cep;              " CEP Descarga (J_1BNFDOC-PSTLZ, 8 dígitos s/ traço)
 
   " ----------------------------------------------------------------
   " Dados de carga
@@ -52,7 +52,7 @@ define table zmdfe_status {
   " ----------------------------------------------------------------
   " Dados do motorista e veículo – V2: gravados na tabela Z
   " ----------------------------------------------------------------
-  motorista         : abap.char(20);          " Nome do Motorista (manual)
+  motorista         : zmdfe_motorista;        " Nome do Motorista (entrada manual)
   cpf_motor         : j_1bcpf;               " CPF do Motorista (J_1BNFDOC-CPF, NUMC11)
   placa             : j_1b_vehicle_lic_pl;    " Placa do Veículo (J_1BNFDOC-PLACA, CHAR7)
   rntrc             : j_1b_nat_cargo_carrier; " RNTRC do Transportador (J_1BNFDOC-RNTC, CHAR20)
@@ -62,13 +62,13 @@ define table zmdfe_status {
   " ----------------------------------------------------------------
   ped_cnpj_resp     : j_1bcgc;               " CNPJ Responsável pelo Pedágio (J_1BNFDOC-CGC, NUMC14)
   ped_cnpj_forn     : j_1bcgc;               " CNPJ Fornecedor do Pedágio (J_1BNFDOC-CGC, NUMC14)
-  ped_comprov       : abap.char(20);          " N. Comprovante do Pedágio
+  ped_comprov       : zmdfe_comprov;          " N. Comprovante do Pedágio
 
   " ----------------------------------------------------------------
   " Responsável pelo Seguro – V2
   " ----------------------------------------------------------------
-  seguradora        : abap.char(60);          " Nome da Seguradora
-  apolice           : abap.char(30);          " Número da Apólice
+  seguradora        : zmdfe_segurad;          " Nome da Seguradora
+  apolice           : zmdfe_apolice;          " Número da Apólice
 
   " ----------------------------------------------------------------
   " JSON enviado ao DRC (para auditoria)

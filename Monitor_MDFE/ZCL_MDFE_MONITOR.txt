@@ -56,13 +56,13 @@
         uf_orig      TYPE regio,
         uf_dest      TYPE regio,
         placa        TYPE j_1bnfdoc-placa,
-        motorista    TYPE c LENGTH 20,
+        motorista    TYPE zmdfe_motorista,
         access_key   TYPE j_1bchvnfe,
         nprot        TYPE j_1bnfdoc-authcod,
         brgew        TYPE j_1bnfdoc-brgew,
         nftot        TYPE j_1bnfdoc-nftot,
         last_msg     TYPE bapi_msg,
-        uuid_drc     TYPE c LENGTH 32,
+        uuid_drc     TYPE sysuuid_c32,
         ernam        TYPE ernam,
       END OF ty_monitor,
       tt_monitor TYPE STANDARD TABLE OF ty_monitor WITH DEFAULT KEY.
@@ -281,8 +281,8 @@
         iv_branch   TYPE j_1bbranc_
       EXPORTING
         ev_uf_orig  TYPE regio
-        ev_mun_orig TYPE c LENGTH 7
-        ev_cep      TYPE c LENGTH 8.
+        ev_mun_orig TYPE zmdfe_muncd
+        ev_cep      TYPE zmdfe_cep.
 
     "--------------------------------------------------------------------
     " HELPER INTERNO – Busca dados geograficos do destino (J_1BNFDOC)
@@ -292,8 +292,8 @@
         iv_docnum   TYPE j_1bdocnum
       EXPORTING
         ev_uf_dest  TYPE regio
-        ev_mun_dest TYPE c LENGTH 7
-        ev_cep      TYPE c LENGTH 8.
+        ev_mun_dest TYPE zmdfe_muncd
+        ev_cep      TYPE zmdfe_cep.
 
     "--------------------------------------------------------------------
     " HELPER INTERNO – Grava texto complementar em LOGBR_NF_TEXTS tipo 'C'

@@ -1,7 +1,6 @@
 ﻿@EndUserText.label : 'Monitor MDF-e - Chaves de Acesso NF-e vinculadas'
 @AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
 @AbapCatalog.deliveryClass : #A
-@AbapCatalog.tableCategory : #TRANSPARENT
 define table zmdfe_nfkeys {
 
   key mandt         : mandt not null;

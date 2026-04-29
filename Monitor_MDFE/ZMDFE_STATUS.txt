@@ -1,7 +1,6 @@
 ﻿@EndUserText.label : 'Monitor MDF-e - Tabela de Status e Controle'
 @AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
 @AbapCatalog.deliveryClass : #A
-@AbapCatalog.tableCategory : #TRANSPARENT
 define table zmdfe_status {
 
   key mandt         : mandt not null;

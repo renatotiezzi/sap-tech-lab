@@ -134,7 +134,7 @@ No ADT (Eclipse com plugins SAP), tabelas transparentes podem ser criadas como *
 | Campo    | Tipo DDIC  | Comprimento | Descrição         |
 |---------|------------|-------------|-------------------|
 | `BUKRS`  | BUKRS      | 4           | Empresa           |
-| `BRANCH` | J_1BBRANCH | 4           | Local de negócio  |
+| `BRANCH` | J_1BBRANC_ | 4           | Local de negócio  |
 | `SERIES` | J_1BSERIES | 3           | Série do MDF-e    |
 
 #### Status e Controle DRC
@@ -143,15 +143,15 @@ No ADT (Eclipse com plugins SAP), tabelas transparentes podem ser criadas como *
 |-------------|---------------|-------------|---------------------------------------------------------|
 | `DOC_STATUS` | CHAR1         | 1           | Status: 1=Pend 2=Env 3=Aut 4=Erro 5=Enc 6=Canc         |
 | `ACCESS_KEY` | J_1BCHVNFE    | 44          | Chave de acesso MDF-e (44 dígitos)                      |
-| `NPROT`      | J_1B_AUTHCODE | —           | Protocolo de autorização SEFAZ                          |
-| `UUID_DRC`   | SYSUUID_C32   | 32          | UUID da comunicação com o DRC                           |
+| `NPROT`      | J_1BNFEAUTHCODE | 15          | Protocolo de autorização SEFAZ (J_1BNFDOC-AUTHCOD)         |
+| `UUID_DRC`   | abap.char(32)   | 32          | UUID da comunicação com o DRC                           |
 
 #### Campos Administrativos
 
 | Campo      | Tipo DDIC | Descrição                        |
 |-----------|-----------|----------------------------------|
-| `CREDAT`   | ERDAT     | Data de criação (SY-DATUM)       |
-| `CREZET`   | ERZET     | Hora de criação (SY-UZEIT)       |
+| `CREDAT`   | J_1BCREDAT  | Data de criação (J_1BNFDOC-CREDAT)   |
+| `CREZET`   | J_1BCRETIM  | Hora de criação (J_1BNFDOC-CRETIM)   |
 | `ERNAM`    | ERNAM     | Usuário criador (SY-UNAME)       |
 | `LAST_MSG` | BAPI_MSG  | Última mensagem de retorno SEFAZ |
 
@@ -162,49 +162,49 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 | Campo       | Tipo  | Comprimento | Origem                                     |
 |------------|-------|-------------|--------------------------------------------|
 | `UF_ORIG`   | REGIO | 3           | `J_1BBRANCH → ADRC-REGION`                 |
-| `MUN_ORIG`  | CHAR7 | 7           | `ADRC-TAXJURCODE` últimos 7 dígitos         |
+| `MUN_ORIG`  | abap.char(7) | 7           | `ADRC-TAXJURCODE` últimos 7 dígitos         |
 | `UF_DEST`   | REGIO | 3           | `J_1BNFDOC-REGIO`                          |
-| `MUN_DEST`  | CHAR7 | 7           | `J_1BNFDOC-TXJCD` últimos 7 dígitos         |
-| `CEP_CARGA` | CHAR8 | 8           | `ADRC-POST_CODE1` (8 dígitos, sem traço)   |
-| `CEP_DESCAR`| CHAR8 | 8           | `J_1BNFDOC-PSTLZ` (8 dígitos, sem traço)  |
+| `MUN_DEST`  | abap.char(7) | 7           | `J_1BNFDOC-TXJCD` últimos 7 dígitos         |
+| `CEP_CARGA` | abap.char(8) | 8           | `ADRC-POST_CODE1` (8 dígitos, sem traço)   |
+| `CEP_DESCAR`| abap.char(8) | 8           | `J_1BNFDOC-PSTLZ` (8 dígitos, sem traço)  |
 
 #### Dados de Carga
 
 | Campo   | Tipo  | Descrição                                  |
 |--------|-------|--------------------------------------------|
-| `BRGEW` | BRGEW | Peso bruto total (soma das NF-es)          |
-| `GEWEI` | GEWEI | Unidade de peso (ex: KG)                   |
-| `NFTOT` | ABGRS | Valor total da carga (soma das NF-es)      |
+| `BRGEW` | BRGEW_15 | Peso bruto total (J_1BNFDOC-BRGEW, QUAN 15,3)          |
+| `GEWEI` | GEWEI    | Unidade de peso (ex: KG)                               |
+| `NFTOT` | J_1BNFTOT| Valor total da carga (J_1BNFDOC-NFTOT, CURR 15,2)     |
 
 #### Dados do Motorista e Veículo
 
 | Campo      | Tipo  | Comprimento | Descrição                         |
 |-----------|-------|-------------|-----------------------------------|
-| `MOTORISTA`| CHAR20| 20          | Nome do motorista (entrada manual)|
-| `CPF_MOTOR`| CHAR11| 11          | CPF do motorista (somente números)|
-| `PLACA`    | CHAR7 | 7           | Placa do veículo (sem traço)      |
-| `RNTRC`    | CHAR20| 20          | RNTRC do transportador            |
+| `MOTORISTA`| abap.char(20)          | 20          | Nome do motorista (entrada manual)|
+| `CPF_MOTOR`| J_1BCPF                | 11          | CPF do motorista (J_1BNFDOC-CPF, NUMC11)|
+| `PLACA`    | J_1B_VEHICLE_LIC_PL    | 7           | Placa do veículo (J_1BNFDOC-PLACA, CHAR7)|
+| `RNTRC`    | J_1B_NAT_CARGO_CARRIER | 20          | RNTRC do transportador (J_1BNFDOC-RNTC)|
 
 #### Vale Pedágio (V2)
 
 | Campo          | Tipo  | Comprimento | Descrição                       |
 |---------------|-------|-------------|---------------------------------|
-| `PED_CNPJ_RESP`| STCD1 | 14          | CNPJ do responsável pelo pedágio|
-| `PED_CNPJ_FORN`| STCD1 | 14          | CNPJ do fornecedor do pedágio   |
-| `PED_COMPROV`  | CHAR20| 20          | Nº do comprovante de pedágio    |
+| `PED_CNPJ_RESP`| J_1BCGC | 14          | CNPJ do responsável pelo pedágio (J_1BNFDOC-CGC, NUMC14)|
+| `PED_CNPJ_FORN`| J_1BCGC | 14          | CNPJ do fornecedor do pedágio (J_1BNFDOC-CGC, NUMC14)  |
+| `PED_COMPROV`  | abap.char(20)| 20          | Nº do comprovante de pedágio    |
 
 #### Seguro (V2)
 
 | Campo       | Tipo  | Comprimento | Descrição              |
 |------------|-------|-------------|------------------------|
-| `SEGURADORA`| CHAR60| 60          | Nome da seguradora     |
-| `APOLICE`   | CHAR30| 30          | Número da apólice      |
+| `SEGURADORA`| abap.char(60)| 60          | Nome da seguradora     |
+| `APOLICE`   | abap.char(30)| 30          | Número da apólice      |
 
 #### Auditoria
 
 | Campo          | Tipo    | Descrição                          |
 |---------------|---------|-------------------------------------|
-| `JSON_ENVIADO` | SSTRING | Payload JSON completo enviado ao DRC|
+| `JSON_ENVIADO` | abap.sstring(5000) | Payload JSON completo enviado ao DRC (máx. 5000 chars)|
 
 ---
 
@@ -219,7 +219,7 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 |--------------|------------|-------------|------------------------------------------|
 | `MANDT`       | MANDT      | 3           | Mandante                                 |
 | `MDFE_NUMBER` | J_1BDOCNUM | 9           | FK → `ZMDFE_STATUS-MDFE_NUMBER`          |
-| `ITEM_NUM`    | NUMC3      | 3           | Sequencial do item: 001, 002, 003…       |
+| `ITEM_NUM`    | abap.numc(3) | 3           | Sequencial do item: 001, 002, 003…       |
 
 #### Campos de Dados
 
@@ -227,9 +227,9 @@ Derivados automaticamente pelo método `GET_BRANCH_GEO` (filial) e `GET_DEST_GEO
 |-----------|------------|-------------|--------------------------------------------------------|
 | `ACCESSKEY`| J_1BCHVNFE | 44          | Chave de acesso NF-e (44 dígitos, somente números)    |
 | `BUKRS`    | BUKRS      | 4           | Empresa                                                |
-| `BRANCH`   | J_1BBRANCH | 4           | Local de negócio                                       |
+| `BRANCH`   | J_1BBRANC_ | 4           | Local de negócio                                       |
 | `DOCNUM`   | J_1BDOCNUM | 9           | Nº documento NF-e (`J_1BNFDOC-DOCNUM`) — chave de vínculo |
-| `NFENUM`   | CHAR9      | 9           | Número da NF-e                                         |
+| `NFENUM`   | J_1BNFNUM9 | 9           | Número da NF-e (J_1BNFDOC-NFENUM, DE: J_1BNFNUM9, CHAR9) |
 | `SERIES`   | J_1BSERIES | 3           | Série da NF-e                                          |
 
 > **Como a chave de 44 dígitos é montada:**  

@@ -12,7 +12,7 @@ define table zmdfe_status {
   " Identificação do documento
   " ----------------------------------------------------------------
   bukrs             : bukrs;                 " Empresa
-  branch            : j_1bbranch;            " Local de negócio
+  branch            : j_1bbranc_;            " Local de negócio (DE: J_1BBRANC_, CHAR4)
   series            : j_1bseries;            " Série MDF-e (CHAR3)
 
   " ----------------------------------------------------------------
@@ -21,14 +21,14 @@ define table zmdfe_status {
   " ----------------------------------------------------------------
   doc_status        : char1;
   access_key        : j_1bchvnfe;            " Chave de Acesso MDF-e (44 dígitos)
-  nprot             : j_1b_authcode;         " Protocolo de Autorização
-  uuid_drc          : sysuuid_c32;           " UUID da comunicação DRC
+  nprot             : j_1bnfeauthcode;        " Protocolo de Autorização (J_1BNFDOC-AUTHCOD, CHAR15)
+  uuid_drc          : abap.char(32);          " UUID da comunicação DRC
 
   " ----------------------------------------------------------------
   " Campos administrativos
   " ----------------------------------------------------------------
-  credat            : erdat;                 " Data de criação (SY-DATUM)
-  crezet            : erzet;                 " Hora de criação (SY-UZEIT)
+  credat            : j_1bcredat;             " Data de criação (J_1BNFDOC-CREDAT, DATS8)
+  crezet            : j_1bcretim;             " Hora de criação (J_1BNFDOC-CRETIM, TIMS6)
   ernam             : ernam;                 " Criado por (SY-UNAME)
   last_msg          : bapi_msg;              " Última mensagem de retorno SEFAZ
 
@@ -36,43 +36,43 @@ define table zmdfe_status {
   " Informações geográficas – mapeadas na Tela 03
   " ----------------------------------------------------------------
   uf_orig           : regio;                 " UF Origem  (de J_1BBRANCH via ADRC-REGION)
-  mun_orig          : char7;                 " Município Origem (últimos 7 dígitos de ADRC-TAXJURCODE)
+  mun_orig          : abap.char(7);           " Município Origem (últimos 7 dígitos de ADRC-TAXJURCODE)
   uf_dest           : regio;                 " UF Destino (de J_1BNFDOC-REGIO)
-  mun_dest          : char7;                 " Município Destino (últimos 7 dígitos de J_1BNFDOC-TXJCD)
-  cep_carga         : char8;                 " CEP Carga  (ADRC-POST_CODE1 da filial)
-  cep_descar        : char8;                 " CEP Descarga (J_1BNFDOC-PSTLZ)
+  mun_dest          : abap.char(7);           " Município Destino (últimos 7 dígitos de J_1BNFDOC-TXJCD)
+  cep_carga         : abap.char(8);           " CEP Carga  (ADRC-POST_CODE1 da filial)
+  cep_descar        : abap.char(8);           " CEP Descarga (J_1BNFDOC-PSTLZ)
 
   " ----------------------------------------------------------------
   " Dados de carga
   " ----------------------------------------------------------------
-  brgew             : brgew;                 " Peso Bruto Total (J_1BNFDOC-BRGEW)
+  brgew             : brgew_15;              " Peso Bruto Total (J_1BNFDOC-BRGEW, QUAN15,3)
   gewei             : gewei;                 " Unidade de Medida de Peso (J_1BNFDOC-GEWEI)
-  nftot             : abgrs;                 " Valor Total da Carga (J_1BNFDOC-NFTOT)
+  nftot             : j_1bnftot;              " Valor Total da Carga (J_1BNFDOC-NFTOT, CURR15,2)
 
   " ----------------------------------------------------------------
   " Dados do motorista e veículo – V2: gravados na tabela Z
   " ----------------------------------------------------------------
-  motorista         : char20;                " Nome do Motorista (manual)
-  cpf_motor         : char11;                " CPF do Motorista (somente números)
-  placa             : char7;                 " Placa do Veículo (sem traço)
-  rntrc             : char20;                " RNTRC do Transportador
+  motorista         : abap.char(20);          " Nome do Motorista (manual)
+  cpf_motor         : j_1bcpf;               " CPF do Motorista (J_1BNFDOC-CPF, NUMC11)
+  placa             : j_1b_vehicle_lic_pl;    " Placa do Veículo (J_1BNFDOC-PLACA, CHAR7)
+  rntrc             : j_1b_nat_cargo_carrier; " RNTRC do Transportador (J_1BNFDOC-RNTC, CHAR20)
 
   " ----------------------------------------------------------------
   " Vale Pedágio – V2
   " ----------------------------------------------------------------
-  ped_cnpj_resp     : stcd1;                 " CNPJ Responsável pelo Pedágio
-  ped_cnpj_forn     : stcd1;                 " CNPJ Fornecedor do Pedágio
-  ped_comprov       : char20;                " N. Comprovante do Pedágio
+  ped_cnpj_resp     : j_1bcgc;               " CNPJ Responsável pelo Pedágio (J_1BNFDOC-CGC, NUMC14)
+  ped_cnpj_forn     : j_1bcgc;               " CNPJ Fornecedor do Pedágio (J_1BNFDOC-CGC, NUMC14)
+  ped_comprov       : abap.char(20);          " N. Comprovante do Pedágio
 
   " ----------------------------------------------------------------
   " Responsável pelo Seguro – V2
   " ----------------------------------------------------------------
-  seguradora        : char60;                " Nome da Seguradora
-  apolice           : char30;                " Número da Apólice
+  seguradora        : abap.char(60);          " Nome da Seguradora
+  apolice           : abap.char(30);          " Número da Apólice
 
   " ----------------------------------------------------------------
   " JSON enviado ao DRC (para auditoria)
   " ----------------------------------------------------------------
-  json_enviado      : sstring;               " Payload JSON enviado
+  json_enviado      : abap.sstring(5000);     " Payload JSON enviado
 
 }

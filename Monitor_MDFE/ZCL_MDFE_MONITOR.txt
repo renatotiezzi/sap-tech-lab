@@ -50,19 +50,19 @@
         mdfe_number  TYPE j_1bdocnum,
         series       TYPE j_1bseries,
         bukrs        TYPE bukrs,
-        branch       TYPE j_1bbranch,
-        credat       TYPE erdat,
-        crezet       TYPE erzet,
+        branch       TYPE j_1bnfdoc-branch,
+        credat       TYPE j_1bnfdoc-credat,
+        crezet       TYPE j_1bnfdoc-cretim,
         uf_orig      TYPE regio,
         uf_dest      TYPE regio,
-        placa        TYPE char7,
-        motorista    TYPE char20,
+        placa        TYPE j_1bnfdoc-placa,
+        motorista    TYPE c LENGTH 20,
         access_key   TYPE j_1bchvnfe,
-        nprot        TYPE j_1b_authcode,
-        brgew        TYPE brgew,
-        nftot        TYPE abgrs,
+        nprot        TYPE j_1bnfdoc-authcod,
+        brgew        TYPE j_1bnfdoc-brgew,
+        nftot        TYPE j_1bnfdoc-nftot,
         last_msg     TYPE bapi_msg,
-        uuid_drc     TYPE sysuuid_c32,
+        uuid_drc     TYPE c LENGTH 32,
         ernam        TYPE ernam,
       END OF ty_monitor,
       tt_monitor TYPE STANDARD TABLE OF ty_monitor WITH DEFAULT KEY.
@@ -72,10 +72,10 @@
     "--------------------------------------------------------------------
     TYPES:
       BEGIN OF ty_nfkey,
-        item_num  TYPE numc3,
+        item_num  TYPE n LENGTH 3,
         accesskey TYPE j_1bchvnfe,
         docnum    TYPE j_1bdocnum,
-        nfenum    TYPE char9,
+        nfenum    TYPE j_1bnfdoc-nfenum,
         series    TYPE j_1bseries,
       END OF ty_nfkey,
       tt_nfkey TYPE STANDARD TABLE OF ty_nfkey WITH DEFAULT KEY.
@@ -87,22 +87,22 @@
       BEGIN OF ty_sel,
         bukrs_low    TYPE bukrs,
         bukrs_high   TYPE bukrs,
-        branch_low   TYPE j_1bbranch,
-        branch_high  TYPE j_1bbranch,
+        branch_low   TYPE j_1bnfdoc-branch,
+        branch_high  TYPE j_1bnfdoc-branch,
         docnum_low   TYPE j_1bdocnum,
         docnum_high  TYPE j_1bdocnum,
-        nfenum_low   TYPE char9,
-        nfenum_high  TYPE char9,
+        nfenum_low   TYPE j_1bnfdoc-nfenum,
+        nfenum_high  TYPE j_1bnfdoc-nfenum,
         series_low   TYPE j_1bseries,
         series_high  TYPE j_1bseries,
-        credat_low   TYPE erdat,
-        credat_high  TYPE erdat,
+        credat_low   TYPE j_1bnfdoc-credat,
+        credat_high  TYPE j_1bnfdoc-credat,
         chave_low    TYPE j_1bchvnfe,
         chave_high   TYPE j_1bchvnfe,
         mdfe_low     TYPE j_1bdocnum,
         mdfe_high    TYPE j_1bdocnum,
-        mcredat_low  TYPE erdat,
-        mcredat_high TYPE erdat,
+        mcredat_low  TYPE j_1bcredat,
+        mcredat_high TYPE j_1bcredat,
         "--- checkboxes de filtro de status ---
         cb_pendente  TYPE abap_bool,
         cb_erro      TYPE abap_bool,
@@ -224,7 +224,7 @@
     METHODS get_nfe_accesskey
       IMPORTING
         iv_bukrs  TYPE bukrs
-        iv_branch TYPE j_1bbranch
+        iv_branch TYPE j_1bbranc_
         iv_docnum TYPE j_1bdocnum
       RETURNING
         VALUE(rv_key) TYPE j_1bchvnfe.
@@ -278,11 +278,11 @@
     METHODS get_branch_geo
       IMPORTING
         iv_bukrs    TYPE bukrs
-        iv_branch   TYPE j_1bbranch
+        iv_branch   TYPE j_1bbranc_
       EXPORTING
         ev_uf_orig  TYPE regio
-        ev_mun_orig TYPE char7
-        ev_cep      TYPE char8.
+        ev_mun_orig TYPE c LENGTH 7
+        ev_cep      TYPE c LENGTH 8.
 
     "--------------------------------------------------------------------
     " HELPER INTERNO – Busca dados geograficos do destino (J_1BNFDOC)
@@ -292,8 +292,8 @@
         iv_docnum   TYPE j_1bdocnum
       EXPORTING
         ev_uf_dest  TYPE regio
-        ev_mun_dest TYPE char7
-        ev_cep      TYPE char8.
+        ev_mun_dest TYPE c LENGTH 7
+        ev_cep      TYPE c LENGTH 8.
 
     "--------------------------------------------------------------------
     " HELPER INTERNO – Grava texto complementar em LOGBR_NF_TEXTS tipo 'C'
@@ -1006,7 +1006,8 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     ls_text-docnum   = iv_docnum.
     ls_text-txttyp   = 'C'.           " C = informacoes complementares
     ls_text-tdformat = '*'.
-    ls_text-tdline   = iv_text(MIN #( strlen( iv_text ) 132 )).
+    DATA(lv_tdlen) = COND i( WHEN strlen( iv_text ) <= 132 THEN strlen( iv_text ) ELSE 132 ).
+    ls_text-tdline   = iv_text(lv_tdlen).
     MODIFY logbr_nf_texts FROM @ls_text.
   ENDMETHOD.
 

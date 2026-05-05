@@ -37,6 +37,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
             EXPORTING
               pedido   = entity-Pedido
               bandeira = entity-Bandeira
+              conteudo = entity-Conteudo
               tipo_doc = entity-TipoDoc
             IMPORTING
               ev_status = DATA(cpi_status)

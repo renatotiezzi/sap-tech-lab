@@ -1,19 +1,21 @@
 *&---------------------------------------------------------------------*
 *& Class ZCL_Q2C_CPI_CALLER
 *&---------------------------------------------------------------------*
-*& Responsável por chamar o CPI para reprocessamento de arquivos
-*& - Lê CabecArq (já em Base64) diretamente da tabela via SELECT SINGLE
-*& - Monta payload JSON e envia via HTTP para o iFlow CPI
-*& - Retorna status da resposta
+*& Responsável por chamar o CPI para reprocessamento de arquivos.
+*&
+*& A assinatura de CALL_CPI_REPROCESS é idêntica à original —
+*& nenhum caller precisa ser alterado.
+*&
+*& Internamente:
+*&   - Faz SELECT SINGLE para ler CabecArq (já Base64) da tabela
+*&   - Usa BUILD_PAYLOAD para montar o JSON
+*&
+*& Para mudar o contrato com o iFlow CPI: edite APENAS BUILD_PAYLOAD
+*& e, se precisar de novos campos, adicione-os em TY_PAYLOAD_FIELDS.
+*& Nenhum outro objeto precisa ser tocado.
 *&
 *& PAYLOAD enviado ao CPI (/http/mgr/reprocessamento):
-*&   {
-*&     "filename" : "<tipo_doc>",    <- campo TipoDoc do registro
-*&     "conteudo" : "<base64>"       <- campo CabecArq (já em Base64)
-*&   }
-*&
-*& Para adicionar/remover campos do payload: editar apenas o método
-*& BUILD_PAYLOAD. A assinatura de call_cpi_reprocess não precisa mudar.
+*&   { "filename": "<tipo_doc>", "conteudo": "<cabec_arq base64>" }
 *&---------------------------------------------------------------------*
 
 CLASS zcl_q2c_cpi_caller DEFINITION
@@ -26,11 +28,14 @@ CLASS zcl_q2c_cpi_caller DEFINITION
     " Disponível no CATCH cx_root do behavior pool via cpi_caller->mv_error_detail.
     DATA mv_error_detail TYPE string READ-ONLY.
 
+    " Assinatura original mantida — nenhum caller precisa mudar.
+    " conteudo e tipo_doc continuam aqui; internamente usa-se SELECT p/ CabecArq.
     METHODS call_cpi_reprocess
       IMPORTING
-        pedido   TYPE ztbq2c_arq_mgr-pedido
-        bandeira TYPE ztbq2c_arq_mgr-bandeira
-        tipo_doc TYPE ztbq2c_arq_mgr-tipo_doc
+        pedido    TYPE ztbq2c_arq_mgr-pedido
+        bandeira  TYPE ztbq2c_arq_mgr-bandeira
+        conteudo  TYPE ztbq2c_arq_mgr-conteudo
+        tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
       EXPORTING
         ev_status TYPE string.
 
@@ -39,14 +44,13 @@ CLASS zcl_q2c_cpi_caller DEFINITION
     " Host, porta (443) e path (/http/mgr/reprocessamento) já definidos no destino.
     CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
 
-    " Estrutura interna com todos os campos necessários para o payload.
+    " Campos usados para montar o payload.
     " Para adicionar um campo: inclua-o aqui e use-o em build_payload.
     TYPES: BEGIN OF ty_payload_fields,
              tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc,
              cabec_arq TYPE ztbq2c_arq_mgr-cabec_arq,
            END OF ty_payload_fields.
 
-    " Monta o JSON a ser enviado ao CPI.
     " Único método que precisa mudar quando o contrato do iFlow muda.
     METHODS build_payload
       IMPORTING
@@ -70,22 +74,23 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     CLEAR me->mv_error_detail.
 
     " 1. Ler CabecArq da tabela — já está em Base64, não precisa converter
-    SELECT SINGLE tipo_doc, cabec_arq
+    "    (conteudo recebido como parâmetro não é usado; CabecArq é o campo correto)
+    SELECT SINGLE cabec_arq
       FROM ztbq2c_arq_mgr
       WHERE pedido   = @pedido
         AND bandeira = @bandeira
-      INTO @DATA(ls_arq).
+      INTO @DATA(lv_cabec_arq).
 
     IF sy-subrc <> 0.
       me->mv_error_detail = |Registro não encontrado: Pedido={ pedido } Bandeira={ bandeira }|.
       RAISE EXCEPTION TYPE cx_sy_no_handler.
     ENDIF.
 
-    " 2. Montar payload — alterar build_payload se o contrato do iFlow mudar
+    " 2. Montar payload — para mudar o contrato com o CPI: edite só build_payload
     DATA(lv_payload) = build_payload(
       VALUE #(
-        tipo_doc  = ls_arq-tipo_doc
-        cabec_arq = ls_arq-cabec_arq
+        tipo_doc  = tipo_doc
+        cabec_arq = lv_cabec_arq
       )
     ).
 
@@ -106,10 +111,10 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     "   "filename" → TipoDoc  (ex: PMDREN, PMDFORD)
     "   "conteudo" → CabecArq (Base64 — já gravado assim na tabela)
     "
-    " Para adicionar campo:
-    "   1. Adicione o campo em ty_payload_fields
-    "   2. Passe-o no VALUE # em call_cpi_reprocess
-    "   3. Inclua-o na string abaixo
+    " Para mudar/adicionar campo:
+    "   1. Adicione em ty_payload_fields
+    "   2. Preencha no VALUE # em call_cpi_reprocess
+    "   3. Inclua na string abaixo
     " ==========================================================
     rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", | &
                  |"conteudo": "{ is_fields-cabec_arq }" \}|.

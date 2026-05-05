@@ -81,12 +81,11 @@ CLASS zcl_q2c_reprocess_action IMPLEMENTATION.
         " 4. Chamar CPI com conteúdo JSON
         cpi_caller->call_cpi_reprocess(
           EXPORTING
-            pedido     = pedido
-            bandeira   = bandeira
-            conteudo   = ls_arq-conteudo
-            tipo_doc   = ls_arq-tipo_doc
+            pedido   = pedido
+            bandeira = bandeira
+            tipo_doc = ls_arq-tipo_doc
           IMPORTING
-            ev_status  = ev_status
+            ev_status = ev_status
         ).
 
     CATCH cx_root INTO DATA(exc).

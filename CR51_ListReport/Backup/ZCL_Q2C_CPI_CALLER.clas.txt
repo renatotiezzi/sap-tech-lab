@@ -2,9 +2,18 @@
 *& Class ZCL_Q2C_CPI_CALLER
 *&---------------------------------------------------------------------*
 *& Responsável por chamar o CPI para reprocessamento de arquivos
-*& - Prepara payload JSON
-*& - Chamada HTTP/API
-*& - Retorna status
+*& - Lê CabecArq (já em Base64) diretamente da tabela via SELECT SINGLE
+*& - Monta payload JSON e envia via HTTP para o iFlow CPI
+*& - Retorna status da resposta
+*&
+*& PAYLOAD enviado ao CPI (/http/mgr/reprocessamento):
+*&   {
+*&     "filename" : "<tipo_doc>",    <- campo TipoDoc do registro
+*&     "conteudo" : "<base64>"       <- campo CabecArq (já em Base64)
+*&   }
+*&
+*& Para adicionar/remover campos do payload: editar apenas o método
+*& BUILD_PAYLOAD. A assinatura de call_cpi_reprocess não precisa mudar.
 *&---------------------------------------------------------------------*
 
 CLASS zcl_q2c_cpi_caller DEFINITION
@@ -19,94 +28,91 @@ CLASS zcl_q2c_cpi_caller DEFINITION
 
     METHODS call_cpi_reprocess
       IMPORTING
-        pedido    TYPE ztbq2c_arq_mgr-pedido
-        bandeira  TYPE ztbq2c_arq_mgr-bandeira
-        conteudo  TYPE ztbq2c_arq_mgr-conteudo
-        tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira
+        tipo_doc TYPE ztbq2c_arq_mgr-tipo_doc
       EXPORTING
         ev_status TYPE string.
 
   PRIVATE SECTION.
-    " Destino RFC configurado na SM59 (tipo G - HTTP p/ sistema externo)
-    " Host/Path já definidos no destino; não codificar URL aqui.
-    " rfcdest = CHAR 32, tipo nativo do parâmetro destination do cl_http_client
+    " Destino RFC configurado na SM59 (tipo G - HTTP para sistema externo)
+    " Host, porta (443) e path (/http/mgr/reprocessamento) já definidos no destino.
     CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
 
-    METHODS prepare_payload
-      IMPORTING
-        conteudo  TYPE ztbq2c_arq_mgr-conteudo
-        tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc
-      RETURNING
-        VALUE(rs_payload) TYPE string.
+    " Estrutura interna com todos os campos necessários para o payload.
+    " Para adicionar um campo: inclua-o aqui e use-o em build_payload.
+    TYPES: BEGIN OF ty_payload_fields,
+             tipo_doc  TYPE ztbq2c_arq_mgr-tipo_doc,
+             cabec_arq TYPE ztbq2c_arq_mgr-cabec_arq,
+           END OF ty_payload_fields.
 
-    " execute_http_call não lança exceções — erros sinalizados via mv_error_detail.
-    " rs_response vazio + mv_error_detail preenchido = chamada com erro.
+    " Monta o JSON a ser enviado ao CPI.
+    " Único método que precisa mudar quando o contrato do iFlow muda.
+    METHODS build_payload
+      IMPORTING
+        is_fields         TYPE ty_payload_fields
+      RETURNING
+        VALUE(rv_payload) TYPE string.
+
+    " Executa a chamada HTTP. Erros sinalizados via mv_error_detail (não lança exceção).
+    " rv_response vazio + mv_error_detail preenchido = chamada com erro.
     METHODS execute_http_call
       IMPORTING
-        payload   TYPE string
+        payload            TYPE string
       RETURNING
-        VALUE(rs_response) TYPE string.
+        VALUE(rv_response) TYPE string.
 
 ENDCLASS.
 
 CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
   METHOD call_cpi_reprocess.
-    " Resetar detalhe de erro da chamada anterior
     CLEAR me->mv_error_detail.
 
-    " 1. Montar payload JSON
-    DATA(lv_payload) = prepare_payload(
-      conteudo = conteudo
-      tipo_doc = tipo_doc
+    " 1. Ler CabecArq da tabela — já está em Base64, não precisa converter
+    SELECT SINGLE tipo_doc, cabec_arq
+      FROM ztbq2c_arq_mgr
+      WHERE pedido   = @pedido
+        AND bandeira = @bandeira
+      INTO @DATA(ls_arq).
+
+    IF sy-subrc <> 0.
+      me->mv_error_detail = |Registro não encontrado: Pedido={ pedido } Bandeira={ bandeira }|.
+      RAISE EXCEPTION TYPE cx_sy_no_handler.
+    ENDIF.
+
+    " 2. Montar payload — alterar build_payload se o contrato do iFlow mudar
+    DATA(lv_payload) = build_payload(
+      VALUE #(
+        tipo_doc  = ls_arq-tipo_doc
+        cabec_arq = ls_arq-cabec_arq
+      )
     ).
 
-    " 2. Executar chamada HTTP — erros sinalizados via mv_error_detail
+    " 3. Enviar ao CPI
     DATA(lv_response) = execute_http_call( lv_payload ).
 
-    " 3. Se mv_error_detail preenchido: execute_http_call detectou erro
-    "    cx_sy_no_handler é no-check (não precisa de RAISING) e é
-    "    capturado pelo CATCH cx_root do behavior pool.
     IF me->mv_error_detail IS NOT INITIAL.
       RAISE EXCEPTION TYPE cx_sy_no_handler.
     ENDIF.
 
-    " 4. Sucesso: retornar body da resposta CPI
     ev_status = lv_response.
 
   ENDMETHOD.
 
-  METHOD prepare_payload.
-    " Payload esperado pelo iFlow CPI /http/mgr/reprocessamento:
-    " {
-    "   "filename": "<tipo_doc>",     <- código do arquivo (ex: PMDREN, PMDFORD)
-    "   "conteudo": "<base64>"        <- conteudo do pedido codificado em Base64
-    " }
-
-    " conteudo está na tabela como string (linhas do arquivo) — precisa ser Base64
-    DATA lv_xstr TYPE xstring.
-    DATA lv_conteudo_b64 TYPE string.
-
-    cl_bcs_convert=>string_to_xstring(
-      EXPORTING iv_string  = conteudo
-      RECEIVING ev_xstring = lv_xstr
-    ).
-
-    " SSFC_BASE64_ENCODE: xstring → Base64 string (disponível em todas as versões SAP)
-    CALL FUNCTION 'SSFC_BASE64_ENCODE'
-      EXPORTING
-        bindata       = lv_xstr
-      IMPORTING
-        b64data       = lv_conteudo_b64
-      EXCEPTIONS
-        ssf_krn_error = 1
-        OTHERS        = 2.
-    IF sy-subrc <> 0.
-      lv_conteudo_b64 = conteudo. " fallback: envia sem codificar
-    ENDIF.
-
-    rs_payload = |\{ "filename": "{ tipo_doc }", "conteudo": "{ lv_conteudo_b64 }" \}|.
-
+  METHOD build_payload.
+    " ==========================================================
+    " CONTRATO DO IFLOW CPI (/http/mgr/reprocessamento):
+    "   "filename" → TipoDoc  (ex: PMDREN, PMDFORD)
+    "   "conteudo" → CabecArq (Base64 — já gravado assim na tabela)
+    "
+    " Para adicionar campo:
+    "   1. Adicione o campo em ty_payload_fields
+    "   2. Passe-o no VALUE # em call_cpi_reprocess
+    "   3. Inclua-o na string abaixo
+    " ==========================================================
+    rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", | &
+                 |"conteudo": "{ is_fields-cabec_arq }" \}|.
   ENDMETHOD.
 
   METHOD execute_http_call.
@@ -116,7 +122,6 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
           lv_reason    TYPE string.
 
     " 1. Criar cliente HTTP via RFC Destination (SM59: CPI_MGR_REPROCESSO, tipo G)
-    "    Host e path (Port 443 + /http/mgr/reprocessamento) já definidos no destino.
     cl_http_client=>create_by_destination(
       EXPORTING
         destination              = c_destination
@@ -135,24 +140,19 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " 2. Método POST
+    " 2. Método POST + Content-Type JSON
     lo_client->request->set_method( if_http_request=>co_request_method_post ).
+    lo_client->request->set_header_field( name  = 'Content-Type'
+                                          value = 'application/json' ).
 
-    " 3. Content-Type JSON
-    lo_client->request->set_header_field(
-      name  = 'Content-Type'
-      value = 'application/json'
-    ).
-
-    " 4. Converter payload JSON (string) → xstring e setar como body
-    " O body é JSON puro; apenas o campo conteudo dentro do JSON é Base64
+    " 3. Converter payload JSON string → xstring e setar como body
     cl_bcs_convert=>string_to_xstring(
       EXPORTING iv_string  = payload
       RECEIVING ev_xstring = lv_body_xstr
     ).
     lo_client->request->set_data( lv_body_xstr ).
 
-    " 5. Enviar requisição
+    " 4. Enviar
     lo_client->send(
       EXCEPTIONS
         http_communication_failure = 1
@@ -165,7 +165,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " 6. Receber resposta
+    " 5. Receber resposta
     lo_client->receive(
       EXCEPTIONS
         http_communication_failure = 1
@@ -179,23 +179,24 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " 7. Verificar HTTP status code
+    " 6. Verificar HTTP status code
     lo_client->response->get_status(
       IMPORTING
         code   = lv_http_code
         reason = lv_reason
     ).
 
-    " 8. Ler body e fechar conexão
-    rs_response = lo_client->response->get_cdata( ).
+    rv_response = lo_client->response->get_cdata( ).
     lo_client->close( ).
 
-    " 9. HTTP != 2xx = erro de negócio CPI; sinalizar via mv_error_detail
+    " HTTP != 2xx = erro de negócio CPI
     IF lv_http_code < 200 OR lv_http_code >= 300.
-      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rs_response }|.
-      CLEAR rs_response.
+      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rv_response }|.
+      CLEAR rv_response.
     ENDIF.
 
   ENDMETHOD.
+
+ENDCLASS.
 
 ENDCLASS.

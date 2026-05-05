@@ -107,12 +107,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
           "    dupla atualização de Tentativas/Status
           cpi_caller->call_cpi_reprocess(
             EXPORTING
-              pedido     = entity-Pedido
-              bandeira   = entity-Bandeira
-              conteudo   = entity-Conteudo
-              tipo_doc   = entity-TipoDoc
+              pedido   = entity-Pedido
+              bandeira = entity-Bandeira
+              tipo_doc = entity-TipoDoc
             IMPORTING
-              ev_status  = DATA(cpi_status)
+              ev_status = DATA(cpi_status)
           ).
 
           " 4. Sucesso: atualizar Status ARQ + sobrescrever LOG com resultado

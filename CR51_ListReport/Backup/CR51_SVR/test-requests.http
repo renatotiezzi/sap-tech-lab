@@ -1,31 +1,43 @@
 # =============================================================================
-# CR51 - SRV (ZSB_Q2C_MGR) - Test Requests
+# CR51 - SRV (ZSB_Q2C_ARQ_MGR_V2) - Test Requests
 # =============================================================================
 #
-# PRÉ-REQUISITO — instalar extensão no VS Code:
-#   Nome  : REST Client
-#   Autor : Huachao Mao
-#   Como  : Ctrl+Shift+X → buscar "REST Client" → Install
+# ATENÇÃO: ESSE SERVIÇO É ODATA V2
+# A URL visível no Gateway Client é:
+#   /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/ArqMgr
 #
-# COMO EXECUTAR:
-#   1. Preencha as 3 variáveis abaixo (host, user, pass)
-#   2. Clique em "Send Request" que aparece acima de cada bloco
-#   3. A resposta abre numa aba lateral do VS Code
+# =============================================================================
+# OPÇÃO A — SAP GATEWAY CLIENT (/IWFND/GW_CLIENT) no SAP GUI
+# =============================================================================
 #
-# FLUXO PARA FAZER UM UPDATE (PATCH):
-#   Passo 1 → Execute o request #2 (GET) para confirmar que o registro existe
-#   Passo 2 → Execute o request #4 (PATCH) com If-Match: *
-#             O If-Match: * é OBRIGATÓRIO — sem ele retorna 412 Precondition Failed
-#             Motivo: o BO usa "etag master Uzeit" (controle de concorrência otimista)
+# ---- PARA CRIAR (POST) ----
+#   HTTP Method : POST
+#   URI         : /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/ArqMgr
+#   Header      : Content-Type = application/json
+#   Body        : ver bloco "POST" abaixo
 #
-# Binding Type : OData V4 - Web API  (machine-to-machine, não UI)
-# Base URL     : /sap/opu/odata4/sap/zsb_q2c_mgr/srvd/sap/zsd_q2c_mgr/0001/
+# ---- PARA MODIFICAR (MERGE) ----
+#   HTTP Method : MERGE          ← EM V2 O UPDATE É MERGE, NÃO PATCH
+#   URI         : /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+#   Header 1    : Content-Type = application/json
+#   Header 2    : If-Match = *   ← OBRIGATÓRIO — sem isso retorna 405/412
+#   Body        : ver bloco "MERGE" abaixo
+#
+# ---- PARA CHAMAR ACTION (POST) ----
+#   HTTP Method : POST
+#   URI         : /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/Reprocess?Pedido='PED-TEST-010'&Bandeira='Volks'
+#   Header      : Content-Type = application/json
+#
+# =============================================================================
+# OPÇÃO B — VS Code REST Client (extensão: REST Client de Huachao Mao)
+#   Ctrl+Shift+X → buscar "REST Client" → Install
+#   Preencha @host, @user, @pass abaixo e clique "Send Request"
 # =============================================================================
 
-@host = https://<SEU-HOST>.sap.hana.ondemand.com
+@host = https://<SEU-HOST>
 @user = <USUARIO>
 @pass = <SENHA>
-@base = {{host}}/sap/opu/odata4/sap/zsb_q2c_mgr/srvd/sap/zsd_q2c_mgr/0001
+@base = {{host}}/sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2
 
 # =============================================================================
 # 1. GET - Listar registros
@@ -49,7 +61,10 @@ Accept: application/json
 
 # =============================================================================
 # 3. POST - Criar registro com deep insert do Log
-#    O @odata.etag retornado aqui pode ser usado no If-Match do PATCH abaixo
+# =============================================================================
+# Gateway Client: HTTP Method = POST
+#                 URI         = /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/ArqMgr
+#                 Header      : Content-Type = application/json
 # =============================================================================
 
 POST {{base}}/ArqMgr
@@ -72,12 +87,15 @@ Content-Type: application/json
 ###
 
 # =============================================================================
-# 4. PATCH - Atualizar campos do registro
-#    If-Match: * ignora validação de ETag (concorrência otimista)
-#    Para usar o ETag correto: copie o valor @odata.etag retornado no GET/POST
+# 4. MERGE - Modificar campos do registro  ← EM V2 O UPDATE É MERGE
+# =============================================================================
+# Gateway Client: HTTP Method = MERGE
+#                 URI         = /sap/opu/odata/sap/ZSB_Q2C_ARQ_MGR_V2/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+#                 Header 1    : Content-Type = application/json
+#                 Header 2    : If-Match = *   ← OBRIGATÓRIO
 # =============================================================================
 
-PATCH {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+MERGE {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
 Authorization: Basic {{user}} {{pass}}
 Content-Type: application/json
 If-Match: *
@@ -90,10 +108,10 @@ If-Match: *
 ###
 
 # =============================================================================
-# 5. PATCH - Reabrir registro com conteúdo corrigido
+# 5. MERGE - Reabrir registro com conteúdo corrigido
 # =============================================================================
 
-PATCH {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+MERGE {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
 Authorization: Basic {{user}} {{pass}}
 Content-Type: application/json
 If-Match: *

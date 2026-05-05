@@ -1,0 +1,138 @@
+# =============================================================================
+# CR51 - SRV (ZSB_Q2C_MGR) - Test Requests
+# =============================================================================
+#
+# PRÉ-REQUISITO — instalar extensão no VS Code:
+#   Nome  : REST Client
+#   Autor : Huachao Mao
+#   Como  : Ctrl+Shift+X → buscar "REST Client" → Install
+#
+# COMO EXECUTAR:
+#   1. Preencha as 3 variáveis abaixo (host, user, pass)
+#   2. Clique em "Send Request" que aparece acima de cada bloco
+#   3. A resposta abre numa aba lateral do VS Code
+#
+# FLUXO PARA FAZER UM UPDATE (PATCH):
+#   Passo 1 → Execute o request #2 (GET) para confirmar que o registro existe
+#   Passo 2 → Execute o request #4 (PATCH) com If-Match: *
+#             O If-Match: * é OBRIGATÓRIO — sem ele retorna 412 Precondition Failed
+#             Motivo: o BO usa "etag master Uzeit" (controle de concorrência otimista)
+#
+# Binding Type : OData V4 - Web API  (machine-to-machine, não UI)
+# Base URL     : /sap/opu/odata4/sap/zsb_q2c_mgr/srvd/sap/zsd_q2c_mgr/0001/
+# =============================================================================
+
+@host = https://<SEU-HOST>.sap.hana.ondemand.com
+@user = <USUARIO>
+@pass = <SENHA>
+@base = {{host}}/sap/opu/odata4/sap/zsb_q2c_mgr/srvd/sap/zsd_q2c_mgr/0001
+
+# =============================================================================
+# 1. GET - Listar registros
+# =============================================================================
+
+GET {{base}}/ArqMgr?$top=10&$orderby=Datum desc
+Authorization: Basic {{user}} {{pass}}
+Accept: application/json
+
+###
+
+# =============================================================================
+# 2. GET - Ler um registro específico
+# =============================================================================
+
+GET {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+Authorization: Basic {{user}} {{pass}}
+Accept: application/json
+
+###
+
+# =============================================================================
+# 3. POST - Criar registro com deep insert do Log
+#    O @odata.etag retornado aqui pode ser usado no If-Match do PATCH abaixo
+# =============================================================================
+
+POST {{base}}/ArqMgr
+Authorization: Basic {{user}} {{pass}}
+Content-Type: application/json
+
+{
+  "Pedido":    "PED-TEST-010",
+  "Bandeira":  "Volks",
+  "TipoDoc":   "NF",
+  "CabecArq":  "HEADER::NF::006",
+  "Conteudo":  "{\"pedido\":\"PED-TEST-006\",\"bandeira\":\"VISA\",\"valor\":1500.00,\"itens\":[{\"sku\":\"SKU-A\",\"qtd\":2}]}",
+  "to_Log": {
+    "IdRef":    "001",
+    "Etapa":    "PROCESSAMENTO",
+    "Mensagem": "Erro ao criar SalesOrder"
+  }
+}
+
+###
+
+# =============================================================================
+# 4. PATCH - Atualizar campos do registro
+#    If-Match: * ignora validação de ETag (concorrência otimista)
+#    Para usar o ETag correto: copie o valor @odata.etag retornado no GET/POST
+# =============================================================================
+
+PATCH {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+Authorization: Basic {{user}} {{pass}}
+Content-Type: application/json
+If-Match: *
+
+{
+  "Status":     "PENDENTE",
+  "Tentativas": "0"
+}
+
+###
+
+# =============================================================================
+# 5. PATCH - Reabrir registro com conteúdo corrigido
+# =============================================================================
+
+PATCH {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+Authorization: Basic {{user}} {{pass}}
+Content-Type: application/json
+If-Match: *
+
+{
+  "Status":   "PENDENTE",
+  "Conteudo": "{\"pedido\":\"PED-TEST-006\",\"bandeira\":\"VISA\",\"valor\":1500.00,\"itens\":[{\"sku\":\"SKU-A\",\"qtd\":3}]}"
+}
+
+###
+
+# =============================================================================
+# 6. POST - Action Reprocess
+# =============================================================================
+
+POST {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')/Reprocess
+Authorization: Basic {{user}} {{pass}}
+Content-Type: application/json
+
+{}
+
+###
+
+# =============================================================================
+# 7. POST - Action Cancel
+# =============================================================================
+
+POST {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')/Cancel
+Authorization: Basic {{user}} {{pass}}
+Content-Type: application/json
+
+{}
+
+###
+
+# =============================================================================
+# 8. DELETE - Remover registro (e log filho via composição)
+# =============================================================================
+
+DELETE {{base}}/ArqMgr(Pedido='PED-TEST-010',Bandeira='Volks')
+Authorization: Basic {{user}} {{pass}}
+If-Match: *

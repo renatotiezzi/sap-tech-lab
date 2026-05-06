@@ -358,16 +358,22 @@ Alguns ambientes roteiam o tráfego SAP pelo túnel EY mesmo para tenants parcei
 | Data       | Teste                              | Resultado |
 |------------|------------------------------------|-----------|
 | 2026-05-06 | Connection Manager direto          | FALHOU — TLS socket error |
-| 2026-05-06 | Browser direto `/sap/bc/adt/`      | FALHOU — ERR_CONNECTION_CLOSED (rede não chega no host) |
-| -          | Invoke-WebRequest -SkipCertCheck   | pendente  |
-| -          | NODE_TLS_REJECT_UNAUTHORIZED=0     | pendente (só faz sentido após rede OK) |
-| -          | **Ligar EY Private Access**        | **PRÓXIMO PASSO — fazer isso primeiro** |
+| 2026-05-06 | Browser direto `/sap/bc/adt/`      | FALHOU — ERR_CONNECTION_CLOSED |
+| 2026-05-06 | Resolve-DnsName hostname           | FALHOU — sem resposta (DNS não resolvia) |
+| 2026-05-06 | **Hosts file fix** — `10.65.3.180` | **OK — DNS resolve agora** |
+| -          | Connection Manager após hosts fix  | pendente  |
 
-> **Conclusão do diagnóstico 2026-05-06:**
-> O erro não é de certificado. O host `vhilfws1wd01.sap.iconic.com.br:44380` não está sendo
-> roteado pela rede atual. O Zscaler Iconic está ON mas o EY Private Access estava desligado.
-> Ligar o EY Private Access é o próximo passo — o tráfego para `*.iconic.com.br` pode depender
-> do túnel EY mesmo sendo tenant parceiro.
+> **Causa raiz confirmada 2026-05-06:**
+> Problema de DNS — `vhilfws1wd01.sap.iconic.com.br` não resolvia porque o Zscaler/DNS
+> do ambiente estava com indisponibilidade (TI Iconic comunicou via Teams: "falha parcial ABAP/JDE/Zscaler/Diretórios de Rede").
+>
+> **Solução aplicada:** entrada manual no hosts file do Windows:
+> `10.65.3.180   vhilfws1wd01.sap.iconic.com.br`
+>
+> IP confirmado via SAP GUI logon pad (Application Server: `10.65.2.159` → DS4) e
+> comunicado do time (`10.65.3.180:44380` para FLP/web dispatcher).
+>
+> **Remover a entrada do hosts quando o DNS voltar ao normal.**
 
 ---
 

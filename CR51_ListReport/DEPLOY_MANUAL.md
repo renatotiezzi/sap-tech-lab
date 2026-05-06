@@ -297,7 +297,74 @@ Verificar se o tile aparece no grupo `ZGRQ2C_ARQLR_MGR` e se abre o List Report.
 
 ---
 
-## 10. Referência de Nomes (padrão do projeto)
+## 10. Notas de Teste — Connection Manager / Deploy (rascunho)
+
+> Seção de trabalho — registrar aqui o que foi testado, o resultado e o que falta resolver.
+
+### Ambiente
+- Host: `https://vhilfws1wd01.sap.iconic.com.br:44380`
+- Client: `100` (Iconic - DEV)
+- Usuário: `RTIEZZI`
+
+---
+
+### Teste 1 — 2026-05-06
+**O que foi feito:** Configurar Connection Manager no VS Code com host/client/user/pass.
+**Resultado:** `This SAP system failed to return any services.`
+**Erro no log:**
+```
+The V2 request failed: Client network socket disconnected before secure TLS connection was established.
+The V4 request failed: Client network socket disconnected before secure TLS connection was established.
+```
+**Situação do Zscaler:**
+- Iconic tenant: **ON**
+- EY Main Tenant (Private Access): **TURN ON** (estava desligado)
+
+**Hipóteses em aberto:**
+- [ ] Ligar o EY Private Access e testar novamente
+- [ ] Testar com NODE_TLS_REJECT_UNAUTHORIZED=0 (ver abaixo)
+- [ ] Confirmar se o host responde via Invoke-WebRequest
+
+---
+
+### Checklist para próxima sessão de teste
+
+**Passo 1 — Confirmar rede:**
+```powershell
+Invoke-WebRequest -Uri "https://vhilfws1wd01.sap.iconic.com.br:44380/sap/bc/adt/" -SkipCertificateCheck
+```
+- Se retornar **401** → rede OK, problema é TLS/cert no Node
+- Se retornar **timeout** → Zscaler não está roteando o host
+
+**Passo 2 — Se rede OK, testar com TLS desabilitado no Node:**
+```powershell
+$env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
+code .
+```
+Depois de abrir o VS Code assim, testar o Connection Manager novamente.
+
+**Passo 3 — Se ainda falhar, checar se o Zscaler Iconic intercepta TLS:**
+O Zscaler pode fazer SSL inspection e quebrar o handshake. Nesse caso, a solução é
+pedir ao admin do Zscaler para adicionar o host Iconic em bypass de SSL inspection.
+
+**Passo 4 — Ligar EY Private Access:**
+Na tela do Zscaler, clicar em **TURN ON** no Main Tenant (EY).
+Alguns ambientes roteiam o tráfego SAP pelo túnel EY mesmo para tenants parceiros.
+
+---
+
+### Resultado dos testes (preencher conforme avançar)
+
+| Data       | Teste                              | Resultado |
+|------------|------------------------------------|-----------|
+| 2026-05-06 | Connection Manager direto          | FALHOU — TLS error |
+| -          | Invoke-WebRequest -SkipCertCheck   | pendente  |
+| -          | NODE_TLS_REJECT_UNAUTHORIZED=0     | pendente  |
+| -          | Ligar EY Private Access            | pendente  |
+
+---
+
+## 11. Referência de Nomes (padrão do projeto)
 
 Baseado no padrão estabelecido pela app `ar_position`:
 

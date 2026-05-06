@@ -359,21 +359,64 @@ Alguns ambientes roteiam o tráfego SAP pelo túnel EY mesmo para tenants parcei
 |------------|------------------------------------|-----------|
 | 2026-05-06 | Connection Manager direto          | FALHOU — TLS socket error |
 | 2026-05-06 | Browser direto `/sap/bc/adt/`      | FALHOU — ERR_CONNECTION_CLOSED |
-| 2026-05-06 | Resolve-DnsName hostname           | FALHOU — sem resposta (DNS não resolvia) |
-| 2026-05-06 | **Hosts file fix** — `10.65.3.180` | **OK — DNS resolve agora** |
+| 2026-05-06 | Resolve-DnsName hostname           | FALHOU — DNS não resolvia |
+| 2026-05-06 | Hosts file fix na máquina local    | OK — DNS resolveu |
+| -          | **Aplicar hosts fix na máquina de trabalho** | **PRÓXIMO PASSO** |
 | -          | Connection Manager após hosts fix  | pendente  |
 
 > **Causa raiz confirmada 2026-05-06:**
 > Problema de DNS — `vhilfws1wd01.sap.iconic.com.br` não resolvia porque o Zscaler/DNS
-> do ambiente estava com indisponibilidade (TI Iconic comunicou via Teams: "falha parcial ABAP/JDE/Zscaler/Diretórios de Rede").
->
-> **Solução aplicada:** entrada manual no hosts file do Windows:
-> `10.65.3.180   vhilfws1wd01.sap.iconic.com.br`
->
-> IP confirmado via SAP GUI logon pad (Application Server: `10.65.2.159` → DS4) e
-> comunicado do time (`10.65.3.180:44380` para FLP/web dispatcher).
->
-> **Remover a entrada do hosts quando o DNS voltar ao normal.**
+> do ambiente estava com indisponibilidade (TI Iconic comunicou: "falha parcial ABAP/JDE/Zscaler/Diretórios de Rede").
+> Solução paliativa: entrada manual no hosts file.
+> **Remover quando o DNS voltar ao normal.**
+
+---
+
+### Como aplicar o fix de DNS na máquina de trabalho
+
+> Fazer isso na máquina onde o VS Code / Connection Manager está instalado.
+
+**Passo 1 — Abrir o Notepad como Administrador**
+
+1. Pressionar `Win`, digitar `notepad`
+2. Clicar com botão direito → **Executar como administrador**
+
+**Passo 2 — Abrir o arquivo hosts**
+
+No Notepad: `Arquivo > Abrir` e navegar para:
+```
+C:\Windows\System32\drivers\etc\hosts
+```
+> Importante: no filtro de tipo de arquivo selecionar **Todos os arquivos (\*.\*)**, senão o arquivo não aparece.
+
+**Passo 3 — Adicionar a linha no final do arquivo**
+
+```
+10.65.3.180     vhilfws1wd01.sap.iconic.com.br
+```
+
+Salvar (`Ctrl+S`) e fechar.
+
+**Passo 4 — Verificar se funcionou**
+
+Abrir o PowerShell e rodar:
+```powershell
+Resolve-DnsName vhilfws1wd01.sap.iconic.com.br
+```
+Deve retornar `10.65.3.180`. Se retornar, o hostname está resolvendo.
+
+**Passo 5 — Testar no browser**
+
+```
+https://vhilfws1wd01.sap.iconic.com.br:44380/sap/bc/adt/
+```
+Deve aparecer tela de login SAP (pode dar aviso de certificado — aceitar e continuar).
+
+**Passo 6 — Testar o Connection Manager no VS Code**
+
+Clicar em **Test Connection** na tela do SAP System. Deve conectar.
+
+**Lembrete:** quando o DNS da Iconic voltar ao normal, remover a linha adicionada do hosts file para não ter conflito futuro.
 
 ---
 

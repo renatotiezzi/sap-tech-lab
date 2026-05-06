@@ -357,18 +357,56 @@ Alguns ambientes roteiam o tráfego SAP pelo túnel EY mesmo para tenants parcei
 
 | Data       | Teste                              | Resultado |
 |------------|------------------------------------|-----------|
-| 2026-05-06 | Connection Manager direto          | FALHOU — TLS socket error |
-| 2026-05-06 | Browser direto `/sap/bc/adt/`      | FALHOU — ERR_CONNECTION_CLOSED |
-| 2026-05-06 | Resolve-DnsName hostname           | FALHOU — DNS não resolvia |
-| 2026-05-06 | Hosts file fix na máquina local    | OK — DNS resolveu |
-| -          | **Aplicar hosts fix na máquina de trabalho** | **PRÓXIMO PASSO** |
-| -          | Connection Manager após hosts fix  | pendente  |
+| 2026-05-06 | Connection Manager direto (hostname) | FALHOU — ERR_CONNECTION_CLOSED (DNS não resolvia) |
+| 2026-05-06 | Connection Manager com IP direto   | FALHOU — cert mismatch: IP não está no SAN do cert `*.sap.iconic.com.br` |
+| 2026-05-06 | Browser com IP `10.65.3.180:44380` | OK — Fiori carrega (browser ignora mismatch) |
+| 2026-05-06 | certmgr                            | OK — cert `*.sap.iconic.com.br` já está como Raiz Confiável |
+| -          | **Hosts fix + hostname no Connection Manager** | **PRÓXIMO PASSO** |
+
+> **Diagnóstico final 2026-05-06:**
+>
+> Dois problemas encadeados:
+> 1. DNS fora → hostname não resolvia → fix: entrada no hosts file
+> 2. Ao usar IP direto no Connection Manager → cert `*.sap.iconic.com.br` não cobre o IP → Node.js rejeita
+>
+> O cert já é confiável no Windows (TrustSign BR RSA DV SSL CA 3, visível no certmgr).
+> Usando o **hostname** com o hosts file ativo, o cert bate (`*.sap.iconic.com.br` cobre `vhilfws1wd01.sap.iconic.com.br`) e o Node.js aceita.
+
+---
+
+### Sequência correta para a máquina de trabalho
+
+**Passo 1 — Adicionar no hosts file (como Administrador)**
+
+Abrir Notepad como Administrador → `C:\Windows\System32\drivers\etc\hosts` → adicionar no final:
+```
+10.65.3.180     vhilfws1wd01.sap.iconic.com.br
+```
+Salvar.
+
+**Passo 2 — Confirmar resolução DNS**
+```powershell
+Resolve-DnsName vhilfws1wd01.sap.iconic.com.br
+```
+Deve retornar `10.65.3.180`.
+
+**Passo 3 — Usar o HOSTNAME (não o IP) no Connection Manager**
+
+Na tela SAP System Details, garantir:
+```
+URL: https://vhilfws1wd01.sap.iconic.com.br:44380
+```
+> **NÃO usar o IP** (`https://10.65.3.180:44380`). O cert `*.sap.iconic.com.br` não cobre IPs — só cobre o hostname.
+
+**Passo 4 — Test Connection**
+
+Clicar em **Test Connection**. Deve conectar sem erros.
+
+**Lembrete:** remover a linha do hosts quando o DNS da Iconic voltar ao normal.
 
 > **Causa raiz confirmada 2026-05-06:**
-> Problema de DNS — `vhilfws1wd01.sap.iconic.com.br` não resolvia porque o Zscaler/DNS
-> do ambiente estava com indisponibilidade (TI Iconic comunicou: "falha parcial ABAP/JDE/Zscaler/Diretórios de Rede").
-> Solução paliativa: entrada manual no hosts file.
-> **Remover quando o DNS voltar ao normal.**
+> DNS do ambiente Iconic com indisponibilidade (TI Iconic comunicou: "falha parcial ABAP/JDE/Zscaler/Diretórios de Rede").
+> Ver seção abaixo para a sequência correta de fix.
 
 ---
 

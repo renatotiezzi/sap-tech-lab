@@ -357,10 +357,17 @@ Alguns ambientes roteiam o tráfego SAP pelo túnel EY mesmo para tenants parcei
 
 | Data       | Teste                              | Resultado |
 |------------|------------------------------------|-----------|
-| 2026-05-06 | Connection Manager direto          | FALHOU — TLS error |
+| 2026-05-06 | Connection Manager direto          | FALHOU — TLS socket error |
+| 2026-05-06 | Browser direto `/sap/bc/adt/`      | FALHOU — ERR_CONNECTION_CLOSED (rede não chega no host) |
 | -          | Invoke-WebRequest -SkipCertCheck   | pendente  |
-| -          | NODE_TLS_REJECT_UNAUTHORIZED=0     | pendente  |
-| -          | Ligar EY Private Access            | pendente  |
+| -          | NODE_TLS_REJECT_UNAUTHORIZED=0     | pendente (só faz sentido após rede OK) |
+| -          | **Ligar EY Private Access**        | **PRÓXIMO PASSO — fazer isso primeiro** |
+
+> **Conclusão do diagnóstico 2026-05-06:**
+> O erro não é de certificado. O host `vhilfws1wd01.sap.iconic.com.br:44380` não está sendo
+> roteado pela rede atual. O Zscaler Iconic está ON mas o EY Private Access estava desligado.
+> Ligar o EY Private Access é o próximo passo — o tráfego para `*.iconic.com.br` pode depender
+> do túnel EY mesmo sendo tenant parceiro.
 
 ---
 

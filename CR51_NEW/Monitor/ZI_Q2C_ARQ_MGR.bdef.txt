@@ -19,7 +19,8 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   // Todos os campos são somente leitura para o usuário
   // O preenchimento ocorre exclusivamente via actions ou integração externa
   field ( readonly ) Pedido; Bandeira; TipoDoc; CabecArq; Conteudo;
-  field ( readonly ) Status; StatusCriticality; Tentativas;
+  field ( readonly ) Status; Tentativas;
+  // StatusCriticality é campo calculado no CDS (CASE expression) — não declarar em field(readonly)
   field ( readonly ) UltimoErro; Datum; Uzeit; Ernam;
 
   action Reprocess result [1] $self;

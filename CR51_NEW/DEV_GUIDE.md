@@ -97,13 +97,14 @@ ZSB_Q2C_ARQ_MGR_SVR  (SRVB)  → OData V4 - UI
 ### BO 2 — LOG (Histórico — app separado, somente leitura)
 
 ```
-ZI_Q2C_LOG_MGR       (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
-ZI_Q2C_LOG_MGR       (BDEF)  → managed read-only (sem actions, sem create)
+ZI_Q2C_LOG_MGR         (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
+ZI_Q2C_LOG_MGR         (BDEF)  → managed read-only (sem actions, sem create, sem impl. class)
 
-ZC_Q2C_LOG_MGR_APP   (DDLS)  → Projection — histórico Fiori
-ZC_Q2C_LOG_MGR_APP_MDE (DDLX) → Anotações UI
-ZSD_Q2C_LOG_MGR_SVR  (SRVD)  → expose LogMgrApp
-ZSB_Q2C_LOG_MGR_SVR  (SRVB)  → OData V4 - UI
+ZC_Q2C_LOG_MGR_APP     (DDLS)  → Projection — histórico Fiori
+ZC_Q2C_LOG_MGR_APP     (BDEF)  → Projection BDEF read-only (obrigatório pelo RAP)
+ZC_Q2C_LOG_MGR_APP_MDE (DDLX)  → Anotações UI
+ZSD_Q2C_LOG_MGR_SVR    (SRVD)  → expose LogMgrApp
+ZSB_Q2C_LOG_MGR_SVR    (SRVB)  → OData V4 - UI
 ```
 
 > **Nomenclatura:** interfaces sem sufixo adicional; projeções com `_APP`; serviços (SRVD/SRVB) com `_SVR`.
@@ -190,8 +191,12 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   authorization master ( instance )
   etag master Datum
 {
+  // update necessário para MODIFY IN LOCAL MODE nas actions
+  update;
+
   field ( readonly ) Pedido; Bandeira; TipoDoc; CabecArq; Conteudo;
-  field ( readonly ) Tentativas; Datum; Uzeit; Ernam; UltimoErro;
+  field ( readonly ) Status; Tentativas; UltimoErro; Datum; Uzeit; Ernam;
+  // StatusCriticality é campo calculado no CDS — não declarar em field(readonly)
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;

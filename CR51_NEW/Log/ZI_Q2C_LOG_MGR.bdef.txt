@@ -11,10 +11,11 @@ strict ( 2 );
 // action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
 // BO independente — sem composition, sem lock dependent.
 // -----------------------------------------------------------------------
+// authorization não declarada — acesso controlado pelo @AccessControl.authorizationCheck: #NOT_REQUIRED no DDLS
+// authorization master ( instance ) exigiria implementation class para handler de autorização — LOG não tem classe
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbn_q2c_log_mgr
   lock master
-  authorization master ( instance )
 {
   field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
 

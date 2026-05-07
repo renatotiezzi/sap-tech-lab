@@ -130,11 +130,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CATCH cx_root INTO DATA(exc).
 
           " 7. Erro: STATUS = ERRO, ULTIMO_ERRO = mensagem do erro
-          DATA(error_msg) = COND string(
-            WHEN cpi_caller->mv_error_detail IS NOT INITIAL
-            THEN cpi_caller->mv_error_detail
-            ELSE exc->get_text( )
-          ).
+          DATA(error_msg) = exc->get_text( ).
+          " Se ZCL_Q2C_CPI_CALLER expuser detalhes adicionais (ex: mv_error_detail), adaptar aqui.
 
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr

@@ -120,6 +120,9 @@ ZSB_Q2C_LOG_MGR_SVR  (SRVB)  → OData V4 - UI
 
 define root view entity ZI_Q2C_ARQ_MGR
   as select from ztbn_q2c_arq_mgr as arq
+  association [0..*] to ZI_Q2C_LOG_MGR as _Log
+    on  $projection.Pedido   = _Log.Pedido
+    and $projection.Bandeira = _Log.Bandeira
 {
   key arq.pedido      as Pedido,
   key arq.bandeira    as Bandeira,
@@ -138,7 +141,10 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.ultimo_erro as UltimoErro,
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
-      arq.ernam       as Ernam
+      arq.ernam       as Ernam,
+
+      /* Associations */
+      _Log
 }
 ```
 
@@ -149,22 +155,22 @@ define root view entity ZI_Q2C_ARQ_MGR
 ```abap
 @AbapCatalog.viewEnhancementCategory: [#NONE]
 @AccessControl.authorizationCheck: #NOT_REQUIRED
-@EndUserText.label: 'Interface LOG MGR - Histórico'
+@EndUserText.label: 'Interface LOG MGR - Histórico de Processamento'
+@Metadata.ignorePropagatedAnnotations: true
 
-define view entity ZI_Q2C_LOG_MGR
+// BO independente — sem composition, sem associação pai/filho RAP.
+// Ligado ao ARQ apenas pelo dado (Pedido + Bandeira).
+// Cada linha = uma tentativa de processamento (INSERT, nunca UPDATE).
+define root view entity ZI_Q2C_LOG_MGR
   as select from ztbn_q2c_log_mgr as log
-  association to parent ZI_Q2C_ARQ_MGR as _Arq
-    on $projection.IdArq = _Arq.IdArq
 {
-  key log.id_log   as IdLog,
-      log.id_arq   as IdArq,
+  key log.pedido   as Pedido,
+  key log.bandeira as Bandeira,
+  key log.datum    as Datum,
+  key log.uzeit    as Uzeit,
       log.etapa    as Etapa,
       log.mensagem as Mensagem,
-      log.datum    as Datum,
-      log.uzeit    as Uzeit,
-      log.ernam    as Ernam,
-
-      _Arq
+      log.ernam    as Ernam
 }
 ```
 
@@ -189,6 +195,9 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
+
+  // Associação de leitura ao LOG — navegação Object Page ARQ → histórico
+  association _Log { }
 
   mapping for ztbn_q2c_arq_mgr
   {
@@ -299,15 +308,15 @@ Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
 2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
 3. **Conteúdo Original** → CabecArq, Conteudo (multiline, readonly)
+4. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
 
-### App LOG (app separado — histórico)
-List Report independente com filtro por Pedido + Bandeira:
-- Colunas: Datum, Uzeit, Etapa, Mensagem, Ernam
-- Ordenação padrão: Datum + Uzeit decrescente
+> O usuário clica no registro ARQ → Object Page abre → seção LOG exibe **todas** as tentativas (Datum, Uzeit, Etapa, Mensagem, Ernam), ordenáveis.
+
+### App LOG (app separado — histórico standalone)
+List Report independente, acessível diretamente pelo Fiori Launchpad:
+- Colunas: Pedido, Bandeira, Datum, Uzeit, Etapa, Mensagem, Ernam
 - Filtros: Pedido, Bandeira, Data (range), Etapa
-
-> O usuário consulta o histórico abrindo o **app de LOG separado** e filtrando pelo Pedido.
-> Não há navegação automática entre os dois apps.
+- Serve para consulta avançada / cruzada — independente do App ARQ
 
 ---
 
@@ -335,7 +344,10 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       UltimoErro,
       Datum,
       Uzeit,
-      Ernam
+      Ernam,
+
+      /* Associations */
+      _Log : redirected to ZC_Q2C_LOG_MGR_APP
 }
 ```
 
@@ -368,7 +380,16 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 1. `ZTBN_Q2C_ARQ_MGR` (SE11 / ADT)
 2. `ZTBN_Q2C_LOG_MGR` (SE11 / ADT)
 
-### Fase 2 — BO ARQ
+### Fase 2 — BO LOG (criar antes do ARQ — ARQ referencia o LOG na association)
+1. `ZI_Q2C_LOG_MGR` (DDLS)
+2. `ZI_Q2C_LOG_MGR` (BDEF — read-only, sem classe de impl.)
+3. `ZC_Q2C_LOG_MGR_APP` (DDLS)
+4. `ZC_Q2C_LOG_MGR_APP` (BDEF — projection read-only)
+5. `ZC_Q2C_LOG_MGR_APP_MDE` (DDLX)
+6. `ZSD_Q2C_LOG_MGR_SVR` (SRVD)
+7. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — criar e publicar no ADT)
+
+### Fase 3 — BO ARQ (depende do LOG para a association `_Log`)
 1. `ZI_Q2C_ARQ_MGR` (DDLS)
 2. `ZBP_I_Q2C_ARQ_MGR` (CLAS — global)
 3. `ZI_Q2C_ARQ_MGR` (BDEF)
@@ -376,16 +397,15 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 5. `ZC_Q2C_ARQ_MGR_APP` (DDLS)
 6. `ZC_Q2C_ARQ_MGR_APP` (BDEF)
 7. `ZC_Q2C_ARQ_MGR_APP_MDE` (DDLX)
-8. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD)
+8. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — expõe ARQ + LOG para navegação Object Page)
 9. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar no ADT)
 
-### Fase 3 — BO LOG (independente)
-1. `ZI_Q2C_LOG_MGR` (DDLS)
-2. `ZI_Q2C_LOG_MGR` (BDEF — read-only, sem classe de impl.)
-3. `ZC_Q2C_LOG_MGR_APP` (DDLS)
-4. `ZC_Q2C_LOG_MGR_APP_MDE` (DDLX)
-5. `ZSD_Q2C_LOG_MGR_SVR` (SRVD)
-6. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — criar e publicar no ADT)
+### Fase 4 — Job de Limpeza (APJ)
+1. Criar Log Object `ZQ2C_LOG` (subobject `CLEANUP`) via `SBAL_OBJECT`
+2. Criar `ZCL_Q2C_MGR_CLEANUP` (CLAS) — implementa `IF_APJ_DT/RT_EXEC_OBJECT`
+3. Criar Job Catalog Entry `ZQ2C_CLEANUP_CE` no ADT → aponta para `ZCL_Q2C_MGR_CLEANUP`
+4. Criar Job Template `ZQ2C_CLEANUP_JT` no ADT → usa Catalog Entry, `P_DAYS = 90`
+5. Agendar via app Fiori **F2373 Application Jobs**
 
 ---
 

@@ -60,6 +60,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
       " 2. Validar: não reprocessar CANCELADO nem EM_PROCESSAMENTO
       IF entity-Status = 'CANCELADO' OR entity-Status = 'EM_PROCESSAMENTO'.
+        APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
@@ -182,6 +183,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
       " 2. Validar: não cancelar PROCESSADO
       IF entity-Status = 'PROCESSADO'.
+        APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(

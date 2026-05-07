@@ -103,6 +103,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
   Conteudo;
 
-  // Campo técnico — sem anotação de exibição
+  // Campo técnico usado como referência na criticality do Status — não exibir na UI
+  @UI.hidden: true
   StatusCriticality;
 }

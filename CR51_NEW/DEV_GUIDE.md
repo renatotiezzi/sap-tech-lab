@@ -188,8 +188,8 @@ strict ( 2 );
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   persistent table ztbn_q2c_arq_mgr
   lock master
-  authorization master ( instance )
-  etag master Datum
+  authorization master ( global )
+  etag master Uzeit
 {
   // update necessário para MODIFY IN LOCAL MODE nas actions
   update;
@@ -230,7 +230,7 @@ strict ( 2 );
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbn_q2c_log_mgr
   lock master
-  authorization master ( instance )
+  // authorization: não declarar — acesso controlado via @AccessControl no DDLS
 {
   field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
 

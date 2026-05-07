@@ -2,7 +2,7 @@
 
 **Baseado em:** EF CR51 – Reprocessamento Gap 14 - Integração MGR (Rodolfo Gambarini, 25/03/2026)
 **Diferença principal em relação à versão anterior (CR51_ListReport):**
-ARQ e LOG são entidades separadas e independentes. LOG é 1:N (histórico completo de tentativas).
+ARQ e LOG são entidades **completamente independentes** — apps separados, serviços separados, sem composition, sem relação parent/child no RAP. LOG é 1:N (histórico completo de tentativas) ligado ao ARQ apenas pela chave funcional (Pedido + Bandeira).
 
 ---
 
@@ -17,10 +17,10 @@ ARQ e LOG são entidades separadas e independentes. LOG é 1:N (histórico compl
 
 ### LOG — Tabela de Log
 - Representa **cada tentativa de processamento** do arquivo
-- Chave: `(PEDIDO, BANDEIRA, DATUM, UZEIT)` — chaves do pai + data/hora da tentativa
-- Relação **1:N com a ARQ** pela chave funcional
+- Chave: `(PEDIDO, BANDEIRA, DATUM, UZEIT)` — chave funcional + data/hora da tentativa
+- Relação 1:N com ARQ **apenas pelo dado** (Pedido + Bandeira) — sem vínculo RAP
 - Cada reprocessamento gera **nova linha** no log — nunca sobrescreve
-- Guarda etapa, mensagem detalhada e os campos-chave do pai para rastreabilidade direta
+- Entidade independente: **app próprio, serviço próprio**
 
 ### Separação de responsabilidades
 ```
@@ -36,20 +36,20 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 
 | Campo         | Tipo ABAP   | Chave | Descrição                              |
 |---------------|-------------|-------|----------------------------------------|
-| PEDIDO        | CHAR(35)    | ✓     | Nº do pedido MGR (Num. Pedido+Dealer)  |
-| BANDEIRA      | CHAR(10)    | ✓     | Ford / JCB / Renault etc.              |
+| PEDIDO        | CHAR(35)    | ✓     | Nº do pedido MGR                       |
+| BANDEIRA      | CHAR(10)    | ✓     | Dealer / Montadora (Ford, JCB, Renault...) |
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
 | CABEC_ARQ     | CHAR(100)   |       | Cabeçalho original do TXT              |
 | CONTEUDO      | RAWSTRING   |       | Arquivo bruto conforme Q2C014I000      |
 | STATUS        | CHAR(20)    |       | ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
 | TENTATIVAS    | INT4        |       | Incrementado a cada reprocessamento    |
-| ULTIMO_ERRO   | CHAR(255)   |       | Última mensagem de erro — exibição rápida cockpit |
+| ULTIMO_ERRO   | STRING      |       | Última mensagem de erro — exibição rápida cockpit |
 | DATUM         | DATS        |       | Data do último processamento           |
 | UZEIT         | TIMS        |       | Hora do último processamento           |
 | ERNAM         | CHAR(12)    |       | Usuário do último processamento        |
 
-> **ULTIMO_ERRO:** campo chave para o cockpit. Deve ser atualizado a cada tentativa
-> com a mensagem resumida do erro, evitando join com LOG para exibição na lista.
+> **ULTIMO_ERRO STRING:** sem limite de tamanho — guarda a mensagem completa do último erro
+> diretamente na ARQ, sem necessidade de join com o LOG para exibição na lista.
 
 ### 1.2 Tabela ZTBN_Q2C_LOG_MGR
 
@@ -76,35 +76,37 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 
 ## 2. Objetos RAP — Estrutura
 
-### Camada 1 — Interface BO (base)
+> ARQ e LOG são **BO independentes** — sem composition, sem parent/child.
+> Cada um tem seu próprio serviço e app Fiori.
+
+### BO 1 — ARQ (Monitor / Reprocessamento)
 
 ```
-ZI_Q2C_ARQN_MGR   (DDLS)   → Root entity — lê ZTBN_Q2C_ARQ_MGR
-                              Composition → ZI_Q2C_LOGN_MGR (child)
-ZI_Q2C_LOGN_MGR   (DDLS)   → Child entity — lê ZTBN_Q2C_LOG_MGR
-                              Association → _Arq (to parent)
+ZI_Q2C_ARQN_MGR      (DDLS)  → Root entity standalone — lê ZTBN_Q2C_ARQ_MGR
+ZI_Q2C_ARQN_MGR      (BDEF)  → managed, actions Reprocess e Cancel
+ZBP_I_Q2C_ARQN_MGR   (CLAS)  → Behavior implementation
+ZBP_I_Q2C_ARQN_MGR   (CCIMP) → Actions e determinações
 
-ZI_Q2C_ARQN_MGR   (BDEF)   → managed, com actions Reprocess e Cancel
-                              define behavior for root (ARQN)
-                              define behavior for child (LOGN) → read-only
+ZC_Q2C_ARQN_MGR_APP  (DDLS)  → Projection — cockpit Fiori
+ZC_Q2C_ARQN_MGR_APP  (BDEF)  → use action Reprocess; use action Cancel
+ZC_Q2C_ARQN_MGR_APP_MDE (DDLX) → Anotações UI
+ZSD_Q2C_ARQN_MGR_APP (SRVD)  → expose ArqMgrApp
+ZSB_Q2C_ARQN_MGR_APP (SRVB)  → OData V4 - UI
+```
 
-ZBP_I_Q2C_ARQN_MGR (CLAS)  → Behavior implementation
-ZBP_I_Q2C_ARQN_MGR (CCIMP) → Implementação das actions e determinações
+### BO 2 — LOG (Histórico — app separado, somente leitura)
+
+```
+ZI_Q2C_LOGN_MGR      (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
+ZI_Q2C_LOGN_MGR      (BDEF)  → managed read-only (sem actions, sem create)
+
+ZC_Q2C_LOGN_MGR_APP  (DDLS)  → Projection — histórico Fiori
+ZC_Q2C_LOGN_MGR_APP_MDE (DDLX) → Anotações UI
+ZSD_Q2C_LOGN_MGR_APP (SRVD)  → expose LogMgrApp
+ZSB_Q2C_LOGN_MGR_APP (SRVB)  → OData V4 - UI
 ```
 
 > **Sufixo N** para diferenciar dos objetos da versão anterior (sem N).
-
-### Camada 2 — Projection APP (consumo FE)
-
-```
-ZC_Q2C_ARQN_MGR_APP   (DDLS)   → Projection root — expõe ARQ + campos de último log
-ZC_Q2C_LOGN_MGR_APP   (DDLS)   → Projection child — expõe LOG (histórico)
-ZC_Q2C_ARQN_MGR_APP   (BDEF)   → use action Reprocess; use action Cancel
-ZC_Q2C_ARQN_MGR_APP_MDE (DDLX) → Anotações UI Fiori Elements
-ZC_Q2C_LOGN_MGR_APP_MDE (DDLX) → Anotações UI da seção de histórico
-ZSD_Q2C_ARQN_MGR_APP  (SRVD)   → expose ArqMgrApp, LogMgrApp
-ZSB_Q2C_ARQN_MGR_APP  (SRVB)   → OData V4 - UI (criado e publicado no ADT)
-```
 
 ---
 
@@ -118,7 +120,6 @@ ZSB_Q2C_ARQN_MGR_APP  (SRVB)   → OData V4 - UI (criado e publicado no ADT)
 
 define root view entity ZI_Q2C_ARQN_MGR
   as select from ztbn_q2c_arq_mgr as arq
-  composition [0..*] of ZI_Q2C_LOGN_MGR as _Log
 {
   key arq.pedido      as Pedido,
   key arq.bandeira    as Bandeira,
@@ -137,9 +138,7 @@ define root view entity ZI_Q2C_ARQN_MGR
       arq.ultimo_erro as UltimoErro,
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
-      arq.ernam       as Ernam,
-
-      _Log
+      arq.ernam       as Ernam
 }
 ```
 
@@ -171,7 +170,9 @@ define view entity ZI_Q2C_LOGN_MGR
 
 ---
 
-## 5. Behavior Definition — ZI_Q2C_ARQN_MGR (BDEF)
+## 5. Behavior Definitions
+
+### BDEF — ZI_Q2C_ARQN_MGR (ARQ)
 
 ```abap
 managed implementation in class ZBP_I_Q2C_ARQN_MGR unique;
@@ -189,9 +190,6 @@ define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
-  create; update; delete;
-  association _Log { create; }
-
   mapping for ztbn_q2c_arq_mgr
   {
     Pedido     = pedido;
@@ -207,15 +205,20 @@ define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
     Ernam      = ernam;
   }
 }
+```
+
+### BDEF — ZI_Q2C_LOGN_MGR (LOG — somente leitura)
+
+```abap
+managed;
+strict ( 2 );
 
 define behavior for ZI_Q2C_LOGN_MGR alias LogMgr
   persistent table ztbn_q2c_log_mgr
-  lock dependent by _Arq
-  authorization dependent by _Arq
+  lock master
+  authorization master ( instance )
 {
   field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
-
-  association _Arq;
 
   mapping for ztbn_q2c_log_mgr
   {
@@ -291,20 +294,26 @@ Filtros:
 - Pedido
 - Data (range)
 
-### Object Page (detalhe do registro)
+### Object Page (detalhe do registro — App ARQ)
 Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
-2. **Conteúdo Original** → CabecArq, Conteudo (multiline, readonly)
-3. **Histórico de Processamento** → tabela do LOG (seção de itens filho)
-   - Colunas: Etapa, Mensagem, Data, Hora, Usuário
+2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
+3. **Conteúdo Original** → CabecArq, Conteudo (multiline, readonly)
 
-> **Diferença-chave da versão anterior:** o usuário consegue ver TODAS as tentativas,
-> não apenas a última. A seção de histórico lista os registros do LOG em ordem
-> cronológica decrescente.
+### App LOG (app separado — histórico)
+List Report independente com filtro por Pedido + Bandeira:
+- Colunas: Datum, Uzeit, Etapa, Mensagem, Ernam
+- Ordenação padrão: Datum + Uzeit decrescente
+- Filtros: Pedido, Bandeira, Data (range), Etapa
+
+> O usuário consulta o histórico abrindo o **app de LOG separado** e filtrando pelo Pedido.
+> Não há navegação automática entre os dois apps.
 
 ---
 
-## 8. Projeção APP — ZC_Q2C_ARQN_MGR_APP (DDLS)
+## 8. Projeções APP
+
+### ZC_Q2C_ARQN_MGR_APP (DDLS) — App ARQ
 
 ```abap
 @EndUserText.label: 'ARQ MGR - Cockpit Reprocessamento'
@@ -326,10 +335,28 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
       UltimoErro,
       Datum,
       Uzeit,
-      Ernam,
+      Ernam
+}
+```
 
-      /* Log histórico */
-      _Log : redirected to composition child ZC_Q2C_LOGN_MGR_APP
+### ZC_Q2C_LOGN_MGR_APP (DDLS) — App LOG
+
+```abap
+@EndUserText.label: 'LOG MGR - Histórico de Processamento'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+
+define root view entity ZC_Q2C_LOGN_MGR_APP
+  provider contract transactional_query
+  as projection on ZI_Q2C_LOGN_MGR
+{
+  key Pedido,
+  key Bandeira,
+  key Datum,
+  key Uzeit,
+      Etapa,
+      Mensagem,
+      Ernam
 }
 ```
 
@@ -341,23 +368,24 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 1. `ZTBN_Q2C_ARQ_MGR` (SE11 / ADT)
 2. `ZTBN_Q2C_LOG_MGR` (SE11 / ADT)
 
-### Fase 2 — Interface BO
-1. `ZI_Q2C_LOGN_MGR` (DDLS) — child primeiro
-2. `ZI_Q2C_ARQN_MGR` (DDLS) — root com composition
-3. `ZBP_I_Q2C_ARQN_MGR` (CLAS — global)
-4. `ZI_Q2C_ARQN_MGR` (BDEF)
-5. `ZBP_I_Q2C_ARQN_MGR` (CCIMP — locals_imp)
+### Fase 2 — BO ARQ
+1. `ZI_Q2C_ARQN_MGR` (DDLS)
+2. `ZBP_I_Q2C_ARQN_MGR` (CLAS — global)
+3. `ZI_Q2C_ARQN_MGR` (BDEF)
+4. `ZBP_I_Q2C_ARQN_MGR` (CCIMP — locals_imp)
+5. `ZC_Q2C_ARQN_MGR_APP` (DDLS)
+6. `ZC_Q2C_ARQN_MGR_APP` (BDEF)
+7. `ZC_Q2C_ARQN_MGR_APP_MDE` (DDLX)
+8. `ZSD_Q2C_ARQN_MGR_APP` (SRVD)
+9. `ZSB_Q2C_ARQN_MGR_APP` (SRVB — criar e publicar no ADT)
 
-### Fase 3 — Projeção APP
-1. `ZC_Q2C_LOGN_MGR_APP` (DDLS)
-2. `ZC_Q2C_ARQN_MGR_APP` (DDLS)
-3. `ZC_Q2C_ARQN_MGR_APP` (BDEF)
-4. `ZC_Q2C_ARQN_MGR_APP_MDE` (DDLX)
-5. `ZC_Q2C_LOGN_MGR_APP_MDE` (DDLX)
-
-### Fase 4 — Serviço
-1. `ZSD_Q2C_ARQN_MGR_APP` (SRVD)
-2. `ZSB_Q2C_ARQN_MGR_APP` (SRVB — criar e publicar no ADT)
+### Fase 3 — BO LOG (independente)
+1. `ZI_Q2C_LOGN_MGR` (DDLS)
+2. `ZI_Q2C_LOGN_MGR` (BDEF — read-only, sem classe de impl.)
+3. `ZC_Q2C_LOGN_MGR_APP` (DDLS)
+4. `ZC_Q2C_LOGN_MGR_APP_MDE` (DDLX)
+5. `ZSD_Q2C_LOGN_MGR_APP` (SRVD)
+6. `ZSB_Q2C_LOGN_MGR_APP` (SRVB — criar e publicar no ADT)
 
 ---
 
@@ -384,5 +412,5 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 | Chave LOG                | `(pedido, bandeira)` — 1:1         | `(pedido, bandeira, datum, uzeit)` — 1:N histórico por data/hora |
 | Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | `ULTIMO_ERRO` direto na ARQ           |
 | Histórico de tentativas  | Não — sobrescreve sempre           | Sim — INSERT a cada tentativa        |
-| Object page              | Não (page única/list only)         | Sim — com seção de histórico do LOG  |
+| Apps                     | Um único app (page única)          | **Dois apps separados**: ARQ (cockpit) e LOG (histórico) |
 | Alinhamento com EF       | Parcial                            | Total                                 |

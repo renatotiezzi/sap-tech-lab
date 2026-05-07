@@ -1,0 +1,29 @@
+REPORT zrpt_q2c_mgr_cleanup.
+" -----------------------------------------------------------------------
+" Limpeza de registros Q2C MGR — Tabelas ZTBN_Q2C_ARQ_MGR / ZTBN_Q2C_LOG_MGR
+"
+" O que é removido:
+"   - LOG  : todas as linhas com DATUM < hoje - P_DAYS dias
+"   - ARQ  : registros com STATUS = CANCELADO ou PROCESSADO
+"             com DATUM < hoje - P_DAYS dias
+"
+" O que NÃO é removido:
+"   - ARQ com STATUS = 'ERRO' — exige ação manual (Reprocessar ou Cancelar)
+"
+" Agendamento no SM36:
+"   1. Transação SM36 > Novo job > nome: ZCLEAN_Q2C_MGR
+"   2. Passo > Programa ABAP: ZRPT_Q2C_MGR_CLEANUP
+"   3. Parâmetros de variante (se necessário alterar P_DAYS)
+"   4. Periodicidade sugerida: diária (00:00) ou semanal
+"
+" -----------------------------------------------------------------------
+PARAMETERS: p_days TYPE i DEFAULT 90 OBLIGATORY
+              MODIF ID run.
+
+START-OF-SELECTION.
+
+  DATA(lv_msg) = zcl_q2c_mgr_cleanup=>run( iv_retention_days = p_days ).
+
+  WRITE: / lv_msg.
+  ULINE.
+  WRITE: / 'Execução concluída —', sy-datum, sy-uzeit.

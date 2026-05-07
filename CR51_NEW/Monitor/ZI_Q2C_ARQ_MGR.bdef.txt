@@ -25,6 +25,9 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
+  // Associação de leitura ao LOG — sem create (LOG é gerenciado pela action handler)
+  association _Log { }
+
   mapping for ztbn_q2c_arq_mgr
   {
     Pedido     = pedido;

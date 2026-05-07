@@ -1,0 +1,55 @@
+CLASS ZCL_Q2C_MGR_CLEANUP DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    " -----------------------------------------------------------------------
+    " Entry point para background job (SM36)
+    " Elimina registros de ARQ (CANCELADO / PROCESSADO) e respectivos LOGs
+    " com mais de iv_retention_days dias.
+    "
+    " Registros com STATUS = 'ERRO' NÃO são removidos — exigem ação manual.
+    " -----------------------------------------------------------------------
+    CLASS-METHODS run
+      IMPORTING
+        iv_retention_days TYPE i         DEFAULT 90
+      RETURNING
+        VALUE(rv_msg)     TYPE string.
+
+ENDCLASS.
+
+
+CLASS ZCL_Q2C_MGR_CLEANUP IMPLEMENTATION.
+
+  METHOD run.
+
+    " ---- Data de corte ----
+    DATA(lv_cutoff) = cl_abap_context_info=>get_system_date( ) - iv_retention_days.
+
+    " ---- Passo 1: Apagar LOG com datum < corte ----
+    " LOG é limitado por tempo independente do status do ARQ.
+    " Erros sem reprocessamento: o LOG fica disponível até o corte.
+    DELETE FROM ztbn_q2c_log_mgr
+      WHERE datum < @lv_cutoff.
+    DATA(lv_log_cnt) = sy-dbcnt.
+
+    " ---- Passo 2: Apagar ARQ com datum < corte e status final ----
+    " CANCELADO = soft delete pelo usuário
+    " PROCESSADO = reprocessado com sucesso
+    " ERRO = NÃO removido aqui — aguarda ação do usuário (Cancelar ou Reprocessar)
+    DELETE FROM ztbn_q2c_arq_mgr
+      WHERE datum  < @lv_cutoff
+        AND status IN ('CANCELADO', 'PROCESSADO').
+    DATA(lv_arq_cnt) = sy-dbcnt.
+
+    COMMIT WORK.
+
+    rv_msg = |Limpeza Q2C MGR concluída. | &
+             |LOG: { lv_log_cnt } linhas removidas. | &
+             |ARQ: { lv_arq_cnt } registros removidos. | &
+             |(Corte: { lv_cutoff } / retenção: { iv_retention_days } dias)|.
+
+  ENDMETHOD.
+
+ENDCLASS.

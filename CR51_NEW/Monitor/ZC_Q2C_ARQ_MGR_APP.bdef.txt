@@ -10,4 +10,7 @@ define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
 {
   use action Reprocess;
   use action Cancel;
+
+  // Navegação leitura para o LOG — abre histórico completo na Object Page
+  use association _Log;
 }

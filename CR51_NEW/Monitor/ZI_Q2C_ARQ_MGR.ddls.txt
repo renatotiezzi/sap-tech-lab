@@ -9,6 +9,9 @@
 }
 define root view entity ZI_Q2C_ARQ_MGR
   as select from ztbn_q2c_arq_mgr as arq
+  association [0..*] to ZI_Q2C_LOG_MGR as _Log
+    on  $projection.Pedido   = _Log.Pedido
+    and $projection.Bandeira = _Log.Bandeira
 {
   key arq.pedido      as Pedido,
   key arq.bandeira    as Bandeira,
@@ -27,5 +30,8 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.ultimo_erro as UltimoErro,
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
-      arq.ernam       as Ernam
+      arq.ernam       as Ernam,
+
+      /* Associations */
+      _Log
 }

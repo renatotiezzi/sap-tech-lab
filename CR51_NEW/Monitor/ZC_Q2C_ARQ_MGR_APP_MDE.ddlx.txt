@@ -30,7 +30,12 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
       type: #FIELDGROUP_REFERENCE,
       label: 'Conteúdo Original',
       position: 30,
-      targetQualifier: 'FileContent' }
+      targetQualifier: 'FileContent' },
+    { id: 'LogHistory',
+      type: #LINEITEM_REFERENCE,
+      label: 'Histórico de Processamento',
+      position: 20,
+      targetElement: '_Log' }
   ]
 
   @EndUserText.label: 'Pedido'

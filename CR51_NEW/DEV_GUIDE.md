@@ -82,35 +82,35 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 ### BO 1 — ARQ (Monitor / Reprocessamento)
 
 ```
-ZI_Q2C_ARQN_MGR      (DDLS)  → Root entity standalone — lê ZTBN_Q2C_ARQ_MGR
-ZI_Q2C_ARQN_MGR      (BDEF)  → managed, actions Reprocess e Cancel
-ZBP_I_Q2C_ARQN_MGR   (CLAS)  → Behavior implementation
-ZBP_I_Q2C_ARQN_MGR   (CCIMP) → Actions e determinações
+ZI_Q2C_ARQ_MGR       (DDLS)  → Root entity standalone — lê ZTBN_Q2C_ARQ_MGR
+ZI_Q2C_ARQ_MGR       (BDEF)  → managed, actions Reprocess e Cancel
+ZBP_I_Q2C_ARQ_MGR    (CLAS)  → Behavior implementation
+ZBP_I_Q2C_ARQ_MGR    (CCIMP) → Actions e determinações
 
-ZC_Q2C_ARQN_MGR_APP  (DDLS)  → Projection — cockpit Fiori
-ZC_Q2C_ARQN_MGR_APP  (BDEF)  → use action Reprocess; use action Cancel
-ZC_Q2C_ARQN_MGR_APP_MDE (DDLX) → Anotações UI
-ZSD_Q2C_ARQN_MGR_APP (SRVD)  → expose ArqMgrApp
-ZSB_Q2C_ARQN_MGR_APP (SRVB)  → OData V4 - UI
+ZC_Q2C_ARQ_MGR_APP   (DDLS)  → Projection — cockpit Fiori
+ZC_Q2C_ARQ_MGR_APP   (BDEF)  → use action Reprocess; use action Cancel
+ZC_Q2C_ARQ_MGR_APP_MDE (DDLX) → Anotações UI
+ZSD_Q2C_ARQ_MGR_SVR  (SRVD)  → expose ArqMgrApp
+ZSB_Q2C_ARQ_MGR_SVR  (SRVB)  → OData V4 - UI
 ```
 
 ### BO 2 — LOG (Histórico — app separado, somente leitura)
 
 ```
-ZI_Q2C_LOGN_MGR      (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
-ZI_Q2C_LOGN_MGR      (BDEF)  → managed read-only (sem actions, sem create)
+ZI_Q2C_LOG_MGR       (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
+ZI_Q2C_LOG_MGR       (BDEF)  → managed read-only (sem actions, sem create)
 
-ZC_Q2C_LOGN_MGR_APP  (DDLS)  → Projection — histórico Fiori
-ZC_Q2C_LOGN_MGR_APP_MDE (DDLX) → Anotações UI
-ZSD_Q2C_LOGN_MGR_APP (SRVD)  → expose LogMgrApp
-ZSB_Q2C_LOGN_MGR_APP (SRVB)  → OData V4 - UI
+ZC_Q2C_LOG_MGR_APP   (DDLS)  → Projection — histórico Fiori
+ZC_Q2C_LOG_MGR_APP_MDE (DDLX) → Anotações UI
+ZSD_Q2C_LOG_MGR_SVR  (SRVD)  → expose LogMgrApp
+ZSB_Q2C_LOG_MGR_SVR  (SRVB)  → OData V4 - UI
 ```
 
-> **Sufixo N** para diferenciar dos objetos da versão anterior (sem N).
+> **Nomenclatura:** interfaces sem sufixo adicional; projeções com `_APP`; serviços (SRVD/SRVB) com `_SVR`.
 
 ---
 
-## 3. Modelo RAP — ZI_Q2C_ARQN_MGR (DDLS)
+## 3. Modelo RAP — ZI_Q2C_ARQ_MGR (DDLS)
 
 ```abap
 @AbapCatalog.viewEnhancementCategory: [#NONE]
@@ -118,7 +118,7 @@ ZSB_Q2C_LOGN_MGR_APP (SRVB)  → OData V4 - UI
 @EndUserText.label: 'Interface ARQ MGR - Reprocessamento'
 @Metadata.ignorePropagatedAnnotations: true
 
-define root view entity ZI_Q2C_ARQN_MGR
+define root view entity ZI_Q2C_ARQ_MGR
   as select from ztbn_q2c_arq_mgr as arq
 {
   key arq.pedido      as Pedido,
@@ -144,16 +144,16 @@ define root view entity ZI_Q2C_ARQN_MGR
 
 ---
 
-## 4. Modelo RAP — ZI_Q2C_LOGN_MGR (DDLS)
+## 4. Modelo RAP — ZI_Q2C_LOG_MGR (DDLS)
 
 ```abap
 @AbapCatalog.viewEnhancementCategory: [#NONE]
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Interface LOG MGR - Histórico'
 
-define view entity ZI_Q2C_LOGN_MGR
+define view entity ZI_Q2C_LOG_MGR
   as select from ztbn_q2c_log_mgr as log
-  association to parent ZI_Q2C_ARQN_MGR as _Arq
+  association to parent ZI_Q2C_ARQ_MGR as _Arq
     on $projection.IdArq = _Arq.IdArq
 {
   key log.id_log   as IdLog,
@@ -172,13 +172,13 @@ define view entity ZI_Q2C_LOGN_MGR
 
 ## 5. Behavior Definitions
 
-### BDEF — ZI_Q2C_ARQN_MGR (ARQ)
+### BDEF — ZI_Q2C_ARQ_MGR (ARQ)
 
 ```abap
-managed implementation in class ZBP_I_Q2C_ARQN_MGR unique;
+managed implementation in class ZBP_I_Q2C_ARQ_MGR unique;
 strict ( 2 );
 
-define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
+define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   persistent table ztbn_q2c_arq_mgr
   lock master
   authorization master ( instance )
@@ -207,13 +207,13 @@ define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
 }
 ```
 
-### BDEF — ZI_Q2C_LOGN_MGR (LOG — somente leitura)
+### BDEF — ZI_Q2C_LOG_MGR (LOG — somente leitura)
 
 ```abap
 managed;
 strict ( 2 );
 
-define behavior for ZI_Q2C_LOGN_MGR alias LogMgr
+define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbn_q2c_log_mgr
   lock master
   authorization master ( instance )
@@ -313,16 +313,16 @@ List Report independente com filtro por Pedido + Bandeira:
 
 ## 8. Projeções APP
 
-### ZC_Q2C_ARQN_MGR_APP (DDLS) — App ARQ
+### ZC_Q2C_ARQ_MGR_APP (DDLS) — App ARQ
 
 ```abap
 @EndUserText.label: 'ARQ MGR - Cockpit Reprocessamento'
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @Metadata.allowExtensions: true
 
-define root view entity ZC_Q2C_ARQN_MGR_APP
+define root view entity ZC_Q2C_ARQ_MGR_APP
   provider contract transactional_query
-  as projection on ZI_Q2C_ARQN_MGR
+  as projection on ZI_Q2C_ARQ_MGR
 {
   key Pedido,
   key Bandeira,
@@ -339,16 +339,16 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 }
 ```
 
-### ZC_Q2C_LOGN_MGR_APP (DDLS) — App LOG
+### ZC_Q2C_LOG_MGR_APP (DDLS) — App LOG
 
 ```abap
 @EndUserText.label: 'LOG MGR - Histórico de Processamento'
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @Metadata.allowExtensions: true
 
-define root view entity ZC_Q2C_LOGN_MGR_APP
+define root view entity ZC_Q2C_LOG_MGR_APP
   provider contract transactional_query
-  as projection on ZI_Q2C_LOGN_MGR
+  as projection on ZI_Q2C_LOG_MGR
 {
   key Pedido,
   key Bandeira,
@@ -369,23 +369,23 @@ define root view entity ZC_Q2C_LOGN_MGR_APP
 2. `ZTBN_Q2C_LOG_MGR` (SE11 / ADT)
 
 ### Fase 2 — BO ARQ
-1. `ZI_Q2C_ARQN_MGR` (DDLS)
-2. `ZBP_I_Q2C_ARQN_MGR` (CLAS — global)
-3. `ZI_Q2C_ARQN_MGR` (BDEF)
-4. `ZBP_I_Q2C_ARQN_MGR` (CCIMP — locals_imp)
-5. `ZC_Q2C_ARQN_MGR_APP` (DDLS)
-6. `ZC_Q2C_ARQN_MGR_APP` (BDEF)
-7. `ZC_Q2C_ARQN_MGR_APP_MDE` (DDLX)
-8. `ZSD_Q2C_ARQN_MGR_APP` (SRVD)
-9. `ZSB_Q2C_ARQN_MGR_APP` (SRVB — criar e publicar no ADT)
+1. `ZI_Q2C_ARQ_MGR` (DDLS)
+2. `ZBP_I_Q2C_ARQ_MGR` (CLAS — global)
+3. `ZI_Q2C_ARQ_MGR` (BDEF)
+4. `ZBP_I_Q2C_ARQ_MGR` (CCIMP — locals_imp)
+5. `ZC_Q2C_ARQ_MGR_APP` (DDLS)
+6. `ZC_Q2C_ARQ_MGR_APP` (BDEF)
+7. `ZC_Q2C_ARQ_MGR_APP_MDE` (DDLX)
+8. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD)
+9. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar no ADT)
 
 ### Fase 3 — BO LOG (independente)
-1. `ZI_Q2C_LOGN_MGR` (DDLS)
-2. `ZI_Q2C_LOGN_MGR` (BDEF — read-only, sem classe de impl.)
-3. `ZC_Q2C_LOGN_MGR_APP` (DDLS)
-4. `ZC_Q2C_LOGN_MGR_APP_MDE` (DDLX)
-5. `ZSD_Q2C_LOGN_MGR_APP` (SRVD)
-6. `ZSB_Q2C_LOGN_MGR_APP` (SRVB — criar e publicar no ADT)
+1. `ZI_Q2C_LOG_MGR` (DDLS)
+2. `ZI_Q2C_LOG_MGR` (BDEF — read-only, sem classe de impl.)
+3. `ZC_Q2C_LOG_MGR_APP` (DDLS)
+4. `ZC_Q2C_LOG_MGR_APP_MDE` (DDLX)
+5. `ZSD_Q2C_LOG_MGR_SVR` (SRVD)
+6. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — criar e publicar no ADT)
 
 ---
 

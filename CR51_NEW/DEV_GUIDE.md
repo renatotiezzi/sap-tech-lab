@@ -12,7 +12,7 @@ ARQ e LOG são entidades **completamente independentes** — apps separados, ser
 - Representa o **pedido/arquivo** recebido da MGR
 - Chave: `(PEDIDO, BANDEIRA)` — chave funcional de negócio
 - Guarda o conteúdo original do TXT e o status atual
-- Campo `ULTIMO_ERRO` CHAR 255 para exibição rápida no cockpit sem precisar de join
+- Campo `ULTIMO_ERRO` STRING para exibição rápida no cockpit sem precisar de join
 - **Imutável pelo usuário** — somente leitura + actions
 
 ### LOG — Tabela de Log
@@ -312,7 +312,7 @@ Filtros:
 Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
 2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
-3. **Conteúdo Original** → CabecArq, Conteudo (multiline, readonly)
+3. **Conteúdo Original** → CabecArq, Conteudo (binário, readonly)
 4. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
 
 > O usuário clica no registro ARQ → Object Page abre → seção LOG exibe **todas** as tentativas (Datum, Uzeit, Etapa, Mensagem, Ernam), ordenáveis.

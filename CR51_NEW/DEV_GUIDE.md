@@ -10,17 +10,17 @@ ARQ e LOG são entidades separadas e independentes. LOG é 1:N (histórico compl
 
 ### ARQ — Tabela de Arquivos
 - Representa o **pedido/arquivo** recebido da MGR
-- Chave: `ID_ARQ` (NUMC 10) — gerado internamente, representa Pedido+Dealer
+- Chave: `(PEDIDO, BANDEIRA)` — chave funcional de negócio
 - Guarda o conteúdo original do TXT e o status atual
 - Campo `ULTIMO_ERRO` CHAR 255 para exibição rápida no cockpit sem precisar de join
 - **Imutável pelo usuário** — somente leitura + actions
 
 ### LOG — Tabela de Log
 - Representa **cada tentativa de processamento** do arquivo
-- Chave: `ID_LOG` (NUMC 10) — número sequencial próprio (number range)
-- FK: `ID_ARQ` → relação **1:N com a ARQ**
+- Chave: `(PEDIDO, BANDEIRA, DATUM, UZEIT)` — chaves do pai + data/hora da tentativa
+- Relação **1:N com a ARQ** pela chave funcional
 - Cada reprocessamento gera **nova linha** no log — nunca sobrescreve
-- Guarda etapa, mensagem detalhada e timestamp de cada tentativa
+- Guarda etapa, mensagem detalhada e os campos-chave do pai para rastreabilidade direta
 
 ### Separação de responsabilidades
 ```
@@ -36,9 +36,8 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 
 | Campo         | Tipo ABAP   | Chave | Descrição                              |
 |---------------|-------------|-------|----------------------------------------|
-| ID_ARQ        | NUMC(10)    | ✓     | Identificador único do arquivo (NR)    |
-| PEDIDO        | CHAR(35)    |       | Nº do pedido MGR (Num. Pedido+Dealer)  |
-| BANDEIRA      | CHAR(10)    |       | Ford / JCB / Renault etc.              |
+| PEDIDO        | CHAR(35)    | ✓     | Nº do pedido MGR (Num. Pedido+Dealer)  |
+| BANDEIRA      | CHAR(10)    | ✓     | Ford / JCB / Renault etc.              |
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
 | CABEC_ARQ     | CHAR(100)   |       | Cabeçalho original do TXT              |
 | CONTEUDO      | RAWSTRING   |       | Arquivo bruto conforme Q2C014I000      |
@@ -56,20 +55,22 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 
 | Campo         | Tipo ABAP   | Chave | Descrição                              |
 |---------------|-------------|-------|----------------------------------------|
-| ID_LOG        | NUMC(10)    | ✓     | Identificador do log (NR próprio)      |
-| ID_ARQ        | NUMC(10)    |       | FK → ZTBN_Q2C_ARQ_MGR                 |
+| PEDIDO        | CHAR(35)    | ✓     | FK → ZTBN_Q2C_ARQ_MGR (chave pai)     |
+| BANDEIRA      | CHAR(10)    | ✓     | FK → ZTBN_Q2C_ARQ_MGR (chave pai)     |
+| DATUM         | DATS        | ✓     | Data da tentativa                      |
+| UZEIT         | TIMS        | ✓     | Hora da tentativa                      |
 | ETAPA         | CHAR(30)    |       | Leitura / Validação / OV / Remessa / Fatura / XML |
 | MENSAGEM      | STRING      |       | Texto detalhado do erro/sucesso        |
-| DATUM         | DATS        |       | Data do registro                       |
-| UZEIT         | TIMS        |       | Hora do registro                       |
 | ERNAM         | CHAR(12)    |       | Usuário que executou                   |
 
-> **ID_LOG:** gerado por number range próprio. Nunca reutilizar.
-> Cada tentativa de reprocessamento = INSERT de nova linha. Nunca UPDATE/UPSERT.
+> **Chave (Pedido + Bandeira + Datum + Uzeit):** identifica unicamente cada tentativa.
+> Garante rastreabilidade direta sem FK numérica — a chave do pai está na própria linha.
+> Cada tentativa = INSERT de nova linha. Nunca UPDATE/UPSERT.
+> Atenção: se dois reprocessamentos ocorrerem no mesmo segundo, o segundo falha na INSERT.
+> Mitigação: usar TIMESTAMP (DATS+TIMS+microsegundo) ou aceitar a limitação por design.
 
 ### 1.3 Number Ranges necessários
-- `ZNR_Q2C_ARQ` → para `ID_ARQ`
-- `ZNR_Q2C_LOG` → para `ID_LOG`
+- Nenhum — a chave é funcional em ambas as tabelas.
 
 ---
 
@@ -119,9 +120,8 @@ define root view entity ZI_Q2C_ARQN_MGR
   as select from ztbn_q2c_arq_mgr as arq
   composition [0..*] of ZI_Q2C_LOGN_MGR as _Log
 {
-  key arq.id_arq      as IdArq,
-      arq.pedido      as Pedido,
-      arq.bandeira    as Bandeira,
+  key arq.pedido      as Pedido,
+  key arq.bandeira    as Bandeira,
       arq.tipo_doc    as TipoDoc,
       arq.cabec_arq   as CabecArq,
       arq.conteudo    as Conteudo,
@@ -183,7 +183,6 @@ define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
   authorization master ( instance )
   etag master Datum
 {
-  field ( readonly ) IdArq;
   field ( readonly ) Pedido; Bandeira; TipoDoc; CabecArq; Conteudo;
   field ( readonly ) Tentativas; Datum; Uzeit; Ernam; UltimoErro;
 
@@ -195,7 +194,6 @@ define behavior for ZI_Q2C_ARQN_MGR alias ArqMgr
 
   mapping for ztbn_q2c_arq_mgr
   {
-    IdArq      = id_arq;
     Pedido     = pedido;
     Bandeira   = bandeira;
     TipoDoc    = tipo_doc;
@@ -215,18 +213,18 @@ define behavior for ZI_Q2C_LOGN_MGR alias LogMgr
   lock dependent by _Arq
   authorization dependent by _Arq
 {
-  field ( readonly ) IdLog; IdArq; Etapa; Mensagem; Datum; Uzeit; Ernam;
+  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
 
   association _Arq;
 
   mapping for ztbn_q2c_log_mgr
   {
-    IdLog    = id_log;
-    IdArq    = id_arq;
-    Etapa    = etapa;
-    Mensagem = mensagem;
+    Pedido   = pedido;
+    Bandeira = bandeira;
     Datum    = datum;
     Uzeit    = uzeit;
+    Etapa    = etapa;
+    Mensagem = mensagem;
     Ernam    = ernam;
   }
 }
@@ -238,15 +236,15 @@ define behavior for ZI_Q2C_LOGN_MGR alias LogMgr
 
 ### Action Reprocess
 ```
-1. Ler registro ARQ pelo IdArq
+1. Ler registro ARQ pelo Pedido + Bandeira
 2. Validar STATUS != CANCELADO e != EM_PROCESSAMENTO
 3. UPDATE ARQ:
    - STATUS = 'EM_PROCESSAMENTO'
    - TENTATIVAS = TENTATIVAS + 1
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
 4. INSERT nova linha em LOG:
-   - ID_LOG = number range ZNR_Q2C_LOG (novo número)
-   - ID_ARQ = IdArq
+   - PEDIDO = Pedido, BANDEIRA = Bandeira (chave pai)
+   - DATUM = sy-datum, UZEIT = sy-uzeit (chave temporal)
    - ETAPA = 'REPROCESSAMENTO'
    - MENSAGEM = 'Reprocessamento iniciado'
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
@@ -317,9 +315,8 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
   provider contract transactional_query
   as projection on ZI_Q2C_ARQN_MGR
 {
-  key IdArq,
-      Pedido,
-      Bandeira,
+  key Pedido,
+  key Bandeira,
       TipoDoc,
       CabecArq,
       Conteudo,
@@ -340,11 +337,9 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 
 ## 9. Ordem de Criação e Ativação
 
-### Fase 1 — Tabelas e Number Ranges
+### Fase 1 — Tabelas
 1. `ZTBN_Q2C_ARQ_MGR` (SE11 / ADT)
 2. `ZTBN_Q2C_LOG_MGR` (SE11 / ADT)
-3. Number Range `ZNR_Q2C_ARQ` (SNRO)
-4. Number Range `ZNR_Q2C_LOG` (SNRO)
 
 ### Fase 2 — Interface BO
 1. `ZI_Q2C_LOGN_MGR` (DDLS) — child primeiro
@@ -372,7 +367,7 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 |---|--------------------------------|--------------------------------------------|-----------------|
 | 1 | Nome das tabelas               | `ZTBN_Q2C_*` ou outro padrão              | Arquiteto       |
 | 2 | Pacote / transporte            | Definir pacote Q2C para os novos objetos   | Basis / Arquiteto |
-| 3 | Number range para ID_ARQ       | Gerado na gravação do arquivo ou no JOB?   | Dev + Funcional |
+| 3 | Colisão de chave no LOG        | E se dois reprocessamentos ocorrerem no mesmo segundo? Usar TIMESTAMP com microsegundo ou aceitar limitação? | Dev + Arquiteto |
 | 4 | Quem chama o INSERT no LOG?    | Behavior impl. ou classe externa de integração? | Dev        |
 | 5 | Campo CONTEUDO tipo RAWSTRING  | Suportado como campo de tabela em S4 ABAP? Alternativa: LCHR ou tabela filho de linhas | Dev |
 | 6 | Retenção 90 dias               | Job de limpeza — quando implementar?       | Funcional / Basis |
@@ -385,8 +380,8 @@ define root view entity ZC_Q2C_ARQN_MGR_APP
 
 | Aspecto                  | CR51_ListReport (anterior)         | CR51_NEW (esta versão)                |
 |--------------------------|------------------------------------|---------------------------------------|
-| Chave ARQ                | `(pedido, bandeira)` — funcional   | `ID_ARQ` NUMC 10 — técnica + NR      |
-| Chave LOG                | `(pedido, bandeira)` — 1:1         | `ID_LOG` NUMC 10 — 1:N histórico     |
+| Chave ARQ                | `(pedido, bandeira)` — funcional   | `(pedido, bandeira)` — mesma, funcional |
+| Chave LOG                | `(pedido, bandeira)` — 1:1         | `(pedido, bandeira, datum, uzeit)` — 1:N histórico por data/hora |
 | Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | `ULTIMO_ERRO` direto na ARQ           |
 | Histórico de tentativas  | Não — sobrescreve sempre           | Sim — INSERT a cada tentativa        |
 | Object page              | Não (page única/list only)         | Sim — com seção de histórico do LOG  |

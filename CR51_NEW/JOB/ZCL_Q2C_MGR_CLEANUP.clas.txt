@@ -1,54 +1,122 @@
-CLASS ZCL_Q2C_MGR_CLEANUP DEFINITION
+CLASS zcl_q2c_mgr_cleanup DEFINITION
   PUBLIC
   FINAL
   CREATE PUBLIC.
 
   PUBLIC SECTION.
     " -----------------------------------------------------------------------
-    " Entry point para background job (SM36)
-    " Elimina registros de ARQ (CANCELADO / PROCESSADO) e respectivos LOGs
-    " com mais de iv_retention_days dias.
+    " Application Job — agendado via app Fiori "Application Jobs" (F2373)
+    " Catalog Entry : ZQ2C_CLEANUP_CE   (criar manualmente no ADT)
+    " Job Template  : ZQ2C_CLEANUP_JT   (criar manualmente no ADT)
+    " Log Object    : ZQ2C_LOG           (criar manualmente em SBAL_OBJECT)
     "
-    " Registros com STATUS = 'ERRO' NÃO são removidos — exigem ação manual.
+    " Elimina registros antigos de ARQ (CANCELADO/PROCESSADO) e LOG.
+    " ARQ com STATUS = ERRO NÃO são removidos — exigem ação manual.
     " -----------------------------------------------------------------------
-    CLASS-METHODS run
-      IMPORTING
-        iv_retention_days TYPE i         DEFAULT 90
-      RETURNING
-        VALUE(rv_msg)     TYPE string.
+    INTERFACES if_apj_dt_exec_object.  " Design-time: define parâmetros
+    INTERFACES if_apj_rt_exec_object.  " Runtime    : executa o job
 
 ENDCLASS.
 
 
-CLASS ZCL_Q2C_MGR_CLEANUP IMPLEMENTATION.
+CLASS zcl_q2c_mgr_cleanup IMPLEMENTATION.
 
-  METHOD run.
+  " ---------------------------------------------------------------------------
+  " GET_PARAMETERS — define os parâmetros exibidos no app Application Jobs
+  " ---------------------------------------------------------------------------
+  METHOD if_apj_dt_exec_object~get_parameters.
 
-    " ---- Data de corte ----
-    DATA(lv_cutoff) = cl_abap_context_info=>get_system_date( ) - iv_retention_days.
+    et_parameter_def = VALUE #(
+      ( selname        = 'P_DAYS'
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'I'
+        length         = 3
+        param_text     = 'Retenção (dias)'
+        changeable_ind = abap_true )
+    ).
 
-    " ---- Passo 1: Apagar LOG com datum < corte ----
-    " LOG é limitado por tempo independente do status do ARQ.
-    " Erros sem reprocessamento: o LOG fica disponível até o corte.
-    DELETE FROM ztbn_q2c_log_mgr
-      WHERE datum < @lv_cutoff.
-    DATA(lv_log_cnt) = sy-dbcnt.
+    " Valor padrão: 90 dias
+    et_parameter_val = VALUE #(
+      ( selname = 'P_DAYS'
+        kind    = if_apj_dt_exec_object=>parameter
+        sign    = 'I'
+        option  = 'EQ'
+        low     = '90' )
+    ).
 
-    " ---- Passo 2: Apagar ARQ com datum < corte e status final ----
-    " CANCELADO = soft delete pelo usuário
-    " PROCESSADO = reprocessado com sucesso
-    " ERRO = NÃO removido aqui — aguarda ação do usuário (Cancelar ou Reprocessar)
-    DELETE FROM ztbn_q2c_arq_mgr
-      WHERE datum  < @lv_cutoff
-        AND status IN ('CANCELADO', 'PROCESSADO').
-    DATA(lv_arq_cnt) = sy-dbcnt.
+  ENDMETHOD.
 
-    COMMIT WORK.
 
-    rv_msg = |Limpeza Q2C MGR concluída. | &
-             |LOG: { lv_log_cnt } linhas removidas. | &
-             |ARQ: { lv_arq_cnt } registros removidos. | &
-             |(Corte: { lv_cutoff } / retenção: { iv_retention_days } dias)|.
+  " ---------------------------------------------------------------------------
+  " EXECUTE — lógica de limpeza, chamado pelo framework APJ em background
+  " ---------------------------------------------------------------------------
+  METHOD if_apj_rt_exec_object~execute.
+
+    " ---- Ler parâmetro P_DAYS ----
+    DATA lv_days TYPE i VALUE 90.
+
+    LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<fs_param>).
+      IF <fs_param>-selname = 'P_DAYS'.
+        lv_days = <fs_param>-low.
+      ENDIF.
+    ENDLOOP.
+
+    DATA(lv_cutoff) = cl_abap_context_info=>get_system_date( ) - lv_days.
+
+    " ---- Inicializar BALI log ----
+    DATA(lo_log) = cl_bali_log=>create_with_header(
+      cl_bali_header_setter=>create(
+        object      = 'ZQ2C_LOG'
+        subobject   = 'CLEANUP'
+        external_id = |Q2C_CLEANUP_{ sy-datum }_{ sy-uzeit }|
+      )
+    ).
+
+    TRY.
+
+        " ---- Passo 1: Apagar LOG com datum < corte ----
+        DELETE FROM ztbn_q2c_log_mgr
+          WHERE datum < @lv_cutoff.
+        DATA(lv_log_cnt) = sy-dbcnt.
+
+        " ---- Passo 2: Apagar ARQ com datum < corte e status final ----
+        " STATUS = ERRO não é removido — aguarda ação manual do usuário
+        DELETE FROM ztbn_q2c_arq_mgr
+          WHERE datum  < @lv_cutoff
+            AND status IN ('CANCELADO', 'PROCESSADO').
+        DATA(lv_arq_cnt) = sy-dbcnt.
+
+        COMMIT WORK.
+
+        " ---- Gravar mensagem de sucesso no BALI log ----
+        lo_log->add_item(
+          cl_bali_free_text_setter=>create(
+            severity = if_bali_constants=>c_severity_status
+            text     = |Limpeza concluída — LOG: { lv_log_cnt } / ARQ: { lv_arq_cnt } registros removidos (corte: { lv_cutoff } / retenção: { lv_days } dias)|
+          )
+        ).
+
+      CATCH cx_sy_open_sql_error INTO DATA(lx_sql).
+
+        ROLLBACK WORK.
+
+        lo_log->add_item(
+          cl_bali_free_text_setter=>create(
+            severity = if_bali_constants=>c_severity_error
+            text     = |Erro SQL: { lx_sql->get_text( ) }|
+          )
+        ).
+
+        RAISE EXCEPTION TYPE cx_apj_rt_content
+          MESSAGE e001(00) WITH 'Erro na limpeza Q2C MGR — ver Application Log'.
+
+    ENDTRY.
+
+    " ---- Salvar log vinculado ao job ----
+    cl_bali_log_db=>get_instance( )->save_log(
+      log                        = lo_log
+      assign_to_current_appl_job = abap_true
+    ).
 
   ENDMETHOD.
 

@@ -1,29 +1,41 @@
-REPORT zrpt_q2c_mgr_cleanup.
-" -----------------------------------------------------------------------
-" Limpeza de registros Q2C MGR — Tabelas ZTBN_Q2C_ARQ_MGR / ZTBN_Q2C_LOG_MGR
-"
-" O que é removido:
-"   - LOG  : todas as linhas com DATUM < hoje - P_DAYS dias
-"   - ARQ  : registros com STATUS = CANCELADO ou PROCESSADO
-"             com DATUM < hoje - P_DAYS dias
-"
-" O que NÃO é removido:
-"   - ARQ com STATUS = 'ERRO' — exige ação manual (Reprocessar ou Cancelar)
-"
-" Agendamento no SM36:
-"   1. Transação SM36 > Novo job > nome: ZCLEAN_Q2C_MGR
-"   2. Passo > Programa ABAP: ZRPT_Q2C_MGR_CLEANUP
-"   3. Parâmetros de variante (se necessário alterar P_DAYS)
-"   4. Periodicidade sugerida: diária (00:00) ou semanal
-"
-" -----------------------------------------------------------------------
-PARAMETERS: p_days TYPE i DEFAULT 90 OBLIGATORY
-              MODIF ID run.
+========================================================================
+OBJETOS MANUAIS — Application Job Q2C MGR Cleanup
+Criar no ADT / sistema antes de agendar o job
+========================================================================
 
-START-OF-SELECTION.
+1. APPLICATION LOG OBJECT  (transação SBAL_OBJECT)
+   -----------------------------------------------------------------------
+   Object    : ZQ2C_LOG
+   Subobject : CLEANUP
+   Descrição : Q2C MGR — Log de limpeza de registros antigos
 
-  DATA(lv_msg) = zcl_q2c_mgr_cleanup=>run( iv_retention_days = p_days ).
+2. JOB CATALOG ENTRY  (ADT → New → Application Job Catalog Entry)
+   -----------------------------------------------------------------------
+   Name      : ZQ2C_CLEANUP_CE
+   Descrição : Q2C MGR — Limpeza de registros (90 dias)
+   Class     : ZCL_Q2C_MGR_CLEANUP
+   (vincula a classe ao framework APJ)
 
-  WRITE: / lv_msg.
-  ULINE.
-  WRITE: / 'Execução concluída —', sy-datum, sy-uzeit.
+3. JOB TEMPLATE  (ADT → New → Application Job Template)
+   -----------------------------------------------------------------------
+   Name             : ZQ2C_CLEANUP_JT
+   Descrição        : Q2C MGR — Template limpeza mensal
+   Catalog Entry    : ZQ2C_CLEANUP_CE
+   Parâmetro P_DAYS : 90  (valor padrão sugerido)
+
+========================================================================
+AGENDAMENTO  (app Fiori "Application Jobs" — F2373)
+========================================================================
+   1. Abrir app "Application Jobs" no Fiori Launchpad
+   2. "Schedule New Job" → Template: ZQ2C_CLEANUP_JT
+   3. Definir recorrência (sugestão: diária às 01:00)
+   4. P_DAYS pode ser ajustado por agendamento
+
+========================================================================
+NOTA — regra de limpeza implementada em ZCL_Q2C_MGR_CLEANUP
+========================================================================
+   LOG (ztbn_q2c_log_mgr) : remove todas as linhas com DATUM < corte
+   ARQ (ztbn_q2c_arq_mgr) : remove STATUS = CANCELADO ou PROCESSADO
+                             com DATUM < corte
+   ARQ com STATUS = ERRO   : NÃO removidos — aguardam ação manual
+

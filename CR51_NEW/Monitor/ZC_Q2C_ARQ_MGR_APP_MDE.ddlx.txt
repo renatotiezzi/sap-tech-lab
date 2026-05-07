@@ -99,7 +99,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   CabecArq;
 
   @EndUserText.label: 'Conteúdo do Arquivo'
-  @UI.multiLineText: true
+  // RAWSTRING = Edm.Binary — @UI.multiLineText não se aplica a campos binários
   @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
   Conteudo;
 

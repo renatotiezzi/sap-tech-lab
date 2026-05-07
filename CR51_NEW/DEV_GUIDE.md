@@ -270,7 +270,7 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
    - UPDATE ARQ: STATUS = 'PROCESSADO', ULTIMO_ERRO = ''
    - INSERT LOG: ETAPA = 'CONCLUSAO', MENSAGEM = 'Processado com sucesso'
 7. Se ERRO:
-   - UPDATE ARQ: STATUS = 'ERRO', ULTIMO_ERRO = mensagem_erro[1..255]
+   - UPDATE ARQ: STATUS = 'ERRO', ULTIMO_ERRO = mensagem_erro (STRING — sem truncação)
    - INSERT LOG: ETAPA = etapa_erro, MENSAGEM = mensagem_erro (STRING completa)
 ```
 

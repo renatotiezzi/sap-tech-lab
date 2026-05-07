@@ -1,0 +1,31 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Interface ARQ MGR - Reprocessamento'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.usageType: {
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #MIXED
+}
+define root view entity ZI_Q2C_ARQ_MGR
+  as select from ztbn_q2c_arq_mgr as arq
+{
+  key arq.pedido      as Pedido,
+  key arq.bandeira    as Bandeira,
+      arq.tipo_doc    as TipoDoc,
+      arq.cabec_arq   as CabecArq,
+      arq.conteudo    as Conteudo,
+      arq.status      as Status,
+      case arq.status
+        when 'ERRO'             then 1
+        when 'EM_PROCESSAMENTO' then 2
+        when 'PROCESSADO'       then 3
+        when 'CANCELADO'        then 0
+        else 0
+      end             as StatusCriticality,
+      arq.tentativas  as Tentativas,
+      arq.ultimo_erro as UltimoErro,
+      arq.datum       as Datum,
+      arq.uzeit       as Uzeit,
+      arq.ernam       as Ernam
+}

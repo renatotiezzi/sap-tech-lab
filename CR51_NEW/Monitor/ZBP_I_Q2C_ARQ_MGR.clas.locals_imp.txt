@@ -1,0 +1,261 @@
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type definitions
+
+*----------------------------------------------------------------------*
+* Local Handler: ArqMgr
+* Behavior implementation para ZI_Q2C_ARQ_MGR
+*
+* Arquitetura:
+*  - ARQ e LOG são BOs completamente independentes (sem composition)
+*  - Cada reprocessamento gera INSERT de nova linha em ZTBN_Q2C_LOG_MGR
+*  - ARQ mantém ULTIMO_ERRO (STRING) para exibição rápida no cockpit
+*  - INSERT no LOG é feito via ABAP SQL direto (LOG é read-only no RAP)
+*----------------------------------------------------------------------*
+CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS reprocess FOR MODIFY
+      IMPORTING keys FOR ACTION arqmgr~reprocess
+      RESULT result.
+
+    METHODS cancel FOR MODIFY
+      IMPORTING keys FOR ACTION arqmgr~cancel
+      RESULT result.
+
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR ARQMGR RESULT result.
+
+    " Insere nova linha no LOG (sempre INSERT — nunca UPDATE/UPSERT)
+    " Garante histórico completo de todas as tentativas
+    METHODS insert_log
+      IMPORTING
+        pedido   TYPE ztbn_q2c_arq_mgr-pedido
+        bandeira TYPE ztbn_q2c_arq_mgr-bandeira
+        etapa    TYPE ztbn_q2c_log_mgr-etapa
+        mensagem TYPE ztbn_q2c_log_mgr-mensagem.
+
+ENDCLASS.
+
+CLASS lhc_arq_mgr IMPLEMENTATION.
+
+  METHOD get_global_authorizations.
+    result = VALUE #(
+      %update = if_abap_behv=>auth-allowed
+    ).
+  ENDMETHOD.
+
+  METHOD reprocess.
+
+    " 1. Ler dados completos das entidades selecionadas
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(entities)
+      FAILED DATA(read_failed).
+
+    DATA(cpi_caller) = NEW zcl_q2c_cpi_caller( ).
+
+    LOOP AT entities INTO DATA(entity).
+
+      " 2. Validar: não reprocessar CANCELADO nem EM_PROCESSAMENTO
+      IF entity-Status = 'CANCELADO' OR entity-Status = 'EM_PROCESSAMENTO'.
+        APPEND VALUE #(
+          %key = entity-%key
+          %msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Registro { entity-Pedido }/{ entity-Bandeira } não pode ser reprocessado (status: { entity-Status })|
+          )
+        ) TO reported-arqmgr.
+        CONTINUE.
+      ENDIF.
+
+      " 3. Marcar EM_PROCESSAMENTO + incrementar tentativas
+      MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+        ENTITY arqmgr
+          UPDATE FIELDS ( Status Tentativas Datum Uzeit Ernam )
+          WITH VALUE #( (
+            %key       = entity-%key
+            Status     = 'EM_PROCESSAMENTO'
+            Tentativas = entity-Tentativas + 1
+            Datum      = sy-datum
+            Uzeit      = sy-uzeit
+            Ernam      = sy-uname
+          ) )
+        FAILED DATA(upd_failed)
+        REPORTED DATA(upd_reported).
+
+      " 4. LOG: registrar início do reprocessamento
+      insert_log(
+        pedido   = entity-Pedido
+        bandeira = entity-Bandeira
+        etapa    = 'REPROCESSAMENTO'
+        mensagem = 'Reprocessamento iniciado'
+      ).
+
+      TRY.
+          " 5. Chamar CPI
+          cpi_caller->call_cpi_reprocess(
+            EXPORTING
+              pedido     = entity-Pedido
+              bandeira   = entity-Bandeira
+              conteudo   = entity-Conteudo
+              tipo_doc   = entity-TipoDoc
+            IMPORTING
+              ev_status  = DATA(cpi_status)
+          ).
+
+          " 6. Sucesso: STATUS = PROCESSADO, ULTIMO_ERRO limpo
+          MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+            ENTITY arqmgr
+              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
+              WITH VALUE #( (
+                %key       = entity-%key
+                Status     = 'PROCESSADO'
+                UltimoErro = ''
+                Datum      = sy-datum
+                Uzeit      = sy-uzeit
+                Ernam      = sy-uname
+              ) ).
+
+          insert_log(
+            pedido   = entity-Pedido
+            bandeira = entity-Bandeira
+            etapa    = 'CONCLUSAO'
+            mensagem = COND #( WHEN cpi_status IS NOT INITIAL
+                               THEN cpi_status
+                               ELSE 'Processado com sucesso' )
+          ).
+
+        CATCH cx_root INTO DATA(exc).
+
+          " 7. Erro: STATUS = ERRO, ULTIMO_ERRO = mensagem do erro
+          DATA(error_msg) = COND string(
+            WHEN cpi_caller->mv_error_detail IS NOT INITIAL
+            THEN cpi_caller->mv_error_detail
+            ELSE exc->get_text( )
+          ).
+
+          MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+            ENTITY arqmgr
+              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
+              WITH VALUE #( (
+                %key       = entity-%key
+                Status     = 'ERRO'
+                UltimoErro = error_msg
+                Datum      = sy-datum
+                Uzeit      = sy-uzeit
+                Ernam      = sy-uname
+              ) ).
+
+          insert_log(
+            pedido   = entity-Pedido
+            bandeira = entity-Bandeira
+            etapa    = 'ERRO'
+            mensagem = error_msg
+          ).
+
+      ENDTRY.
+    ENDLOOP.
+
+    " 8. Ler estado final e retornar (obrigatório para result [1] $self)
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_entities).
+
+    result = VALUE #( FOR res IN result_entities (
+      %key   = res-%key
+      %param = res
+    ) ).
+
+  ENDMETHOD.
+
+  METHOD cancel.
+
+    " 1. Ler dados atuais
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(entities).
+
+    LOOP AT entities INTO DATA(entity).
+
+      " 2. Validar: não cancelar PROCESSADO
+      IF entity-Status = 'PROCESSADO'.
+        APPEND VALUE #(
+          %key = entity-%key
+          %msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Registro { entity-Pedido }/{ entity-Bandeira } já processado — cancelamento não permitido|
+          )
+        ) TO reported-arqmgr.
+        CONTINUE.
+      ENDIF.
+
+      " 3. STATUS = CANCELADO
+      MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+        ENTITY arqmgr
+          UPDATE FIELDS ( Status Datum Uzeit Ernam )
+          WITH VALUE #( (
+            %key  = entity-%key
+            Status = 'CANCELADO'
+            Datum  = sy-datum
+            Uzeit  = sy-uzeit
+            Ernam  = sy-uname
+          ) )
+        FAILED DATA(upd_failed)
+        REPORTED DATA(upd_reported).
+
+      " 4. LOG: registrar cancelamento
+      insert_log(
+        pedido   = entity-Pedido
+        bandeira = entity-Bandeira
+        etapa    = 'CANCELAMENTO'
+        mensagem = 'Registro cancelado manualmente'
+      ).
+
+    ENDLOOP.
+
+    " 5. Ler estado final e retornar
+    READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
+      ENTITY arqmgr
+        ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_entities).
+
+    result = VALUE #( FOR res IN result_entities (
+      %key   = res-%key
+      %param = res
+    ) ).
+
+  ENDMETHOD.
+
+  METHOD insert_log.
+    " Insere SEMPRE nova linha — nunca sobrescreve.
+    " Garante histórico completo de todas as tentativas por Pedido + Bandeira.
+    " INSERT via ABAP SQL direto pois LOG é BO independente (read-only no RAP).
+
+    INSERT INTO ztbn_q2c_log_mgr VALUES @(
+      VALUE ztbn_q2c_log_mgr(
+        pedido   = pedido
+        bandeira = bandeira
+        datum    = sy-datum
+        uzeit    = sy-uzeit
+        etapa    = etapa
+        mensagem = mensagem
+        ernam    = sy-uname
+      )
+    ).
+
+    " Colisão de chave (mesmo segundo): ignorar silenciosamente.
+    " Solução definitiva: acrescentar campo TIMESTAMP com microsegundo — ver DEV_GUIDE ponto 3.
+    IF sy-subrc <> 0.
+      " TODO: tratar colisão de chave (dois reprocessamentos no mesmo segundo)
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.

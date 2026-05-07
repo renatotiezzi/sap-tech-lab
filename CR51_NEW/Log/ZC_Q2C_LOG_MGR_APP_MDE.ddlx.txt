@@ -1,0 +1,58 @@
+@Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Log de Processamento',
+    typeNamePlural: 'Logs de Processamento',
+    title: { value: 'Etapa' },
+    description: { value: 'Mensagem' }
+  }
+}
+annotate view ZC_Q2C_LOG_MGR_APP with
+{
+  @UI.facet: [
+    { id: 'Detalhes',
+      type: #IDENTIFICATION_REFERENCE,
+      label: 'Detalhes do Log',
+      position: 10 }
+  ]
+
+  @EndUserText.label: 'Pedido'
+  @UI.selectionField: [ { position: 10 } ]
+  @UI.lineItem: [ { position: 10, importance: #HIGH } ]
+  @UI.identification: [ { position: 10 } ]
+  Pedido;
+
+  @EndUserText.label: 'Bandeira'
+  @UI.selectionField: [ { position: 20 } ]
+  @UI.lineItem: [ { position: 20, importance: #HIGH } ]
+  @UI.identification: [ { position: 20 } ]
+  Bandeira;
+
+  @EndUserText.label: 'Data'
+  @UI.selectionField: [ { position: 30 } ]
+  @UI.lineItem: [ { position: 30, importance: #HIGH } ]
+  @UI.identification: [ { position: 30 } ]
+  Datum;
+
+  @EndUserText.label: 'Hora'
+  @UI.lineItem: [ { position: 40, importance: #HIGH } ]
+  @UI.identification: [ { position: 40 } ]
+  Uzeit;
+
+  @EndUserText.label: 'Etapa'
+  @UI.selectionField: [ { position: 40 } ]
+  @UI.lineItem: [ { position: 50, importance: #HIGH } ]
+  @UI.identification: [ { position: 50 } ]
+  Etapa;
+
+  @EndUserText.label: 'Mensagem'
+  @UI.lineItem: [ { position: 60, importance: #MEDIUM } ]
+  @UI.identification: [ { position: 60 } ]
+  @UI.multiLineText: true
+  Mensagem;
+
+  @EndUserText.label: 'Usuário'
+  @UI.lineItem: [ { position: 70 } ]
+  @UI.identification: [ { position: 70 } ]
+  Ernam;
+}

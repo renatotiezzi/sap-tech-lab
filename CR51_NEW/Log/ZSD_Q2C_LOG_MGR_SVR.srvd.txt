@@ -1,0 +1,4 @@
+@EndUserText.label: 'Service Definition LOG MGR - Histórico de Processamento'
+define service ZSD_Q2C_LOG_MGR_SVR {
+  expose ZC_Q2C_LOG_MGR_APP as LogMgrApp;
+}

@@ -1,0 +1,26 @@
+// -----------------------------------------------------------------------
+// Service Binding: ZSB_Q2C_LOG_MGR_SVR
+// Tipo    : OData V4 - UI
+// Service : ZSD_Q2C_LOG_MGR_SVR
+// -----------------------------------------------------------------------
+// ATENÇÃO: Service Bindings não podem ser armazenados como arquivo fonte.
+// Devem ser criados diretamente no sistema SAP via ADT.
+//
+// Passos de criação no ADT:
+//   1. Botão direito no pacote > New > Other ABAP Repository Object
+//   2. Navegue em: Business Services > Service Binding
+//   3. Preencha:
+//        Name        : ZSB_Q2C_LOG_MGR_SVR
+//        Description : Service Binding LOG MGR - Histórico de Processamento
+//        Binding Type: OData V4 - UI
+//        Service Def : ZSD_Q2C_LOG_MGR_SVR
+//   4. Ative e clique em "Publish" para registrar o endpoint OData.
+//
+// URL do serviço após publicação (padrão):
+//   /sap/opu/odata4/sap/zsb_q2c_log_mgr_svr/srvd/sap/zsd_q2c_log_mgr_svr/0001/
+//
+// Entity Sets expostos:
+//   - LogMgrApp  → READ somente (sem create/update/delete)
+//
+// Uso típico: filtrar por Pedido + Bandeira para ver histórico de um arquivo
+// -----------------------------------------------------------------------

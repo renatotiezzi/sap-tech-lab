@@ -1,0 +1,20 @@
+@EndUserText.label: 'ARQ MGR - Cockpit Reprocessamento'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+define root view entity ZC_Q2C_ARQ_MGR_APP
+  provider contract transactional_query
+  as projection on ZI_Q2C_ARQ_MGR
+{
+  key Pedido,
+  key Bandeira,
+      TipoDoc,
+      CabecArq,
+      Conteudo,
+      Status,
+      StatusCriticality,
+      Tentativas,
+      UltimoErro,
+      Datum,
+      Uzeit,
+      Ernam
+}

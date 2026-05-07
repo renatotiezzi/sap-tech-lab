@@ -1,0 +1,13 @@
+projection;
+strict ( 2 );
+
+// -----------------------------------------------------------------------
+// Projection BDEF: ARQ MGR - Cockpit Reprocessamento
+// Somente leitura + actions Reprocess e Cancel
+// Sem create / update / delete expostos — dados vêm de integração externa
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
+{
+  use action Reprocess;
+  use action Cancel;
+}

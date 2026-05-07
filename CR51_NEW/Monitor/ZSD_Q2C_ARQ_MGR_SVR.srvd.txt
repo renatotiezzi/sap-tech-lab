@@ -1,0 +1,4 @@
+@EndUserText.label: 'Service Definition ARQ MGR - Monitor Reprocessamento'
+define service ZSD_Q2C_ARQ_MGR_SVR {
+  expose ZC_Q2C_ARQ_MGR_APP as ArqMgrApp;
+}

@@ -1,0 +1,31 @@
+managed;
+strict ( 2 );
+
+// -----------------------------------------------------------------------
+// Root BO: LOG MGR — Histórico de Processamento
+// Tabela : ZTBN_Q2C_LOG_MGR
+// Chave  : (Pedido, Bandeira, Datum, Uzeit)
+//
+// Read-only no RAP: sem create/update/delete expostos.
+// Registros são criados exclusivamente via INSERT direto na
+// action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
+// BO independente — sem composition, sem lock dependent.
+// -----------------------------------------------------------------------
+define behavior for ZI_Q2C_LOG_MGR alias LogMgr
+  persistent table ztbn_q2c_log_mgr
+  lock master
+  authorization master ( instance )
+{
+  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
+
+  mapping for ztbn_q2c_log_mgr
+  {
+    Pedido   = pedido;
+    Bandeira = bandeira;
+    Datum    = datum;
+    Uzeit    = uzeit;
+    Etapa    = etapa;
+    Mensagem = mensagem;
+    Ernam    = ernam;
+  }
+}

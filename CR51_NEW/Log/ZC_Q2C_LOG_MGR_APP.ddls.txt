@@ -1,0 +1,19 @@
+@EndUserText.label: 'LOG MGR - Histórico de Processamento'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+// -----------------------------------------------------------------------
+// Projeção independente — root entity standalone (sem redirected to parent)
+// Filtrar por Pedido + Bandeira para ver o histórico de um arquivo
+// -----------------------------------------------------------------------
+define root view entity ZC_Q2C_LOG_MGR_APP
+  provider contract transactional_query
+  as projection on ZI_Q2C_LOG_MGR
+{
+  key Pedido,
+  key Bandeira,
+  key Datum,
+  key Uzeit,
+      Etapa,
+      Mensagem,
+      Ernam
+}

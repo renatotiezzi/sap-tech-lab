@@ -40,7 +40,9 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   METHOD get_global_authorizations.
     result = VALUE #(
-      %update = if_abap_behv=>auth-allowed
+      %update              = if_abap_behv=>auth-allowed
+      %action-Reprocess    = if_abap_behv=>auth-allowed
+      %action-Cancel       = if_abap_behv=>auth-allowed
     ).
   ENDMETHOD.
 

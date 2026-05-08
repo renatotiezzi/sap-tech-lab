@@ -60,8 +60,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
     LOOP AT entities INTO DATA(entity).
 
-      " 2. Validar: não reprocessar CANCELADO nem EM_PROCESSAMENTO
-      IF entity-Status = 'CANCELADO' OR entity-Status = 'EM_PROCESSAMENTO'.
+      " 2. Validar: não reprocessar CANCELADO
+      IF entity-Status = 'CANCELADO'.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
@@ -73,13 +73,12 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " 3. Marcar EM_PROCESSAMENTO + incrementar tentativas
+      " 3. Incrementar tentativas (status permanece inalterado até conclusão)
       MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
         ENTITY arqmgr
-          UPDATE FIELDS ( Status Tentativas Datum Uzeit Ernam )
+          UPDATE FIELDS ( Tentativas Datum Uzeit Ernam )
           WITH VALUE #( (
             %key       = entity-%key
-            Status     = 'EM_PROCESSAMENTO'
             Tentativas = entity-Tentativas + 1
             Datum      = sy-datum
             Uzeit      = sy-uzeit
@@ -129,15 +128,16 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
         CATCH cx_root INTO DATA(exc).
 
-          " 7. Erro: STATUS = ERRO
+          " 7. Erro: STATUS = ERRO + gravar ULTIMO_ERRO
           DATA(error_msg) = exc->get_text( ).
 
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status Datum Uzeit Ernam )
+              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Status     = 'ERRO'
+                UltimoErro = error_msg
                 Datum      = sy-datum
                 Uzeit      = sy-uzeit
                 Ernam      = sy-uname

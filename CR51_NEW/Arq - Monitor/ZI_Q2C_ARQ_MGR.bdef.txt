@@ -19,7 +19,7 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   // Todos os campos são somente leitura para o usuário
   // O preenchimento ocorre exclusivamente via actions ou integração externa
   field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo;
-  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam;
+  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam; UltimoErro;
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
@@ -39,5 +39,6 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
     Datum      = datum;
     Uzeit      = uzeit;
     Ernam      = ernam;
+    UltimoErro = ultimo_erro;
   }
 }

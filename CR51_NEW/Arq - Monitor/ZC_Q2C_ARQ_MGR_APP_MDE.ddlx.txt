@@ -76,6 +76,11 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.identification: [ { position: 90 } ]
   Ernam;
 
+  @EndUserText.label: 'Último Erro'
+  @UI.lineItem: [ { position: 100, importance: #LOW } ]
+  @UI.identification: [ { position: 100 } ]
+  UltimoErro;
+
   // Campo usado no payload CPI — não exibir na UI
   @UI.hidden: true
   Arquivo;

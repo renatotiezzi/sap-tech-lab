@@ -31,6 +31,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 | DATUM       | DATS        |       | Data do último processamento        |
 | UZEIT       | TIMS        |       | Hora do último processamento        |
 | ERNAM       | CHAR(12)    |       | Usuário do último processamento     |
+| ULTIMO_ERRO | CHAR(255)   |       | Última mensagem de erro (visível no cockpit) |
 
 - Delivery Class: `A`
 - Data Browser / Table View Maintenance: `Display/Maintenance Allowed`

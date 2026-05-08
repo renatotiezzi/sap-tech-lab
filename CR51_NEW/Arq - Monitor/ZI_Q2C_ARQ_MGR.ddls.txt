@@ -21,7 +21,6 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.status      as Status,
       case arq.status
         when 'ERRO'             then 1
-        when 'EM_PROCESSAMENTO' then 2
         when 'PROCESSADO'       then 3
         when 'CANCELADO'        then 0
         when 'CRIADO'           then 5
@@ -31,6 +30,7 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
       arq.ernam       as Ernam,
+      arq.ultimo_erro as UltimoErro,
 
       /* Associations */
       _Log

@@ -12,7 +12,7 @@ ARQ e LOG são entidades **completamente independentes** — apps separados, ser
 - Representa o **pedido/arquivo** recebido da MGR
 - Chave: `(PEDIDO, BANDEIRA)` — chave funcional de negócio
 - Guarda o conteúdo original do TXT e o status atual
-- Campo `ULTIMO_ERRO` **não existe na tabela** — erros são registrados apenas no LOG
+- `ULTIMO_ERRO` atualizado a cada erro — exibe a última mensagem no cockpit
 - **Imutável pelo usuário** — somente leitura + actions
 
 ### LOG — Tabela de Log
@@ -46,9 +46,9 @@ ZTBQ2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | DATUM         | DATS        |       | Data do último processamento           |
 | UZEIT         | TIMS        |       | Hora do último processamento           |
 | ERNAM         | CHAR(12)    |       | Usuário do último processamento        |
+| ULTIMO_ERRO   | CHAR(255)   |       | Última mensagem de erro (atualizada a cada erro, visível no cockpit) |
 
-> **Nota:** `ULTIMO_ERRO` não existe na tabela. Erros ficam apenas no LOG. A coluna "Last Error" não
-> aparece no cockpit — para ver o erro, navegar para o histórico do registro.
+> **Nota:** Erros ficam registrados no histórico completo (LOG). `ULTIMO_ERRO` é o último erro na tabela ARQ, para exibição rápida no cockpit.
 
 ### 1.2 Tabela ZTBQ2C_LOG_MGR
 
@@ -131,7 +131,6 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.status      as Status,
       case arq.status
         when 'ERRO'             then 1
-        when 'EM_PROCESSAMENTO' then 2
         when 'PROCESSADO'       then 3
         when 'CANCELADO'        then 0
         when 'CRIADO'           then 5
@@ -141,6 +140,7 @@ define root view entity ZI_Q2C_ARQ_MGR
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
       arq.ernam       as Ernam,
+      arq.ultimo_erro as UltimoErro,
 
       /* Associations */
       _Log
@@ -194,7 +194,7 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   update;
 
   field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo;
-  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam;
+  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam; UltimoErro;
   // StatusCriticality é campo calculado no CDS — não declarar em field(readonly)
 
   action Reprocess result [1] $self;
@@ -215,6 +215,7 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
     Datum      = datum;
     Uzeit      = uzeit;
     Ernam      = ernam;
+    UltimoErro = ultimo_erro;
   }
 }
 ```
@@ -255,7 +256,6 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
 1. Ler registro ARQ pelo Pedido + Bandeira
 2. Validar STATUS != CANCELADO e != EM_PROCESSAMENTO
 3. UPDATE ARQ:
-   - STATUS = 'EM_PROCESSAMENTO'
    - TENTATIVAS = TENTATIVAS + 1
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
 4. INSERT nova linha em LOG:
@@ -270,7 +270,7 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
    - UPDATE ARQ: STATUS = 'PROCESSADO'
    - INSERT LOG: ETAPA = 'CONCLUSAO', MENSAGEM = 'Processado com sucesso'
 7. Se ERRO:
-   - UPDATE ARQ: STATUS = 'ERRO'
+   - UPDATE ARQ: STATUS = 'ERRO', ULTIMO_ERRO = mensagem_erro
    - INSERT LOG: ETAPA = 'ERRO', MENSAGEM = mensagem_erro (STRING completa)
 ```
 
@@ -295,8 +295,7 @@ Colunas visíveis:
 - TipoDoc
 - Tentativas
 - Datum / Uzeit
-
-> **Nota:** Sem coluna de último erro na lista — para ver o detalhe do erro, acessar o histórico LOG do registro.
+- Último Erro (truncado — detalhes completos no histórico LOG)
 
 Ações na lista:
 - **Reprocessar** (action Reprocess)

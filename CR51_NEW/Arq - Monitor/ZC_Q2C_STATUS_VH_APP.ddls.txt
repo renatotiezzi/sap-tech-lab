@@ -12,7 +12,6 @@ define view entity ZC_Q2C_STATUS_VH_APP
       case status
         when 'CRIADO'           then 'Criado'
         when 'ERRO'             then 'Erro'
-        when 'EM_PROCESSAMENTO' then 'Em Processamento'
         when 'PROCESSADO'       then 'Processado'
         when 'CANCELADO'        then 'Cancelado'
         else status

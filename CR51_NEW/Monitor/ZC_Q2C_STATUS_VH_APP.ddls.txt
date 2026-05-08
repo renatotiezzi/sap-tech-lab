@@ -1,0 +1,22 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Value Help Status ARQ MGR'
+@ObjectModel.dataCategory: #VALUE_HELP
+@ObjectModel.representativeKey: 'Status'
+
+define view entity ZC_Q2C_STATUS_VH_APP
+  as select distinct from ztbn_q2c_arq_mgr
+{
+  key status as Status,
+      @Semantics.text: true
+      case status
+        when 'CRIADO'           then 'Criado'
+        when 'ERRO'             then 'Erro'
+        when 'EM_PROCESSAMENTO' then 'Em Processamento'
+        when 'PROCESSADO'       then 'Processado'
+        when 'CANCELADO'        then 'Cancelado'
+        else status
+      end as StatusText
+}
+where status is not null
+  and status <> ''

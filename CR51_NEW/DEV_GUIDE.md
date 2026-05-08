@@ -87,10 +87,11 @@ ZI_Q2C_ARQ_MGR       (BDEF)  → managed, actions Reprocess e Cancel
 ZBP_I_Q2C_ARQ_MGR    (CLAS)  → Behavior implementation
 ZBP_I_Q2C_ARQ_MGR    (CCIMP) → Actions e determinações
 
-ZC_Q2C_ARQ_MGR_APP   (DDLS)  → Projection — cockpit Fiori
+ZC_Q2C_ARQ_MGR_APP   (DDLS)  → Projection — cockpit Fiori (com @Consumption.valueHelpDefinition em Status)
 ZC_Q2C_ARQ_MGR_APP   (BDEF)  → use action Reprocess; use action Cancel
 ZC_Q2C_ARQ_MGR_APP_MDE (DDLX) → Anotações UI
-ZSD_Q2C_ARQ_MGR_SVR  (SRVD)  → expose ArqMgrApp
+ZC_Q2C_STATUS_VH_APP (DDLS)  → Value Help do filtro Status (select distinct da tabela ARQ)
+ZSD_Q2C_ARQ_MGR_SVR  (SRVD)  → expose ArqMgrApp + LogMgrApp + StatusVH
 ZSB_Q2C_ARQ_MGR_SVR  (SRVB)  → OData V4 - UI
 ```
 
@@ -344,6 +345,10 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       TipoDoc,
       CabecArq,
       Conteudo,
+      @Consumption.valueHelpDefinition: [
+        { entity: { name: 'ZC_Q2C_STATUS_VH_APP', element: 'Status' },
+          additionalBinding: [ { localElement: 'Status', element: 'Status' } ] }
+      ]
       Status,
       StatusCriticality,
       Tentativas,
@@ -400,11 +405,12 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 2. `ZBP_I_Q2C_ARQ_MGR` (CLAS — global)
 3. `ZI_Q2C_ARQ_MGR` (BDEF)
 4. `ZBP_I_Q2C_ARQ_MGR` (CCIMP — locals_imp)
-5. `ZC_Q2C_ARQ_MGR_APP` (DDLS)
-6. `ZC_Q2C_ARQ_MGR_APP` (BDEF)
-7. `ZC_Q2C_ARQ_MGR_APP_MDE` (DDLX)
-8. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — expõe ARQ + LOG para navegação Object Page)
-9. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar no ADT)
+5. `ZC_Q2C_STATUS_VH_APP` (DDLS — Value Help Status)
+6. `ZC_Q2C_ARQ_MGR_APP` (DDLS)
+7. `ZC_Q2C_ARQ_MGR_APP` (BDEF)
+8. `ZC_Q2C_ARQ_MGR_APP_MDE` (DDLX)
+9. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — expõe ARQ + LOG + StatusVH)
+10. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar no ADT)
 
 ### Fase 4 — Job de Limpeza (APJ)
 1. Criar Log Object `ZQ2C_LOG` (subobject `CLEANUP`) via `SBAL_OBJECT`

@@ -1,5 +1,6 @@
 @EndUserText.label: 'Service Definition ARQ MGR - Monitor Reprocessamento'
 define service ZSD_Q2C_ARQ_MGR_SVR {
-  expose ZC_Q2C_ARQ_MGR_APP as ArqMgrApp;
-  expose ZC_Q2C_LOG_MGR_APP as LogMgrApp;  // navegação Object Page → histórico completo
+  expose ZC_Q2C_ARQ_MGR_APP  as ArqMgrApp;
+  expose ZC_Q2C_LOG_MGR_APP  as LogMgrApp;  // navegação Object Page → histórico completo
+  expose ZC_Q2C_STATUS_VH_APP as StatusVH;   // Value Help filtro Status
 }

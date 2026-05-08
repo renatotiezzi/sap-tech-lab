@@ -8,7 +8,7 @@
 * Arquitetura:
 *  - ARQ e LOG são BOs completamente independentes (sem composition)
 *  - Cada reprocessamento gera INSERT de nova linha em ZTBQ2C_LOG_MGR
-*  - ARQ não possui campo ULTIMO_ERRO — erro fica registrado apenas no LOG
+*  - ARQ possui campo ULTIMO_ERRO (STRING) — exibido no cockpit (atualizado a cada erro)
 *  - INSERT no LOG é feito via ABAP SQL direto (LOG é read-only no RAP)
 *----------------------------------------------------------------------*
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
@@ -96,11 +96,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       ).
 
       TRY.
-          " 5. Chamar CPI — passa o registro completo para desacoplar a assinatura.
+          " 5. Chamar CPI — passa estrutura de tabela plana para desacoplar do tipo RAP.
           " Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER.
           cpi_caller->call_cpi_reprocess(
             EXPORTING
-              is_arq    = entity
+              is_arq    = CORRESPONDING ztbq2c_arq_mgr( entity )
             IMPORTING
               ev_status = DATA(cpi_status)
           ).

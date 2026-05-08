@@ -75,13 +75,13 @@ CLASS zcl_q2c_mgr_cleanup IMPLEMENTATION.
     TRY.
 
         " ---- Passo 1: Apagar LOG com datum < corte ----
-        DELETE FROM ztbn_q2c_log_mgr
+        DELETE FROM ztbq2c_log_mgr
           WHERE datum < @lv_cutoff.
         DATA(lv_log_cnt) = sy-dbcnt.
 
         " ---- Passo 2: Apagar ARQ com datum < corte e status final ----
         " STATUS = ERRO não é removido — aguarda ação manual do usuário
-        DELETE FROM ztbn_q2c_arq_mgr
+        DELETE FROM ztbq2c_arq_mgr
           WHERE datum  < @lv_cutoff
             AND status IN ('CANCELADO', 'PROCESSADO').
         DATA(lv_arq_cnt) = sy-dbcnt.

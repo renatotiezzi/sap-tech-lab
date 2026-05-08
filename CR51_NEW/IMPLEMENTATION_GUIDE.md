@@ -8,7 +8,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 ## Pré-requisitos
 
 - [ ] Pacote de desenvolvimento criado (ex: `ZQ2C_CR51`) e transporte aberto
-- [ ] Tabelas `ZTBN_Q2C_ARQ_MGR` e `ZTBN_Q2C_LOG_MGR` definidas no SE11 ou ADT
+- [ ] Tabelas `ZTBQ2C_ARQ_MGR` e `ZTBQ2C_LOG_MGR` definidas no SE11 ou ADT
 - [ ] Classe `ZCL_Q2C_CPI_CALLER` existente ou stub (`METHOD call_cpi_reprocess. ENDMETHOD.`) criado antes de ativar o CCIMP
 - [ ] Usuário com perfil `S_DEVELOP` e acesso ao Fiori Launchpad (apps F2373, SBAL_OBJECT)
 
@@ -16,19 +16,18 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 
 ## Fase 1 — Tabelas (SE11 / ADT)
 
-### 1.1 ZTBN_Q2C_ARQ_MGR
+### 1.1 ZTBQ2C_ARQ_MGR
 
 | Campo       | Tipo        | Chave | Observação                          |
 |-------------|-------------|-------|-------------------------------------|
 | MANDT       | MANDT       | ✓     | Mandante (SAP padrão)               |
-| PEDIDO      | CHAR(35)    | ✓     | Nº do pedido MGR                    |
+| PEDIDO      | CHAR(20)    | ✓     | Nº do pedido MGR                    |
 | BANDEIRA    | CHAR(10)    | ✓     | Dealer / Montadora                  |
 | TIPO_DOC    | CHAR(4)     |       | ZVTF / ZVTR / ZV01                  |
-| CABEC_ARQ   | CHAR(100)   |       | Cabeçalho original do TXT           |
+| ARQUIVO     | STRING      |       | Cabeçalho do arquivo — payload CPI  |
 | CONTEUDO    | STRING      |       | Arquivo bruto                       |
-| STATUS      | CHAR(20)    |       | ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
-| TENTATIVAS  | INT4        |       | Contador de reprocessamentos        |
-| ULTIMO_ERRO | STRING      |       | Última mensagem de erro             |
+| STATUS      | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
+| TENTATIVAS  | NUMC(3)     |       | Contador de reprocessamentos        |
 | DATUM       | DATS        |       | Data do último processamento        |
 | UZEIT       | TIMS        |       | Hora do último processamento        |
 | ERNAM       | CHAR(12)    |       | Usuário do último processamento     |
@@ -36,18 +35,21 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 - Delivery Class: `A`
 - Data Browser / Table View Maintenance: `Display/Maintenance Allowed`
 
-### 1.2 ZTBN_Q2C_LOG_MGR
+### 1.2 ZTBQ2C_LOG_MGR
 
 | Campo       | Tipo        | Chave | Observação                          |
 |-------------|-------------|-------|-------------------------------------|
 | MANDT       | MANDT       | ✓     | Mandante                            |
-| PEDIDO      | CHAR(35)    | ✓     | FK funcional → ZTBN_Q2C_ARQ_MGR     |
-| BANDEIRA    | CHAR(10)    | ✓     | FK funcional → ZTBN_Q2C_ARQ_MGR     |
-| DATUM       | DATS        | ✓     | Data da tentativa                   |
-| UZEIT       | TIMS        | ✓     | Hora da tentativa                   |
+| PEDIDO      | CHAR(20)    | ✓     | FK funcional → ZTBQ2C_ARQ_MGR      |
+| BANDEIRA    | CHAR(10)    | ✓     | FK funcional → ZTBQ2C_ARQ_MGR      |
+| ID_REF      | CHAR(10)    | ⚠️    | Deve ser chave — adicionar à chave da tabela em SE11 |
 | ETAPA       | CHAR(30)    |       | REPROCESSAMENTO / CONCLUSAO / CANCELAMENTO / ERRO |
 | MENSAGEM    | STRING      |       | Texto completo do erro/sucesso      |
+| DATUM       | DATS        |       | Data da tentativa                   |
+| UZEIT       | TIMS        |       | Hora da tentativa                   |
 | ERNAM       | CHAR(12)    |       | Usuário que executou                |
+
+> **⚠️ Importante:** `ID_REF` deve ser marcado como campo-chave para suportar histórico 1:N.
 
 - Delivery Class: `A`
 - Data Browser / Table View Maintenance: `Display/Maintenance Allowed`
@@ -221,14 +223,14 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 
 ### App ARQ — Monitor
 - [ ] SRVB publicado com sucesso (status = Published)
-- [ ] Preview no ADT abre List Report com colunas: Pedido, Bandeira, Status, UltimoErro
+- [ ] Preview no ADT abre List Report com colunas: Pedido, Bandeira, Status, TipoDoc, Tentativas
 - [ ] Status exibe ícone de criticidade (vermelho = ERRO, amarelo = EM_PROCESSAMENTO)
 - [ ] Botões "Reprocessar" e "Cancelar" visíveis na lista
 - [ ] Clicar em um registro abre Object Page com 4 seções (Dados Gerais, Último Erro, Conteúdo, Histórico)
 - [ ] Seção "Histórico de Processamento" exibe linhas do LOG daquele Pedido+Bandeira
 - [ ] Action Reprocess: status muda para EM_PROCESSAMENTO → PROCESSADO ou ERRO
 - [ ] Action Cancel: status muda para CANCELADO
-- [ ] Após cada action: nova linha inserida em ZTBN_Q2C_LOG_MGR
+- [ ] Após cada action: nova linha inserida em ZTBQ2C_LOG_MGR
 
 ### App LOG — Histórico
 - [ ] SRVB publicado com sucesso

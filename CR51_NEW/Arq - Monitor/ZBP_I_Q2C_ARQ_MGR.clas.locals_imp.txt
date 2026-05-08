@@ -7,8 +7,8 @@
 *
 * Arquitetura:
 *  - ARQ e LOG são BOs completamente independentes (sem composition)
-*  - Cada reprocessamento gera INSERT de nova linha em ZTBN_Q2C_LOG_MGR
-*  - ARQ mantém ULTIMO_ERRO (STRING) para exibição rápida no cockpit
+*  - Cada reprocessamento gera INSERT de nova linha em ZTBQ2C_LOG_MGR
+*  - ARQ não possui campo ULTIMO_ERRO — erro fica registrado apenas no LOG
 *  - INSERT no LOG é feito via ABAP SQL direto (LOG é read-only no RAP)
 *----------------------------------------------------------------------*
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
@@ -29,10 +29,10 @@ CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
     " Garante histórico completo de todas as tentativas
     METHODS insert_log
       IMPORTING
-        pedido   TYPE ztbn_q2c_arq_mgr-pedido
-        bandeira TYPE ztbn_q2c_arq_mgr-bandeira
-        etapa    TYPE ztbn_q2c_log_mgr-etapa
-        mensagem TYPE ztbn_q2c_log_mgr-mensagem.
+        pedido   TYPE ztbq2c_arq_mgr-pedido
+        bandeira TYPE ztbq2c_arq_mgr-bandeira
+        etapa    TYPE ztbq2c_log_mgr-etapa
+        mensagem TYPE ztbq2c_log_mgr-mensagem.
 
 ENDCLASS.
 
@@ -106,14 +106,13 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
               ev_status = DATA(cpi_status)
           ).
 
-          " 6. Sucesso: STATUS = PROCESSADO, ULTIMO_ERRO limpo
+          " 6. Sucesso: STATUS = PROCESSADO
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
+              UPDATE FIELDS ( Status Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Status     = 'PROCESSADO'
-                UltimoErro = ''
                 Datum      = sy-datum
                 Uzeit      = sy-uzeit
                 Ernam      = sy-uname
@@ -130,17 +129,15 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
         CATCH cx_root INTO DATA(exc).
 
-          " 7. Erro: STATUS = ERRO, ULTIMO_ERRO = mensagem do erro
+          " 7. Erro: STATUS = ERRO
           DATA(error_msg) = exc->get_text( ).
-          " Se ZCL_Q2C_CPI_CALLER expuser detalhes adicionais (ex: mv_error_detail), adaptar aqui.
 
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
+              UPDATE FIELDS ( Status Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Status     = 'ERRO'
-                UltimoErro = error_msg
                 Datum      = sy-datum
                 Uzeit      = sy-uzeit
                 Ernam      = sy-uname
@@ -237,10 +234,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     " Garante histórico completo de todas as tentativas por Pedido + Bandeira.
     " INSERT via ABAP SQL direto pois LOG é BO independente (read-only no RAP).
 
-    INSERT INTO ztbn_q2c_log_mgr VALUES @(
-      VALUE ztbn_q2c_log_mgr(
+    INSERT INTO ztbq2c_log_mgr VALUES @(
+      VALUE ztbq2c_log_mgr(
         pedido   = pedido
         bandeira = bandeira
+        id_ref   = CONV #( |{ sy-datum+4(4) }{ sy-uzeit }| )
         datum    = sy-datum
         uzeit    = sy-uzeit
         etapa    = etapa
@@ -249,8 +247,9 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       )
     ).
 
-    " Colisão de chave (mesmo segundo): ignorar silenciosamente.
-    " Solução definitiva: acrescentar campo TIMESTAMP com microsegundo — ver DEV_GUIDE ponto 3.
+    " id_ref é gerado como MMDDHHMMSS (10 chars) — único dentro do mesmo segundo.
+    " Se dois reprocessamentos ocorrerem no mesmo segundo, o segundo INSERT falha.
+    " Solução definitiva: usar ID_REF externo (ex: UUID do CPI) ou adicionar microsegundo.
     IF sy-subrc <> 0.
       " TODO: tratar colisão de chave (dois reprocessamentos no mesmo segundo)
     ENDIF.

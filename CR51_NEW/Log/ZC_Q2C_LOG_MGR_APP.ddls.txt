@@ -11,8 +11,9 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 {
   key Pedido,
   key Bandeira,
-  key Datum,
-  key Uzeit,
+  key IdRef,
+      Datum,
+      Uzeit,
       Etapa,
       Mensagem,
       Ernam

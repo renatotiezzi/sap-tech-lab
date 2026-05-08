@@ -13,12 +13,13 @@
 // Cada linha = uma tentativa de processamento (INSERT, nunca UPDATE).
 // -----------------------------------------------------------------------
 define root view entity ZI_Q2C_LOG_MGR
-  as select from ztbn_q2c_log_mgr as log
+  as select from ztbq2c_log_mgr as log
 {
   key log.pedido   as Pedido,
   key log.bandeira as Bandeira,
-  key log.datum    as Datum,
-  key log.uzeit    as Uzeit,
+  key log.id_ref   as IdRef,
+      log.datum    as Datum,
+      log.uzeit    as Uzeit,
       log.etapa    as Etapa,
       log.mensagem as Mensagem,
       log.ernam    as Ernam

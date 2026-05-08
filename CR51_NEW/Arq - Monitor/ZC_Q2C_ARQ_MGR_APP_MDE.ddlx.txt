@@ -19,12 +19,6 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
       type: #IDENTIFICATION_REFERENCE,
       label: 'Dados Gerais',
       position: 10 },
-    { id: 'Erro',
-      parentId: 'Detalhes',
-      type: #FIELDGROUP_REFERENCE,
-      label: 'Último Erro',
-      position: 20,
-      targetQualifier: 'LastError' },
     { id: 'LogHistory',
       type: #LINEITEM_REFERENCE,
       label: 'Histórico de Processamento',
@@ -65,12 +59,6 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.identification: [ { position: 50 } ]
   Tentativas;
 
-  @EndUserText.label: 'Último Erro'
-  @UI.lineItem: [ { position: 60, importance: #MEDIUM } ]
-  @UI.fieldGroup: [ { qualifier: 'LastError', position: 10 } ]
-  @UI.multiLineText: true
-  UltimoErro;
-
   @EndUserText.label: 'Data'
   @UI.selectionField: [ { position: 50 } ]
   @UI.lineItem: [ { position: 70 } ]
@@ -90,7 +78,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
 
   // Campo usado no payload CPI — não exibir na UI
   @UI.hidden: true
-  CabecArq;
+  Arquivo;
 
   @EndUserText.label: 'Conteúdo do Arquivo'
   @UI.hidden: true

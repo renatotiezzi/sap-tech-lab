@@ -12,7 +12,7 @@ ARQ e LOG são entidades **completamente independentes** — apps separados, ser
 - Representa o **pedido/arquivo** recebido da MGR
 - Chave: `(PEDIDO, BANDEIRA)` — chave funcional de negócio
 - Guarda o conteúdo original do TXT e o status atual
-- Campo `ULTIMO_ERRO` STRING para exibição rápida no cockpit sem precisar de join
+- Campo `ULTIMO_ERRO` **não existe na tabela** — erros são registrados apenas no LOG
 - **Imutável pelo usuário** — somente leitura + actions
 
 ### LOG — Tabela de Log
@@ -24,50 +24,47 @@ ARQ e LOG são entidades **completamente independentes** — apps separados, ser
 
 ### Separação de responsabilidades
 ```
-ZTBN_Q2C_ARQ_MGR   →  O QUE e QUAL STATUS (pedido atual)
-ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
+ZTBQ2C_ARQ_MGR   →  O QUE e QUAL STATUS (pedido atual)
+ZTBQ2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 ```
 
 ---
 
 ## 1. Modelo de Dados
 
-### 1.1 Tabela ZTBN_Q2C_ARQ_MGR
+### 1.1 Tabela ZTBQ2C_ARQ_MGR
 
 | Campo         | Tipo ABAP   | Chave | Descrição                              |
 |---------------|-------------|-------|----------------------------------------|
-| PEDIDO        | CHAR(35)    | ✓     | Nº do pedido MGR                       |
+| PEDIDO        | CHAR(20)    | ✓     | Nº do pedido MGR                       |
 | BANDEIRA      | CHAR(10)    | ✓     | Dealer / Montadora (Ford, JCB, Renault...) |
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
-| CABEC_ARQ     | STRING      |       | Cabeçalho do arquivo — usado como payload para o CPI (não exibido no app) |
+| ARQUIVO       | STRING      |       | Cabeçalho do arquivo — payload CPI (não exibido no app) |
 | CONTEUDO      | STRING      |       | Arquivo bruto conforme Q2C014I000      |
 | STATUS        | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
-| TENTATIVAS    | INT4        |       | Incrementado a cada reprocessamento    |
-| ULTIMO_ERRO   | STRING      |       | Última mensagem de erro — exibição rápida cockpit |
+| TENTATIVAS    | NUMC(3)     |       | Incrementado a cada reprocessamento    |
 | DATUM         | DATS        |       | Data do último processamento           |
 | UZEIT         | TIMS        |       | Hora do último processamento           |
 | ERNAM         | CHAR(12)    |       | Usuário do último processamento        |
 
-> **ULTIMO_ERRO STRING:** sem limite de tamanho — guarda a mensagem completa do último erro
-> diretamente na ARQ, sem necessidade de join com o LOG para exibição na lista.
+> **Nota:** `ULTIMO_ERRO` não existe na tabela. Erros ficam apenas no LOG. A coluna "Last Error" não
+> aparece no cockpit — para ver o erro, navegar para o histórico do registro.
 
-### 1.2 Tabela ZTBN_Q2C_LOG_MGR
+### 1.2 Tabela ZTBQ2C_LOG_MGR
 
 | Campo         | Tipo ABAP   | Chave | Descrição                              |
 |---------------|-------------|-------|----------------------------------------|
-| PEDIDO        | CHAR(35)    | ✓     | FK → ZTBN_Q2C_ARQ_MGR (chave pai)     |
-| BANDEIRA      | CHAR(10)    | ✓     | FK → ZTBN_Q2C_ARQ_MGR (chave pai)     |
-| DATUM         | DATS        | ✓     | Data da tentativa                      |
-| UZEIT         | TIMS        | ✓     | Hora da tentativa                      |
+| PEDIDO        | CHAR(20)    | ✓     | FK → ZTBQ2C_ARQ_MGR (chave pai)      |
+| BANDEIRA      | CHAR(10)    | ✓     | FK → ZTBQ2C_ARQ_MGR (chave pai)      |
+| ID_REF        | CHAR(10)    |       | Identificador da tentativa (gerado como MMDDHHMMSS) |
 | ETAPA         | CHAR(30)    |       | Leitura / Validação / OV / Remessa / Fatura / XML |
 | MENSAGEM      | STRING      |       | Texto detalhado do erro/sucesso        |
+| DATUM         | DATS        |       | Data da tentativa                      |
+| UZEIT         | TIMS        |       | Hora da tentativa                      |
 | ERNAM         | CHAR(12)    |       | Usuário que executou                   |
 
-> **Chave (Pedido + Bandeira + Datum + Uzeit):** identifica unicamente cada tentativa.
-> Garante rastreabilidade direta sem FK numérica — a chave do pai está na própria linha.
-> Cada tentativa = INSERT de nova linha. Nunca UPDATE/UPSERT.
-> Atenção: se dois reprocessamentos ocorrerem no mesmo segundo, o segundo falha na INSERT.
-> Mitigação: usar TIMESTAMP (DATS+TIMS+microsegundo) ou aceitar a limitação por design.
+> **⚠️ Chave DB atual:** apenas (PEDIDO + BANDEIRA). Para histórico 1:N funcionar, adicionar `ID_REF`
+> como campo-chave na tabela SE11. Enquanto não corrigido, apenas 1 LOG por arquivo será gravado.
 
 ### 1.3 Number Ranges necessários
 - Nenhum — a chave é funcional em ambas as tabelas.
@@ -82,7 +79,7 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 ### BO 1 — ARQ (Monitor / Reprocessamento)
 
 ```
-ZI_Q2C_ARQ_MGR       (DDLS)  → Root entity standalone — lê ZTBN_Q2C_ARQ_MGR
+ZI_Q2C_ARQ_MGR       (DDLS)  → Root entity standalone — lê ZTBQ2C_ARQ_MGR
 ZI_Q2C_ARQ_MGR       (BDEF)  → managed, actions Reprocess e Cancel
 ZBP_I_Q2C_ARQ_MGR    (CLAS)  → Behavior implementation
 ZBP_I_Q2C_ARQ_MGR    (CCIMP) → Actions e determinações
@@ -98,7 +95,7 @@ ZSB_Q2C_ARQ_MGR_SVR  (SRVB)  → OData V4 - UI
 ### BO 2 — LOG (Histórico — app separado, somente leitura)
 
 ```
-ZI_Q2C_LOG_MGR         (DDLS)  → Root entity standalone — lê ZTBN_Q2C_LOG_MGR
+ZI_Q2C_LOG_MGR         (DDLS)  → Root entity standalone — lê ZTBQ2C_LOG_MGR
 ZI_Q2C_LOG_MGR         (BDEF)  → managed read-only (sem actions, sem create, sem impl. class)
 
 ZC_Q2C_LOG_MGR_APP     (DDLS)  → Projection — histórico Fiori
@@ -121,7 +118,7 @@ ZSB_Q2C_LOG_MGR_SVR    (SRVB)  → OData V4 - UI
 @Metadata.ignorePropagatedAnnotations: true
 
 define root view entity ZI_Q2C_ARQ_MGR
-  as select from ztbn_q2c_arq_mgr as arq
+  as select from ztbq2c_arq_mgr as arq
   association [0..*] to ZI_Q2C_LOG_MGR as _Log
     on  $projection.Pedido   = _Log.Pedido
     and $projection.Bandeira = _Log.Bandeira
@@ -129,7 +126,7 @@ define root view entity ZI_Q2C_ARQ_MGR
   key arq.pedido      as Pedido,
   key arq.bandeira    as Bandeira,
       arq.tipo_doc    as TipoDoc,
-      arq.cabec_arq   as CabecArq,
+      arq.arquivo     as Arquivo,
       arq.conteudo    as Conteudo,
       arq.status      as Status,
       case arq.status
@@ -141,7 +138,6 @@ define root view entity ZI_Q2C_ARQ_MGR
         else 0
       end             as StatusCriticality,
       arq.tentativas  as Tentativas,
-      arq.ultimo_erro as UltimoErro,
       arq.datum       as Datum,
       arq.uzeit       as Uzeit,
       arq.ernam       as Ernam,
@@ -165,12 +161,13 @@ define root view entity ZI_Q2C_ARQ_MGR
 // Ligado ao ARQ apenas pelo dado (Pedido + Bandeira).
 // Cada linha = uma tentativa de processamento (INSERT, nunca UPDATE).
 define root view entity ZI_Q2C_LOG_MGR
-  as select from ztbn_q2c_log_mgr as log
+  as select from ztbq2c_log_mgr as log
 {
   key log.pedido   as Pedido,
   key log.bandeira as Bandeira,
-  key log.datum    as Datum,
-  key log.uzeit    as Uzeit,
+  key log.id_ref   as IdRef,
+      log.datum    as Datum,
+      log.uzeit    as Uzeit,
       log.etapa    as Etapa,
       log.mensagem as Mensagem,
       log.ernam    as Ernam
@@ -188,16 +185,16 @@ managed implementation in class ZBP_I_Q2C_ARQ_MGR unique;
 strict ( 2 );
 
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
-  persistent table ztbn_q2c_arq_mgr
+  persistent table ztbq2c_arq_mgr
   lock master
   authorization master ( global )
   etag master Uzeit
 {
-  // update necessário para MODIFY IN LOCAL MODE nas actions
+  // update declarado para permitir MODIFY via EML IN LOCAL MODE nas actions
   update;
 
-  field ( readonly ) Pedido; Bandeira; TipoDoc; CabecArq; Conteudo;
-  field ( readonly ) Status; Tentativas; UltimoErro; Datum; Uzeit; Ernam;
+  field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo;
+  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam;
   // StatusCriticality é campo calculado no CDS — não declarar em field(readonly)
 
   action Reprocess result [1] $self;
@@ -206,16 +203,15 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   // Associação de leitura ao LOG — navegação Object Page ARQ → histórico
   association _Log { }
 
-  mapping for ztbn_q2c_arq_mgr
+  mapping for ztbq2c_arq_mgr
   {
     Pedido     = pedido;
     Bandeira   = bandeira;
     TipoDoc    = tipo_doc;
-    CabecArq   = cabec_arq;
+    Arquivo    = arquivo;
     Conteudo   = conteudo;
     Status     = status;
     Tentativas = tentativas;
-    UltimoErro = ultimo_erro;
     Datum      = datum;
     Uzeit      = uzeit;
     Ernam      = ernam;
@@ -236,10 +232,11 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
 {
   field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
 
-  mapping for ztbn_q2c_log_mgr
+  mapping for ztbq2c_log_mgr
   {
     Pedido   = pedido;
     Bandeira = bandeira;
+    IdRef    = id_ref;
     Datum    = datum;
     Uzeit    = uzeit;
     Etapa    = etapa;
@@ -262,19 +259,19 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
    - TENTATIVAS = TENTATIVAS + 1
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
 4. INSERT nova linha em LOG:
-   - PEDIDO = Pedido, BANDEIRA = Bandeira (chave pai)
-   - DATUM = sy-datum, UZEIT = sy-uzeit (chave temporal)
+   - ID_REF = gerado internamente (MMDDHHMMSS)
+   - PEDIDO = Pedido, BANDEIRA = Bandeira
+   - DATUM = sy-datum, UZEIT = sy-uzeit
    - ETAPA = 'REPROCESSAMENTO'
    - MENSAGEM = 'Reprocessamento iniciado'
-   - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
 5. Chamar ZCL_Q2C_CPI_CALLER — passa o registro ARQ completo (is_arq)
    → Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER, nunca o CCIMP
 6. Se OK:
-   - UPDATE ARQ: STATUS = 'PROCESSADO', ULTIMO_ERRO = ''
+   - UPDATE ARQ: STATUS = 'PROCESSADO'
    - INSERT LOG: ETAPA = 'CONCLUSAO', MENSAGEM = 'Processado com sucesso'
 7. Se ERRO:
-   - UPDATE ARQ: STATUS = 'ERRO', ULTIMO_ERRO = mensagem_erro (STRING — sem truncação)
-   - INSERT LOG: ETAPA = etapa_erro, MENSAGEM = mensagem_erro (STRING completa)
+   - UPDATE ARQ: STATUS = 'ERRO'
+   - INSERT LOG: ETAPA = 'ERRO', MENSAGEM = mensagem_erro (STRING completa)
 ```
 
 > **CRÍTICO:** O LOG é sempre INSERT — nunca UPDATE. Isso garante o histórico completo.
@@ -297,8 +294,9 @@ Colunas visíveis:
 - Bandeira
 - TipoDoc
 - Tentativas
-- **UltimoErro** ← campo direto da ARQ, sem join, sempre populado
 - Datum / Uzeit
+
+> **Nota:** Sem coluna de último erro na lista — para ver o detalhe do erro, acessar o histórico LOG do registro.
 
 Ações na lista:
 - **Reprocessar** (action Reprocess)
@@ -314,8 +312,7 @@ Filtros:
 ### Object Page (detalhe do registro — App ARQ)
 Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
-2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
-3. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
+2. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
 
 > O usuário clica no registro ARQ → Object Page abre → seção LOG exibe **todas** as tentativas (Datum, Uzeit, Etapa, Mensagem, Ernam), ordenáveis.
 
@@ -343,7 +340,7 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
   key Pedido,
   key Bandeira,
       TipoDoc,
-      CabecArq,
+      Arquivo,
       Conteudo,
       @Consumption.valueHelpDefinition: [
         { entity: { name: 'ZC_Q2C_STATUS_VH_APP', element: 'Status' },
@@ -352,7 +349,6 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       Status,
       StatusCriticality,
       Tentativas,
-      UltimoErro,
       Datum,
       Uzeit,
       Ernam,

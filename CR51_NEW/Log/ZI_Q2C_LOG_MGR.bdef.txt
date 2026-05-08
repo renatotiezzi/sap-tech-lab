@@ -3,8 +3,8 @@ strict ( 2 );
 
 // -----------------------------------------------------------------------
 // Root BO: LOG MGR — Histórico de Processamento
-// Tabela : ZTBN_Q2C_LOG_MGR
-// Chave  : (Pedido, Bandeira, Datum, Uzeit)
+// Tabela : ZTBQ2C_LOG_MGR
+// Chave  : (Pedido, Bandeira, IdRef) — IdRef distingue tentativas 1:N
 //
 // Read-only no RAP: sem create/update/delete expostos.
 // Registros são criados exclusivamente via INSERT direto na
@@ -14,15 +14,16 @@ strict ( 2 );
 // authorization não declarada — acesso controlado pelo @AccessControl.authorizationCheck: #NOT_REQUIRED no DDLS
 // authorization master ( instance ) exigiria implementation class para handler de autorização — LOG não tem classe
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
-  persistent table ztbn_q2c_log_mgr
+  persistent table ztbq2c_log_mgr
   lock master
 {
-  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
+  field ( readonly ) Pedido; Bandeira; IdRef; Datum; Uzeit; Etapa; Mensagem; Ernam;
 
   mapping for ztbn_q2c_log_mgr
   {
     Pedido   = pedido;
     Bandeira = bandeira;
+    IdRef    = id_ref;
     Datum    = datum;
     Uzeit    = uzeit;
     Etapa    = etapa;

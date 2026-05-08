@@ -55,4 +55,8 @@ annotate view ZC_Q2C_LOG_MGR_APP with
   @UI.lineItem: [ { position: 70 } ]
   @UI.identification: [ { position: 70 } ]
   Ernam;
+
+  // Campo técnico de unicidade — não exibir na UI
+  @UI.hidden: true
+  IdRef;
 }

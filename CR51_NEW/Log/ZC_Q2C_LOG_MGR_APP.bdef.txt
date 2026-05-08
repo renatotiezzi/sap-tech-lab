@@ -4,7 +4,7 @@ strict ( 2 );
 // -----------------------------------------------------------------------
 // Projection BDEF: LOG MGR — Histórico de Processamento
 // Somente leitura — sem create, update, delete, sem actions.
-// Registros criados exclusivamente via INSERT direto em ZTBN_Q2C_LOG_MGR
+// Registros criados exclusivamente via INSERT direto em ZTBQ2C_LOG_MGR
 // pela action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
 //
 // Usado em dois contextos:

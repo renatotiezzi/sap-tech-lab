@@ -25,12 +25,6 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
       label: 'Último Erro',
       position: 20,
       targetQualifier: 'LastError' },
-    { id: 'Content',
-      parentId: 'Detalhes',
-      type: #FIELDGROUP_REFERENCE,
-      label: 'Cabeçalho do Arquivo',
-      position: 30,
-      targetQualifier: 'FileContent' },
     { id: 'LogHistory',
       type: #LINEITEM_REFERENCE,
       label: 'Histórico de Processamento',
@@ -94,8 +88,8 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.identification: [ { position: 90 } ]
   Ernam;
 
-  @EndUserText.label: 'Cabeçalho do Arquivo'
-  @UI.fieldGroup: [ { qualifier: 'FileContent', position: 10 } ]
+  // Campo usado no payload CPI — não exibir na UI
+  @UI.hidden: true
   CabecArq;
 
   @EndUserText.label: 'Conteúdo do Arquivo'

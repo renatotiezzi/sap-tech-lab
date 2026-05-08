@@ -39,7 +39,7 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | PEDIDO        | CHAR(35)    | ✓     | Nº do pedido MGR                       |
 | BANDEIRA      | CHAR(10)    | ✓     | Dealer / Montadora (Ford, JCB, Renault...) |
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
-| CABEC_ARQ     | CHAR(100)   |       | Cabeçalho original do TXT              |
+| CABEC_ARQ     | STRING      |       | Cabeçalho do arquivo — usado como payload para o CPI (não exibido no app) |
 | CONTEUDO      | STRING      |       | Arquivo bruto conforme Q2C014I000      |
 | STATUS        | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
 | TENTATIVAS    | INT4        |       | Incrementado a cada reprocessamento    |
@@ -315,8 +315,7 @@ Filtros:
 Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
 2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
-3. **Cabeçalho do Arquivo** → CabecArq (somente leitura)
-4. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
+3. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
 
 > O usuário clica no registro ARQ → Object Page abre → seção LOG exibe **todas** as tentativas (Datum, Uzeit, Etapa, Mensagem, Ernam), ordenáveis.
 

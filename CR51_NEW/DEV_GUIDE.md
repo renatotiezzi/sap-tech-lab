@@ -46,7 +46,7 @@ ZTBQ2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | DATUM         | DATS        |       | Data do último processamento           |
 | UZEIT         | TIMS        |       | Hora do último processamento           |
 | ERNAM         | CHAR(12)    |       | Usuário do último processamento        |
-| ULTIMO_ERRO   | CHAR(255)   |       | Última mensagem de erro (atualizada a cada erro, visível no cockpit) |
+| ULTIMO_ERRO   | STRING      |       | Última mensagem de erro (atualizada a cada erro, visível no cockpit) |
 
 > **Nota:** Erros ficam registrados no histórico completo (LOG). `ULTIMO_ERRO` é o último erro na tabela ARQ, para exibição rápida no cockpit.
 

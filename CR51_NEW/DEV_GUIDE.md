@@ -267,7 +267,8 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
    - ETAPA = 'REPROCESSAMENTO'
    - MENSAGEM = 'Reprocessamento iniciado'
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
-5. Chamar ZCL_Q2C_CPI_CALLER (ou equivalente)
+5. Chamar ZCL_Q2C_CPI_CALLER — passa o registro ARQ completo (is_arq)
+   → Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER, nunca o CCIMP
 6. Se OK:
    - UPDATE ARQ: STATUS = 'PROCESSADO', ULTIMO_ERRO = ''
    - INSERT LOG: ETAPA = 'CONCLUSAO', MENSAGEM = 'Processado com sucesso'

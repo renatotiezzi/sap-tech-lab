@@ -28,7 +28,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
     { id: 'Content',
       parentId: 'Detalhes',
       type: #FIELDGROUP_REFERENCE,
-      label: 'Conteúdo Original',
+      label: 'Cabeçalho do Arquivo',
       position: 30,
       targetQualifier: 'FileContent' },
     { id: 'LogHistory',
@@ -99,8 +99,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   CabecArq;
 
   @EndUserText.label: 'Conteúdo do Arquivo'
-  @UI.multiLineText: true
-  @UI.fieldGroup: [ { qualifier: 'FileContent', position: 20 } ]
+  @UI.hidden: true
   Conteudo;
 
   // Campo técnico usado como referência na criticality do Status — não exibir na UI

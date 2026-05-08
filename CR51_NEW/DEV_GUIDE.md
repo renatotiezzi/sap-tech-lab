@@ -315,7 +315,7 @@ Filtros:
 Facets:
 1. **Informações do Arquivo** → Pedido, Bandeira, TipoDoc, Status, Tentativas
 2. **Último Erro** → UltimoErro (STRING, multiline, readonly)
-3. **Conteúdo Original** → CabecArq, Conteudo (binário, readonly)
+3. **Cabeçalho do Arquivo** → CabecArq (somente leitura)
 4. **Histórico de Processamento** → tabela com todas as linhas de LOG daquele Pedido+Bandeira (`#LINEITEM_REFERENCE` → `_Log`)
 
 > O usuário clica no registro ARQ → Object Page abre → seção LOG exibe **todas** as tentativas (Datum, Uzeit, Etapa, Mensagem, Ernam), ordenáveis.

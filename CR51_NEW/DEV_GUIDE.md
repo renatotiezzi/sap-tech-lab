@@ -18,7 +18,7 @@ ARQ e LOG são entidades **completamente independentes** — apps separados, ser
 ### LOG — Tabela de Log
 - Representa **cada tentativa de processamento** do arquivo
 - Chave: `(PEDIDO, BANDEIRA, DATUM, UZEIT)` — chave funcional + data/hora da tentativa
-- Relação 1:N com ARQ **apenas pelo dado** (Pedido + Bandeira) — sem vínculo RAP
+- `ID_REF` campo não-chave para referência cruzada com sistemas externos (ex: CPI)
 - Cada reprocessamento gera **nova linha** no log — nunca sobrescreve
 - Entidade independente: **app próprio, serviço próprio**
 
@@ -56,15 +56,15 @@ ZTBQ2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 |---------------|-------------|-------|----------------------------------------|
 | PEDIDO        | CHAR(20)    | ✓     | FK → ZTBQ2C_ARQ_MGR (chave pai)      |
 | BANDEIRA      | CHAR(10)    | ✓     | FK → ZTBQ2C_ARQ_MGR (chave pai)      |
-| ID_REF        | CHAR(10)    |       | Identificador da tentativa (gerado como MMDDHHMMSS) |
+| DATUM         | DATS        | ✓     | Data da tentativa                      |
+| UZEIT         | TIMS        | ✓     | Hora da tentativa                      |
+| ID_REF        | CHAR(10)    |       | Referência cruzada (ex: UUID do CPI)   |
 | ETAPA         | CHAR(30)    |       | Leitura / Validação / OV / Remessa / Fatura / XML |
 | MENSAGEM      | STRING      |       | Texto detalhado do erro/sucesso        |
-| DATUM         | DATS        |       | Data da tentativa                      |
-| UZEIT         | TIMS        |       | Hora da tentativa                      |
 | ERNAM         | CHAR(12)    |       | Usuário que executou                   |
 
-> **⚠️ Chave DB atual:** apenas (PEDIDO + BANDEIRA). Para histórico 1:N funcionar, adicionar `ID_REF`
-> como campo-chave na tabela SE11. Enquanto não corrigido, apenas 1 LOG por arquivo será gravado.
+> **Chave (Pedido + Bandeira + Datum + Uzeit):** identifica cada tentativa. Se dois reprocessamentos
+> ocorrerem no mesmo segundo, o segundo INSERT falha. Mitigação: adicionar microsegundo ou usar ID_REF externo.
 
 ### 1.3 Number Ranges necessários
 - Nenhum — a chave é funcional em ambas as tabelas.
@@ -165,9 +165,9 @@ define root view entity ZI_Q2C_LOG_MGR
 {
   key log.pedido   as Pedido,
   key log.bandeira as Bandeira,
-  key log.id_ref   as IdRef,
-      log.datum    as Datum,
-      log.uzeit    as Uzeit,
+  key log.datum    as Datum,
+  key log.uzeit    as Uzeit,
+      log.id_ref   as IdRef,
       log.etapa    as Etapa,
       log.mensagem as Mensagem,
       log.ernam    as Ernam
@@ -373,6 +373,7 @@ define root view entity ZC_Q2C_LOG_MGR_APP
   key Bandeira,
   key Datum,
   key Uzeit,
+      IdRef,
       Etapa,
       Mensagem,
       Ernam
@@ -384,8 +385,8 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 ## 9. Ordem de Criação e Ativação
 
 ### Fase 1 — Tabelas
-1. `ZTBN_Q2C_ARQ_MGR` (SE11 / ADT)
-2. `ZTBN_Q2C_LOG_MGR` (SE11 / ADT)
+1. `ZTBQ2C_ARQ_MGR` (SE11 / ADT)
+2. `ZTBQ2C_LOG_MGR` (SE11 / ADT)
 
 ### Fase 2 — BO LOG (criar antes do ARQ — ARQ referencia o LOG na association)
 1. `ZI_Q2C_LOG_MGR` (DDLS)
@@ -421,11 +422,11 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 
 | # | Ponto                          | Opções                                     | Quem decide     |
 |---|--------------------------------|--------------------------------------------|-----------------|
-| 1 | Nome das tabelas               | `ZTBN_Q2C_*` ou outro padrão              | Arquiteto       |
+| 1 | Nome das tabelas               | `ZTBQ2C_*` — definido                    | — resolvido     |
 | 2 | Pacote / transporte            | Definir pacote Q2C para os novos objetos   | Basis / Arquiteto |
 | 3 | Colisão de chave no LOG        | E se dois reprocessamentos ocorrerem no mesmo segundo? Usar TIMESTAMP com microsegundo ou aceitar limitação? | Dev + Arquiteto |
 | 4 | Quem chama o INSERT no LOG?    | Behavior impl. ou classe externa de integração? | Dev        |
-| 5 | Campo CONTEUDO tipo STRING      | STRING sem limite de tamanho — mesmo padrão de ULTIMO_ERRO | — resolvido |
+| 5 | Campo CONTEUDO tipo STRING      | STRING sem limite de tamanho               | — resolvido |
 | 6 | Retenção 90 dias               | Job de limpeza — quando implementar?       | Funcional / Basis |
 | 7 | Export Excel                   | Nativo no FE List Report (já disponível)   | — confirmar UI5 version |
 | 8 | Autorização / Role             | Qual role SAP para acesso ao cockpit?      | Basis / Funcional |
@@ -437,8 +438,8 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 | Aspecto                  | CR51_ListReport (anterior)         | CR51_NEW (esta versão)                |
 |--------------------------|------------------------------------|---------------------------------------|
 | Chave ARQ                | `(pedido, bandeira)` — funcional   | `(pedido, bandeira)` — mesma, funcional |
-| Chave LOG                | `(pedido, bandeira)` — 1:1         | `(pedido, bandeira, datum, uzeit)` — 1:N histórico por data/hora |
-| Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | `ULTIMO_ERRO` direto na ARQ           |
+| Chave LOG                | `(pedido, bandeira)` — 1:1         | `(pedido, bandeira, datum, uzeit)` — 1:N histórico |
+| Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | Sem campo de erro no cockpit — ver histórico LOG |
 | Histórico de tentativas  | Não — sobrescreve sempre           | Sim — INSERT a cada tentativa        |
 | Apps                     | Um único app (page única)          | **Dois apps separados**: ARQ (cockpit) e LOG (histórico) |
 | Alinhamento com EF       | Parcial                            | Total                                 |

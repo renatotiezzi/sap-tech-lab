@@ -42,14 +42,12 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 | MANDT       | MANDT       | ✓     | Mandante                            |
 | PEDIDO      | CHAR(20)    | ✓     | FK funcional → ZTBQ2C_ARQ_MGR      |
 | BANDEIRA    | CHAR(10)    | ✓     | FK funcional → ZTBQ2C_ARQ_MGR      |
-| ID_REF      | CHAR(10)    | ⚠️    | Deve ser chave — adicionar à chave da tabela em SE11 |
+| DATUM       | DATS        | ✓     | Data da tentativa                   |
+| UZEIT       | TIMS        | ✓     | Hora da tentativa                   |
+| ID_REF      | CHAR(10)    |       | Referência cruzada (ex: UUID do CPI) |
 | ETAPA       | CHAR(30)    |       | REPROCESSAMENTO / CONCLUSAO / CANCELAMENTO / ERRO |
 | MENSAGEM    | STRING      |       | Texto completo do erro/sucesso      |
-| DATUM       | DATS        |       | Data da tentativa                   |
-| UZEIT       | TIMS        |       | Hora da tentativa                   |
 | ERNAM       | CHAR(12)    |       | Usuário que executou                |
-
-> **⚠️ Importante:** `ID_REF` deve ser marcado como campo-chave para suportar histórico 1:N.
 
 - Delivery Class: `A`
 - Data Browser / Table View Maintenance: `Display/Maintenance Allowed`

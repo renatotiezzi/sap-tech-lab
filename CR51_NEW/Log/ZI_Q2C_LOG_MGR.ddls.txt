@@ -17,9 +17,9 @@ define root view entity ZI_Q2C_LOG_MGR
 {
   key log.pedido   as Pedido,
   key log.bandeira as Bandeira,
-  key log.id_ref   as IdRef,
-      log.datum    as Datum,
-      log.uzeit    as Uzeit,
+  key log.datum    as Datum,
+  key log.uzeit    as Uzeit,
+      log.id_ref   as IdRef,
       log.etapa    as Etapa,
       log.mensagem as Mensagem,
       log.ernam    as Ernam

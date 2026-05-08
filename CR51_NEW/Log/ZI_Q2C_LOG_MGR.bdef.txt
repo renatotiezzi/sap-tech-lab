@@ -4,7 +4,7 @@ strict ( 2 );
 // -----------------------------------------------------------------------
 // Root BO: LOG MGR — Histórico de Processamento
 // Tabela : ZTBQ2C_LOG_MGR
-// Chave  : (Pedido, Bandeira, IdRef) — IdRef distingue tentativas 1:N
+// Chave  : (Pedido, Bandeira, Datum, Uzeit) — IdRef é campo não-chave (referência cruzada CPI)
 //
 // Read-only no RAP: sem create/update/delete expostos.
 // Registros são criados exclusivamente via INSERT direto na
@@ -17,9 +17,9 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbq2c_log_mgr
   lock master
 {
-  field ( readonly ) Pedido; Bandeira; IdRef; Datum; Uzeit; Etapa; Mensagem; Ernam;
+  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; IdRef; Etapa; Mensagem; Ernam;
 
-  mapping for ztbn_q2c_log_mgr
+  mapping for ztbq2c_log_mgr
   {
     Pedido   = pedido;
     Bandeira = bandeira;

@@ -34,8 +34,8 @@ AGENDAMENTO  (app Fiori "Application Jobs" — F2373)
 ========================================================================
 NOTA — regra de limpeza implementada em ZCL_Q2C_MGR_CLEANUP
 ========================================================================
-   LOG (ztbn_q2c_log_mgr) : remove todas as linhas com DATUM < corte
-   ARQ (ztbn_q2c_arq_mgr) : remove STATUS = CANCELADO ou PROCESSADO
+   LOG (ztbq2c_log_mgr) : remove todas as linhas com DATUM < corte
+   ARQ (ztbq2c_arq_mgr) : remove STATUS = CANCELADO ou PROCESSADO
                              com DATUM < corte
    ARQ com STATUS = ERRO   : NÃO removidos — aguardam ação manual
 

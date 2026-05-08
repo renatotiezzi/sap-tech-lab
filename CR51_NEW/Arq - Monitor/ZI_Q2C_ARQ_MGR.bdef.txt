@@ -27,7 +27,7 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   // Associação de leitura ao LOG — sem create (LOG é gerenciado pela action handler)
   association _Log { }
 
-  mapping for ztbn_q2c_arq_mgr
+  mapping for ztbq2c_arq_mgr
   {
     Pedido     = pedido;
     Bandeira   = bandeira;

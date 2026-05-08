@@ -226,7 +226,7 @@ managed;
 strict ( 2 );
 
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
-  persistent table ztbn_q2c_log_mgr
+  persistent table ztbq2c_log_mgr
   lock master
   // authorization: não declarar — acesso controlado via @AccessControl no DDLS
 {

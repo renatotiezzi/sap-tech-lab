@@ -52,8 +52,8 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 | Tabela              | Descrição                              |
 |---------------------|----------------------------------------|
-| `ZTBN_Q2C_ARQ_MGR`  | Arquivo recebido — status atual        |
-| `ZTBN_Q2C_LOG_MGR`  | Histórico de tentativas (INSERT-only)  |
+| `ZTBQ2C_ARQ_MGR`    | Arquivo recebido — status atual        |
+| `ZTBQ2C_LOG_MGR`    | Histórico de tentativas (INSERT-only)  |
 
 ---
 
@@ -63,7 +63,7 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
-| `ZI_Q2C_ARQ_MGR`          | DDLS  | Interface ARQ — lê `ZTBN_Q2C_ARQ_MGR`, `_Log` association |
+| `ZI_Q2C_ARQ_MGR`          | DDLS  | Interface ARQ — lê `ZTBQ2C_ARQ_MGR`, `_Log` association |
 | `ZI_Q2C_ARQ_MGR`          | BDEF  | Managed — actions Reprocess, Cancel  |
 | `ZBP_I_Q2C_ARQ_MGR`       | CLAS  | Handler global (abstract final)      |
 | `ZBP_I_Q2C_ARQ_MGR`       | CCIMP | Lógica das actions + insert_log      |
@@ -77,7 +77,7 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
-| `ZI_Q2C_LOG_MGR`          | DDLS  | Interface LOG — lê `ZTBN_Q2C_LOG_MGR` |
+| `ZI_Q2C_LOG_MGR`          | DDLS  | Interface LOG — lê `ZTBQ2C_LOG_MGR` |
 | `ZI_Q2C_LOG_MGR`          | BDEF  | Read-only (sem actions, sem create)  |
 | `ZC_Q2C_LOG_MGR_APP`      | DDLS  | Projection standalone                |
 | `ZC_Q2C_LOG_MGR_APP`      | BDEF  | Projection read-only                 |

@@ -5,7 +5,7 @@
 @ObjectModel.representativeKey: 'Status'
 
 define view entity ZC_Q2C_STATUS_VH_APP
-  as select distinct from ztbn_q2c_arq_mgr
+  as select distinct from ztbq2c_arq_mgr
 {
   key status as Status,
       @Semantics.text: true

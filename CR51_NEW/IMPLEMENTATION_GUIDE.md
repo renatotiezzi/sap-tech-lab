@@ -109,62 +109,85 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 
 ---
 
+## Fase 2.5 — Classe CPI Caller (antes do BDEF ARQ)
+
+> O CCIMP de `ZBP_I_Q2C_ARQ_MGR` instancia `ZCL_Q2C_CPI_CALLER` — a classe **deve existir e estar ativa**
+> antes de ativar o BDEF (passo 3.3) e o CCIMP (passo 3.4).
+
+### 2.8 ZCL_Q2C_CPI_CALLER (CLAS)
+
+1. ADT → New → **ABAP Class** → nome `ZCL_Q2C_CPI_CALLER`
+2. Visibilidade: **Public**, Final
+3. Copiar conteúdo de `Arq - Monitor/ZCL_Q2C_CPI_CALLER.clas.txt`
+4. Ativar
+5. ⚠️ **Não usar** o arquivo de `CR51_ListReport/Backup/` — assinatura diferente
+
+---
+
 ## Fase 3 — BO ARQ
 
 ### 3.1 ZI_Q2C_ARQ_MGR (DDLS)
 
 1. ADT → New → **Data Definition** → nome `ZI_Q2C_ARQ_MGR`
-2. Copiar conteúdo de `Monitor/ZI_Q2C_ARQ_MGR.ddls.txt`
+2. Copiar conteúdo de `Arq - Monitor/ZI_Q2C_ARQ_MGR.ddls.txt`
 3. Ativar
 
 ### 3.2 ZBP_I_Q2C_ARQ_MGR (CLAS — global)
 
 1. ADT → New → **ABAP Class** → nome `ZBP_I_Q2C_ARQ_MGR`
-2. Copiar conteúdo de `Monitor/ZBP_I_Q2C_ARQ_MGR.clas.txt`
-3. Ativar (classe global vazia — lógica está no CCIMP)
+2. Copiar conteúdo de `Arq - Monitor/ZBP_I_Q2C_ARQ_MGR.clas.txt`
+3. Ativar (classe global abstrata + final — lógica está no CCIMP)
 
 ### 3.3 ZI_Q2C_ARQ_MGR (BDEF)
 
 1. ADT → New → **Behavior Definition** → nome `ZI_Q2C_ARQ_MGR`
 2. Tipo: **Managed**
-3. Copiar conteúdo de `Monitor/ZI_Q2C_ARQ_MGR.bdef.txt`
+3. Copiar conteúdo de `Arq - Monitor/ZI_Q2C_ARQ_MGR.bdef.txt`
 4. Ativar
 
 ### 3.4 ZBP_I_Q2C_ARQ_MGR (CCIMP — locals_imp)
 
 1. Abrir `ZBP_I_Q2C_ARQ_MGR` no ADT
 2. Navegar para aba **Local Types** (locals_imp)
-3. Copiar conteúdo de `Monitor/ZBP_I_Q2C_ARQ_MGR.clas.locals_imp.txt`
+3. Copiar conteúdo de `Arq - Monitor/ZBP_I_Q2C_ARQ_MGR.clas.locals_imp.txt`
 4. Ativar
-5. ⚠️ **Requer `ZCL_Q2C_CPI_CALLER` ativada** — se não existir, criar stub antes
 
-### 3.5 ZC_Q2C_ARQ_MGR_APP (DDLS)
+### 3.5 ZC_Q2C_STATUS_VH_APP (DDLS — Value Help Status)
 
-1. ADT → New → **Data Definition** → nome `ZC_Q2C_ARQ_MGR_APP`
-2. Copiar conteúdo de `Monitor/ZC_Q2C_ARQ_MGR_APP.ddls.txt`
+> ⚠️ **Criar antes de ZC_Q2C_ARQ_MGR_APP** — a projeção ARQ referencia esta entidade
+> via `@Consumption.valueHelpDefinition`. O CDS compiler valida a existência em tempo de ativação.
+
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_STATUS_VH_APP`
+2. Copiar conteúdo de `Arq - Monitor/ZC_Q2C_STATUS_VH_APP.ddls.txt`
 3. Ativar
 
-### 3.6 ZC_Q2C_ARQ_MGR_APP (BDEF)
+### 3.6 ZC_Q2C_ARQ_MGR_APP (DDLS)
+
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_ARQ_MGR_APP`
+2. Copiar conteúdo de `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP.ddls.txt`
+3. Ativar
+
+### 3.7 ZC_Q2C_ARQ_MGR_APP (BDEF)
 
 1. ADT → New → **Behavior Definition** → nome `ZC_Q2C_ARQ_MGR_APP`
 2. Tipo: **Projection**
-3. Copiar conteúdo de `Monitor/ZC_Q2C_ARQ_MGR_APP.bdef.txt`
+3. Copiar conteúdo de `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP.bdef.txt`
 4. Ativar
 
-### 3.7 ZC_Q2C_ARQ_MGR_APP_MDE (DDLX)
+### 3.8 ZC_Q2C_ARQ_MGR_APP_MDE (DDLX)
 
 1. ADT → New → **Metadata Extension** → nome `ZC_Q2C_ARQ_MGR_APP_MDE`
-2. Copiar conteúdo de `Monitor/ZC_Q2C_ARQ_MGR_APP_MDE.ddlx.txt`
+2. Copiar conteúdo de `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP_MDE.ddlx.txt`
 3. Ativar
 
-### 3.8 ZSD_Q2C_ARQ_MGR_SVR (SRVD)
+### 3.9 ZSD_Q2C_ARQ_MGR_SVR (SRVD)
 
 1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_MGR_SVR`
-2. Copiar conteúdo de `Monitor/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt`
+2. Copiar conteúdo de `Arq - Monitor/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt`
 3. Ativar
-4. ℹ️ Este serviço expõe **ARQ + LOG** — necessário para a navegação Object Page → Histórico
+4. ℹ️ Este serviço expõe **ARQ + LOG + StatusVH** — necessário para a navegação Object Page → Histórico
 
-### 3.9 ZSB_Q2C_ARQ_MGR_SVR (SRVB)
+### 3.10 ZSB_Q2C_ARQ_MGR_SVR (SRVB)
 
 1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_MGR_SVR`
 2. Binding Type: **OData V4 - UI**

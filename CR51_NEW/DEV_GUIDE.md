@@ -40,7 +40,7 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | BANDEIRA      | CHAR(10)    | ✓     | Dealer / Montadora (Ford, JCB, Renault...) |
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
 | CABEC_ARQ     | CHAR(100)   |       | Cabeçalho original do TXT              |
-| CONTEUDO      | RAWSTRING   |       | Arquivo bruto conforme Q2C014I000      |
+| CONTEUDO      | STRING      |       | Arquivo bruto conforme Q2C014I000      |
 | STATUS        | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
 | TENTATIVAS    | INT4        |       | Incrementado a cada reprocessamento    |
 | ULTIMO_ERRO   | STRING      |       | Última mensagem de erro — exibição rápida cockpit |
@@ -430,7 +430,7 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 | 2 | Pacote / transporte            | Definir pacote Q2C para os novos objetos   | Basis / Arquiteto |
 | 3 | Colisão de chave no LOG        | E se dois reprocessamentos ocorrerem no mesmo segundo? Usar TIMESTAMP com microsegundo ou aceitar limitação? | Dev + Arquiteto |
 | 4 | Quem chama o INSERT no LOG?    | Behavior impl. ou classe externa de integração? | Dev        |
-| 5 | Campo CONTEUDO tipo RAWSTRING  | Suportado como campo de tabela em S4 ABAP? Alternativa: LCHR ou tabela filho de linhas | Dev |
+| 5 | Campo CONTEUDO tipo STRING      | STRING sem limite de tamanho — mesmo padrão de ULTIMO_ERRO | — resolvido |
 | 6 | Retenção 90 dias               | Job de limpeza — quando implementar?       | Funcional / Basis |
 | 7 | Export Excel                   | Nativo no FE List Report (já disponível)   | — confirmar UI5 version |
 | 8 | Autorização / Role             | Qual role SAP para acesso ao cockpit?      | Basis / Funcional |

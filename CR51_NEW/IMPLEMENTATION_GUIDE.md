@@ -25,7 +25,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 | BANDEIRA    | CHAR(10)    | ✓     | Dealer / Montadora                  |
 | TIPO_DOC    | CHAR(4)     |       | ZVTF / ZVTR / ZV01                  |
 | CABEC_ARQ   | CHAR(100)   |       | Cabeçalho original do TXT           |
-| CONTEUDO    | RAWSTRING   |       | Arquivo bruto                       |
+| CONTEUDO    | STRING      |       | Arquivo bruto                       |
 | STATUS      | CHAR(20)    |       | ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
 | TENTATIVAS  | INT4        |       | Contador de reprocessamentos        |
 | ULTIMO_ERRO | STRING      |       | Última mensagem de erro             |

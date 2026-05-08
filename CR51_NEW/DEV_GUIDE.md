@@ -41,7 +41,7 @@ ZTBN_Q2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
 | CABEC_ARQ     | CHAR(100)   |       | Cabeçalho original do TXT              |
 | CONTEUDO      | RAWSTRING   |       | Arquivo bruto conforme Q2C014I000      |
-| STATUS        | CHAR(20)    |       | ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
+| STATUS        | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
 | TENTATIVAS    | INT4        |       | Incrementado a cada reprocessamento    |
 | ULTIMO_ERRO   | STRING      |       | Última mensagem de erro — exibição rápida cockpit |
 | DATUM         | DATS        |       | Data do último processamento           |
@@ -136,6 +136,7 @@ define root view entity ZI_Q2C_ARQ_MGR
         when 'EM_PROCESSAMENTO' then 2
         when 'PROCESSADO'       then 3
         when 'CANCELADO'        then 0
+        when 'CRIADO'           then 5
         else 0
       end             as StatusCriticality,
       arq.tentativas  as Tentativas,

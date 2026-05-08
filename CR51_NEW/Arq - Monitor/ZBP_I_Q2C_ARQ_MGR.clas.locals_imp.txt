@@ -105,13 +105,14 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
               ev_status = DATA(cpi_status)
           ).
 
-          " 6. Sucesso: STATUS = PROCESSADO
+          " 6. Sucesso: STATUS = PROCESSADO + limpar ULTIMO_ERRO
           MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
             ENTITY arqmgr
-              UPDATE FIELDS ( Status Datum Uzeit Ernam )
+              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
               WITH VALUE #( (
                 %key       = entity-%key
                 Status     = 'PROCESSADO'
+                UltimoErro = ''
                 Datum      = sy-datum
                 Uzeit      = sy-uzeit
                 Ernam      = sy-uname

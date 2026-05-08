@@ -26,7 +26,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 | TIPO_DOC    | CHAR(4)     |       | ZVTF / ZVTR / ZV01                  |
 | ARQUIVO     | STRING      |       | Cabeçalho do arquivo — payload CPI  |
 | CONTEUDO    | STRING      |       | Arquivo bruto                       |
-| STATUS      | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
+| STATUS      | CHAR(20)    |       | CRIADO / ERRO / PROCESSADO / CANCELADO |
 | TENTATIVAS  | NUMC(3)     |       | Contador de reprocessamentos        |
 | DATUM       | DATS        |       | Data do último processamento        |
 | UZEIT       | TIMS        |       | Hora do último processamento        |
@@ -223,11 +223,11 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 ### App ARQ — Monitor
 - [ ] SRVB publicado com sucesso (status = Published)
 - [ ] Preview no ADT abre List Report com colunas: Pedido, Bandeira, Status, TipoDoc, Tentativas
-- [ ] Status exibe ícone de criticidade (vermelho = ERRO, amarelo = EM_PROCESSAMENTO)
+- [ ] Status exibe ícone de criticidade (vermelho = ERRO, verde = PROCESSADO, cinza = CANCELADO)
 - [ ] Botões "Reprocessar" e "Cancelar" visíveis na lista
-- [ ] Clicar em um registro abre Object Page com 4 seções (Dados Gerais, Último Erro, Conteúdo, Histórico)
+- [ ] Clicar em um registro abre Object Page com 2 facets (Dados Gerais, Histórico de Processamento)
 - [ ] Seção "Histórico de Processamento" exibe linhas do LOG daquele Pedido+Bandeira
-- [ ] Action Reprocess: status muda para EM_PROCESSAMENTO → PROCESSADO ou ERRO
+- [ ] Action Reprocess: status muda para PROCESSADO (sucesso) ou ERRO (falha) + ULTIMO_ERRO preenchido
 - [ ] Action Cancel: status muda para CANCELADO
 - [ ] Após cada action: nova linha inserida em ZTBQ2C_LOG_MGR
 

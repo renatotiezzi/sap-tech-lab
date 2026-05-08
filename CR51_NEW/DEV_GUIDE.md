@@ -41,7 +41,7 @@ ZTBQ2C_LOG_MGR   →  O QUE ACONTECEU e QUANDO (histórico de tentativas)
 | TIPO_DOC      | CHAR(4)     |       | ZVTF / ZVTR / ZV01                     |
 | ARQUIVO       | STRING      |       | Cabeçalho do arquivo — payload CPI (não exibido no app) |
 | CONTEUDO      | STRING      |       | Arquivo bruto conforme Q2C014I000      |
-| STATUS        | CHAR(20)    |       | CRIADO / ERRO / EM_PROCESSAMENTO / PROCESSADO / CANCELADO |
+| STATUS        | CHAR(20)    |       | CRIADO / ERRO / PROCESSADO / CANCELADO |
 | TENTATIVAS    | NUMC(3)     |       | Incrementado a cada reprocessamento    |
 | DATUM         | DATS        |       | Data do último processamento           |
 | UZEIT         | TIMS        |       | Hora do último processamento           |
@@ -254,7 +254,7 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
 ### Action Reprocess
 ```
 1. Ler registro ARQ pelo Pedido + Bandeira
-2. Validar STATUS != CANCELADO e != EM_PROCESSAMENTO
+2. Validar STATUS != CANCELADO
 3. UPDATE ARQ:
    - TENTATIVAS = TENTATIVAS + 1
    - DATUM/UZEIT/ERNAM = sy-datum/sy-uzeit/sy-uname
@@ -351,6 +351,7 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       Datum,
       Uzeit,
       Ernam,
+      UltimoErro,
 
       /* Associations */
       _Log : redirected to ZC_Q2C_LOG_MGR_APP
@@ -438,7 +439,7 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 |--------------------------|------------------------------------|---------------------------------------|
 | Chave ARQ                | `(pedido, bandeira)` — funcional   | `(pedido, bandeira)` — mesma, funcional |
 | Chave LOG                | `(pedido, bandeira)` — 1:1         | `(pedido, bandeira, datum, uzeit)` — 1:N histórico |
-| Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | Sem campo de erro no cockpit — ver histórico LOG |
+| Campo mensagem no cockpit| Join com LOG (pode vir vazio)      | `ULTIMO_ERRO` exibe último erro na lista; histórico completo no LOG |
 | Histórico de tentativas  | Não — sobrescreve sempre           | Sim — INSERT a cada tentativa        |
 | Apps                     | Um único app (page única)          | **Dois apps separados**: ARQ (cockpit) e LOG (histórico) |
 | Alinhamento com EF       | Parcial                            | Total                                 |

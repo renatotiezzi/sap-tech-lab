@@ -108,11 +108,11 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
-| `ZC_Q2C_ARQ_MGR_SVR`      | DDLS  | Projection CPI ARQ — transactional_interface    |
+| `ZC_Q2C_ARQ_MGR_SVR`      | DDLS  | Projection CPI ARQ — transactional_query        |
 | `ZC_Q2C_ARQ_MGR_SVR`      | BDEF  | use update — CPI faz PATCH           |
 | `ZSD_Q2C_ARQ_MGR_SVR`     | SRVD  | Expõe ArqSvr                         |
 | `ZSB_Q2C_ARQ_MGR_SVR`     | SRVB  | OData V4 - **Web API** (máquina)    |
-| `ZC_Q2C_LOG_MGR_SVR`      | DDLS  | Projection CPI LOG — transactional_interface    |
+| `ZC_Q2C_LOG_MGR_SVR`      | DDLS  | Projection CPI LOG — transactional_query        |
 | `ZC_Q2C_LOG_MGR_SVR`      | BDEF  | use create — CPI faz POST            |
 | `ZSD_Q2C_LOG_MGR_SVR`     | SRVD  | Expõe LogSvr                         |
 | `ZSB_Q2C_LOG_MGR_SVR`     | SRVB  | OData V4 - **Web API** (máquina)    |

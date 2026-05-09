@@ -109,13 +109,13 @@ ZSB_Q2C_LOG_MGR_APP    (SRVB)  → OData V4 - UI
 
 ```
 // ARQ CPI — PATCH status + ultimo_erro
-ZC_Q2C_ARQ_MGR_SVR     (DDLS)  → Projection CPI ARQ — provider contract transactional_interface
+ZC_Q2C_ARQ_MGR_SVR     (DDLS)  → Projection CPI ARQ — provider contract transactional_query
 ZC_Q2C_ARQ_MGR_SVR     (BDEF)  → use update
 ZSD_Q2C_ARQ_MGR_SVR    (SRVD)  → expose ArqSvr
 ZSB_Q2C_ARQ_MGR_SVR    (SRVB)  → OData V4 - Web API (máquina)
 
 // LOG CPI — POST nova linha de log
-ZC_Q2C_LOG_MGR_SVR     (DDLS)  → Projection CPI LOG — provider contract transactional_interface
+ZC_Q2C_LOG_MGR_SVR     (DDLS)  → Projection CPI LOG — provider contract transactional_query
 ZC_Q2C_LOG_MGR_SVR     (BDEF)  → use create
 ZSD_Q2C_LOG_MGR_SVR    (SRVD)  → expose LogSvr
 ZSB_Q2C_LOG_MGR_SVR    (SRVB)  → OData V4 - Web API (máquina)
@@ -445,15 +445,15 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 ### Fase 4 — Inbound CPI (callback de resultado)
 > Ativar **após** BO ARQ e BO LOG — projeções dependem das interfaces.
 
-**Inbound ARQ (PATCH status):**
-1. `ZC_Q2C_ARQ_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_ARQ_MGR)
-2. `ZC_Q2C_ARQ_INB` (BDEF — `projection; use update;`)
+**CPI ARQ (PATCH status):**
+1. `ZC_Q2C_ARQ_MGR_SVR` (DDLS — `provider contract transactional_query`, projection on ZI_Q2C_ARQ_MGR)
+2. `ZC_Q2C_ARQ_MGR_SVR` (BDEF — `projection; use update;`)
 3. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — `expose ZC_Q2C_ARQ_MGR_SVR as ArqSvr`)
 4. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
 
-**Inbound LOG (POST resultado):**
-1. `ZC_Q2C_LOG_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_LOG_MGR)
-2. `ZC_Q2C_LOG_INB` (BDEF — `projection; use create;`)
+**CPI LOG (POST resultado):**
+1. `ZC_Q2C_LOG_MGR_SVR` (DDLS — `provider contract transactional_query`, projection on ZI_Q2C_LOG_MGR)
+2. `ZC_Q2C_LOG_MGR_SVR` (BDEF — `projection; use create;`)
 3. `ZSD_Q2C_LOG_MGR_SVR` (SRVD — `expose ZC_Q2C_LOG_MGR_SVR as LogSvr`)
 4. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
 

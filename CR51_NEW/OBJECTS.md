@@ -94,11 +94,11 @@ Chamado pelo iFlow CPI após processar o arquivo. Machine-to-machine.
 
 | Objeto | Tipo | Propósito | Necessidade |
 |--------|------|-----------|-------------|
-| `ZC_Q2C_ARQ_MGR_SVR` | DDLS | Projeção CPI do ARQ. `provider contract transactional_interface`. Expõe os campos necessários para o callback CPI. | RAP exige projeção separada com contrato `transactional_interface` para SRVB Web API |
+| `ZC_Q2C_ARQ_MGR_SVR` | DDLS | Projeção CPI do ARQ. `provider contract transactional_query`. Expõe todos os campos de ZI_Q2C_ARQ_MGR. | RAP exige projeção separada para SRVB Web API — distinção UI×API fica no SRVB, não no provider contract |
 | `ZC_Q2C_ARQ_MGR_SVR` | BDEF | `use update`. CPI faz PATCH. | Exposição do update para o CPI atualizar o registro ARQ |
 | `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_ARQ_MGR_SVR` (ArqSvr). | Serviço separado do Fiori — contrato e binding type diferentes |
 | `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | Service Binding — **OData V4 - Web API**. | Web API = contrato adequado para machine-to-machine CPI → SAP |
-| `ZC_Q2C_LOG_MGR_SVR` | DDLS | Projeção CPI do LOG para inserção. `provider contract transactional_interface`. | CPI cria nova linha no LOG a cada callback |
+| `ZC_Q2C_LOG_MGR_SVR` | DDLS | Projeção CPI do LOG para inserção. `provider contract transactional_query`. | CPI cria nova linha no LOG a cada callback |
 | `ZC_Q2C_LOG_MGR_SVR` | BDEF | `use create`. CPI faz POST. | Framework RAP gera o INSERT via mapping |
 | `ZSD_Q2C_LOG_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_LOG_MGR_SVR` (LogSvr). | |
 | `ZSB_Q2C_LOG_MGR_SVR` | SRVB | Service Binding — **OData V4 - Web API**. | |

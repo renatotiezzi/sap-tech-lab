@@ -11,7 +11,7 @@
 // _Detail → ZI_Q2C_LOG_MGR: todas as execuções para aquela chave.
 // Usado na Object Page como faceta de histórico completo.
 // -----------------------------------------------------------------------
-define view entity ZI_Q2C_LOG_SUM
+define root view entity ZI_Q2C_LOG_SUM
   as select from ZI_Q2C_LOG_LAST as last
   inner join    ztbq2c_log_mgr   as log
     on  last.Pedido    = log.pedido

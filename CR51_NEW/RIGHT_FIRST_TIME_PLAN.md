@@ -131,8 +131,9 @@
 
 | # | Situação | O que fazer |
 |---|----------|-------------|
-| PT1 | `ZI_Q2C_ARQ_MGR` BDEF falha ao ativar | Verificar se `ZBP_I_Q2C_ARQ_MGR` (global) e `ZCL_Q2C_CPI_CALLER` estão ativos |
+| PT1 | `ZI_Q2C_ARQ_MGR` BDEF erro `action \| ancestor \| ...` ao ativar | **RESOLVIDO**: `strict(2)` removido do BDEF — mesmo problema do ZI_Q2C_LOG_MGR. Arquivo já corrigido. |
 | PT2 | CCIMP não compila: "tipo incompatível" | Confirmar que `ZCL_Q2C_CPI_CALLER->call_cpi_reprocess` tem `is_arq TYPE ztbq2c_arq_mgr` (não o parâmetro individual do backup) |
+| PT2b | `ZI_Q2C_ARQ_MGR` BDEF falha: `ZBP_I_Q2C_ARQ_MGR` inexistente | Criar a CLAS global (passo 3.2) **antes** de ativar o BDEF (passo 3.3) |
 | PT3 | LOG não aparece na Object Page do ARQ | O SRVD do ARQ (`ZSD_Q2C_ARQ_MGR_SVR`) expõe `ZC_Q2C_LOG_MGR_APP` — verificar que está ativo e exposto |
 | PT4 | Value Help de Status vazio | `ZC_Q2C_STATUS_VH_APP` usa `SELECT DISTINCT` da tabela real — inserir pelo menos 1 registro de teste |
 | PT5 | Colisão de chave no LOG (duplicate key) | Dois reprocessamentos no mesmo segundo causam falha no INSERT. Aceito como limitação conhecida |

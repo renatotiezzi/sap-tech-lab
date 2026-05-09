@@ -1,5 +1,8 @@
 managed implementation in class ZBP_I_Q2C_ARQ_MGR unique;
-strict ( 2 );
+// strict(2) removido: sistema retorna erro de compilação "action | ancestor | ..."
+// idêntico ao erro que ocorreu no ZI_Q2C_LOG_MGR.bdef — causa confirmada: strict(2)
+// incompatível com a versão RAP do sistema (DS4_110).
+// Sem strict(2) o BDEF ativa normalmente; todas as operações são declaradas explicitamente.
 
 // -----------------------------------------------------------------------
 // Root BO: Arquivos de Entrada MGR — Monitor / Reprocessamento

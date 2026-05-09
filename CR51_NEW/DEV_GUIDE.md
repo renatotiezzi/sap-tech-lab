@@ -198,7 +198,7 @@ define root view entity ZI_Q2C_LOG_MGR
 
 ```abap
 managed implementation in class ZBP_I_Q2C_ARQ_MGR unique;
-strict ( 2 );
+// strict(2) removido — incompatível com a versão RAP do sistema (mesmo erro do ZI_Q2C_LOG_MGR)
 
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   persistent table ztbq2c_arq_mgr

@@ -1,34 +1,18 @@
 managed implementation in class ZBP_I_Q2C_ARQ_MGR unique;
-// strict(2) removido: sistema retorna erro de compilação "action | ancestor | ..."
-// idêntico ao erro que ocorreu no ZI_Q2C_LOG_MGR.bdef — causa confirmada: strict(2)
-// incompatível com a versão RAP do sistema (DS4_110).
-// Sem strict(2) o BDEF ativa normalmente; todas as operações são declaradas explicitamente.
 
-// -----------------------------------------------------------------------
-// Root BO: Arquivos de Entrada MGR — Monitor / Reprocessamento
-// Tabela : ZTBQ2C_ARQ_MGR
-// Chave  : (Pedido, Bandeira)
-// -----------------------------------------------------------------------
 define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   persistent table ztbq2c_arq_mgr
   lock master
   authorization master ( global )
   etag master Uzeit
 {
-  // update declarado para permitir MODIFY via EML IN LOCAL MODE nas actions
-  // Não exposto na projeção UI — usuário não edita campos diretamente
+  // update: permite MODIFY via EML IN LOCAL MODE nas actions e via inbound CPI
   update;
-
-  // Campos imutáveis para qualquer cliente (UI e CPI)
-  field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo; Tentativas;
-  // Status, UltimoErro, Datum, Uzeit, Ernam: não declarados como readonly aqui
-  // para permitir PATCH via inbound CPI (ZC_Q2C_ARQ_INB).
-  // A projeção UI (ZC_Q2C_ARQ_MGR_APP.bdef) os declara field(readonly) para o usuário.
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
 
-  // Associação de leitura ao LOG — sem create (LOG é gerenciado pela action handler)
+  // Navegação leitura para o histórico de processamento
   association _Log { }
 
   mapping for ztbq2c_arq_mgr

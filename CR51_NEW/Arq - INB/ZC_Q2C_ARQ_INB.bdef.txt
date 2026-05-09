@@ -1,15 +1,6 @@
 projection;
-// strict(2) não usado: projeção inbound simples sem restrições de lint adicionais
 
-// -----------------------------------------------------------------------
-// Projection BDEF: ARQ INB — Callback CPI (atualização de status)
-// Expõe update para o CPI atualizar Status + UltimoErro + Datum + Uzeit + Ernam.
-// Todos os campos expostos na projeção (exceto keys) são atualizáveis.
-// Keys (Pedido + Bandeira) são readonly por definição de chave.
-// -----------------------------------------------------------------------
 define behavior for ZC_Q2C_ARQ_INB alias ArqInb
 {
   use update;
-  // Nenhum field(readonly) adicional — o CPI pode atualizar todos os campos expostos
-  // (Status, UltimoErro, Datum, Uzeit, Ernam)
 }

@@ -1,15 +1,6 @@
-// -----------------------------------------------------------------------
-// BDEF — ZI_Q2C_LOG_SUM (Interface — sumário, última execução por chave)
-// Behavior: unmanaged (view de JOIN — não mapeável para persistent table única)
-// Operações: nenhuma — entidade somente leitura
-// _Detail: navegação para ZI_Q2C_LOG_MGR (histórico completo)
-// -----------------------------------------------------------------------
 unmanaged implementation in class ZBP_I_Q2C_LOG_SUM unique;
 
 define behavior for ZI_Q2C_LOG_SUM alias LogSum
 {
-  // Sem create / update / delete / actions — consulta somente.
-  // _Detail permite navegar da List Report para o histórico completo
-  // na Object Page do App 2 (LOG Viewer).
   association _Detail { }
 }

@@ -1,17 +1,5 @@
 projection;
-// strict(2) removido: corpo vazio + strict(2) = erro de sintaxe no compiler.
 
-// -----------------------------------------------------------------------
-// Projection BDEF: LOG MGR — Histórico de Processamento
-// Somente leitura — sem create, update, delete, sem actions.
-// Registros criados exclusivamente via INSERT direto em ZTBQ2C_LOG_MGR
-// pela action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
-//
-// Usado em dois contextos:
-//   1. App Fiori standalone — ZSD_Q2C_LOG_MGR_SVR (navegação direta)
-//   2. Navegação a partir da Object Page do ARQ — ZSD_Q2C_ARQ_MGR_SVR
-// -----------------------------------------------------------------------
 define behavior for ZC_Q2C_LOG_MGR_APP alias LogMgrApp
 {
-  // Sem operações expostas — entidade puramente de consulta
 }

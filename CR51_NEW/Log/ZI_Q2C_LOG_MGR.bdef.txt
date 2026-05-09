@@ -1,23 +1,11 @@
 managed;
-// strict(2) removido: não é compatível com BO sem nenhuma operação CRUD declarada.
-// field(readonly) removido: sem write path, a declaração é inválida em strict mode.
 
-// -----------------------------------------------------------------------
-// Root BO: LOG MGR — Histórico de Processamento
-// Tabela : ZTBQ2C_LOG_MGR
-// Chave  : (Pedido, Bandeira, Datum, Uzeit) — IdRef é campo não-chave (referência cruzada CPI)
-//
-// Read-only no RAP: sem create/update/delete expostos.
-// Registros são criados exclusivamente via INSERT direto na
-// action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
-// BO independente — sem composition, sem lock dependent.
-// -----------------------------------------------------------------------
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbq2c_log_mgr
   lock master
 {
   // create: permite que o CPI insira linhas via inbound OData (ZC_Q2C_LOG_INB)
-  // A projeção UI (ZC_Q2C_LOG_MGR_APP.bdef) NÃO expõe create — somente leitura para o usuário
+  // A projeção UI (ZC_Q2C_LOG_MGR_APP) não expõe create — somente leitura para o usuário
   create;
 
   mapping for ztbq2c_log_mgr

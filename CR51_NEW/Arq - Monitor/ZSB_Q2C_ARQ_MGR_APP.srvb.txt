@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
-// Service Binding: ZSB_Q2C_ARQ_MGR_SVR
+// Service Binding: ZSB_Q2C_ARQ_MGR_APP
 // Tipo    : OData V4 - UI
-// Service : ZSD_Q2C_ARQ_MGR_SVR
+// Service : ZSD_Q2C_ARQ_MGR_APP
 // -----------------------------------------------------------------------
 // ATENÇÃO: Service Bindings não podem ser armazenados como arquivo fonte.
 // Devem ser criados diretamente no sistema SAP via ADT.
@@ -10,14 +10,14 @@
 //   1. Botão direito no pacote > New > Other ABAP Repository Object
 //   2. Navegue em: Business Services > Service Binding
 //   3. Preencha:
-//        Name        : ZSB_Q2C_ARQ_MGR_SVR
+//        Name        : ZSB_Q2C_ARQ_MGR_APP
 //        Description : Service Binding ARQ MGR - Monitor Reprocessamento
 //        Binding Type: OData V4 - UI
-//        Service Def : ZSD_Q2C_ARQ_MGR_SVR
+//        Service Def : ZSD_Q2C_ARQ_MGR_APP
 //   4. Ative e clique em "Publish" para registrar o endpoint OData.
 //
 // URL do serviço após publicação (padrão):
-//   /sap/opu/odata4/sap/zsb_q2c_arq_mgr_svr/srvd/sap/zsd_q2c_arq_mgr_svr/0001/
+//   /sap/opu/odata4/sap/zsb_q2c_arq_mgr_app/srvd/sap/zsd_q2c_arq_mgr_app/0001/
 //
 // Entity Sets expostos:
 //   - ArqMgrApp  → READ + Actions (Reprocess, Cancel)

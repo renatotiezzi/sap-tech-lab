@@ -37,7 +37,7 @@ FORM f_ler_parametros.
   REFRESH gt_param.
 
   SELECT param, value1, value2
-    FROM ztfi_boleto_param
+    FROM ztfi_boleto_para
     INTO TABLE @gt_param
    WHERE param IN (@gc_param_mail_cc,
                    @gc_param_mail_subject,
@@ -82,12 +82,13 @@ FORM f_seleciona_bsid.
      AND a~kunnr IN @s_kunnr
      AND a~belnr IN @s_belnr
      AND a~budat IN @s_budat
-     AND a~shkzg = @gc_shkzg_debit
-     AND b~koart = 'D'
-     AND b~augbl = @space
-     AND b~xumsw = 'X'
-     AND b~anfbn <> @space
-     AND b~xref3 <> @space.
+     AND a~bupla IN @s_bupla.
+*     AND a~shkzg = @gc_shkzg_debit
+*     AND b~koart = 'D'
+*     AND b~augbl = @space
+*     AND b~xumsw = 'X'
+*     AND b~anfbn <> @space
+*     AND b~xref3 <> @space.
 
   IF gt_bsid IS INITIAL.
     MESSAGE s012(zfi) DISPLAY LIKE 'E'.
@@ -214,7 +215,7 @@ FORM f_seleciona_t012.
 
   CHECK gt_bsid IS NOT INITIAL.
 
-  SELECT DISTINCT bukrs, hbkid, baknl, banks
+  SELECT DISTINCT bukrs, hbkid, bankl, banks
     FROM t012
     INTO TABLE @gt_t012
     FOR ALL ENTRIES IN @gt_bsid
@@ -528,11 +529,12 @@ FORM f_exibe_dados.
   lo_sel->set_selection_mode( if_salv_c_selection_mode=>multiple ).
 
   lo_funcs = go_salv->get_functions( ).
-  lo_funcs->set_all( abap_true ).
+*  lo_funcs->set_all( abap_true ).
+  lo_funcs->set_all( abap_false ).
 
   go_salv->set_screen_status(
     report        = sy-repid
-    pfstatus      = 'STATUS_GUI_MAIN'
+    pfstatus      = 'ZZ_GUI_MAIN'
     set_functions = go_salv->c_functions_all ).
 
   lo_columns = go_salv->get_columns( ).
@@ -590,12 +592,17 @@ FORM f_set_column USING io_columns TYPE REF TO cl_salv_columns_table
 
   DATA lo_col TYPE REF TO cl_salv_column_table.
 
+  DATA lv_text_s TYPE scrtext_s.
+  DATA lv_length TYPE lvc_outlen.
+
   TRY.
+      lv_text_s = iv_text.
+      lv_length = iv_length.
       lo_col ?= io_columns->get_column( iv_column ).
-      lo_col->set_short_text( iv_text ).
-      lo_col->set_medium_text( iv_text ).
-      lo_col->set_long_text( iv_text ).
-      lo_col->set_output_length( iv_length ).
+      lo_col->set_short_text( lv_text_s ).
+*      lo_col->set_medium_text( iv_text ).
+*      lo_col->set_long_text( iv_text ).
+      lo_col->set_output_length( lv_length ).
 
       IF iv_hotspot = abap_true.
         lo_col->set_cell_type( if_salv_c_cell_type=>hotspot ).
@@ -612,10 +619,13 @@ ENDFORM.
 *----------------------------------------------------------------------*
 * Print boletos
 *----------------------------------------------------------------------*
-FORM f_imprimir_boletos USING it_alv TYPE STANDARD TABLE.
+FORM f_imprimir_boletos .
+  DATA lv_pdf_xstr TYPE xstring.
 
-  LOOP AT it_alv INTO DATA(ls_alv).
-    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING DATA(lv_pdf_xstr).
+  gv_mode = 'P'.
+
+  LOOP AT lt_alv INTO DATA(ls_alv).
+    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING lv_pdf_xstr.
     IF lv_pdf_xstr IS NOT INITIAL.
       PERFORM f_gravar_log USING ls_alv gc_proc_print 'S' 'Boleto printed successfully'.
     ELSE.
@@ -630,11 +640,13 @@ ENDFORM.
 *----------------------------------------------------------------------*
 * Send boletos by email
 *----------------------------------------------------------------------*
-FORM f_enviar_email USING it_alv TYPE STANDARD TABLE.
+FORM f_enviar_email.
 
   DATA: lv_email TYPE adr6-smtp_addr.
+  DATA lv_pdf_xstr TYPE xstring.
+  gv_mode = 'E'.
 
-  LOOP AT it_alv INTO DATA(ls_alv).
+  LOOP AT lt_alv INTO DATA(ls_alv).
 
     CLEAR lv_email.
     PERFORM f_busca_email_cliente USING ls_alv-kunnr CHANGING lv_email.
@@ -644,7 +656,7 @@ FORM f_enviar_email USING it_alv TYPE STANDARD TABLE.
       CONTINUE.
     ENDIF.
 
-    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING DATA(lv_pdf_xstr).
+    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING lv_pdf_xstr.
 
     IF lv_pdf_xstr IS INITIAL.
       PERFORM f_gravar_log USING ls_alv gc_proc_email 'E' 'PDF generation failed - email not sent'.
@@ -700,18 +712,37 @@ ENDFORM.
 FORM f_monta_form_data USING    is_alv      TYPE ty_alv
                       CHANGING cs_form_data TYPE ty_form_data.
 
-  DATA: ls_t012       TYPE ty_t012,
-        ls_t012k      TYPE ty_t012k,
-        ls_t012c      TYPE ty_t012c,
-        ls_t001       TYPE ty_t001_map,
-        ls_adrc_ben   TYPE ty_adrc_map,
-        ls_adrc_pay   TYPE ty_adrc_map,
-        ls_but000     TYPE ty_but000,
-        ls_but020     TYPE ty_but020,
-        ls_dfkkbptax  TYPE ty_dfkkbptaxnum_map,
-        lv_agencia    TYPE char15,
-        lv_carteira   TYPE char3,
-        lv_cep_mask   TYPE char10.
+  DATA: ls_t012      TYPE ty_t012,
+        ls_t012k     TYPE ty_t012k,
+        ls_t012c     TYPE ty_t012c,
+        ls_t001      TYPE ty_t001_map,
+        ls_adrc_ben  TYPE ty_adrc_map,
+        ls_adrc_pay  TYPE ty_adrc_map,
+        ls_but000    TYPE ty_but000,
+        ls_but020    TYPE ty_but020,
+        ls_dfkkbptax TYPE ty_dfkkbptaxnum_map,
+        lv_agencia   TYPE char15,
+        lv_carteira  TYPE char3,
+        lv_cep_mask  TYPE char10.
+
+  DATA: lv_bukrs      TYPE t001-bukrs,
+        lv_CGC_NUMBER TYPE j_1bwfield-cgc_number,
+        lv_BRANCH     TYPE j_1bbranch-branch,
+        lv_CGC_COMPAN TYPE j_1bwfield-cgc_compan.
+
+  DATA: ls_bsid_form   TYPE ty_bsid,
+        lv_barcode_raw TYPE string,
+        lv_nosso_raw   TYPE xref3,
+        lv_nosso_dv    TYPE char1,
+        lv_nosso_calc  TYPE xref3,
+        lv_linha_raw   TYPE string.
+
+  DATA: lv_bank_key    TYPE bankl,
+        lv_bank_acct   TYPE bankn,
+        lv_bank_cd     TYPE bkont,
+        lv_bc_date     TYPE bldat,
+        lv_nosso_8     TYPE n LENGTH 8,
+        lv_payr_chect  TYPE chect.
 
   CLEAR cs_form_data.
 
@@ -725,11 +756,11 @@ FORM f_monta_form_data USING    is_alv      TYPE ty_alv
 
   IF sy-subrc = 0.
     cs_form_data-nome_banco = ls_t012-banks.
-    cs_form_data-codigo_banco = ls_t012-baknl.
-    IF strlen( ls_t012-baknl ) >= 5.
-      lv_agencia = ls_t012-baknl+4.
+    cs_form_data-codigo_banco = ls_t012-bankl.
+    IF strlen( ls_t012-bankl ) >= 5.
+      lv_agencia = ls_t012-bankl+4.
     ELSE.
-      lv_agencia = ls_t012-baknl.
+      lv_agencia = ls_t012-bankl.
     ENDIF.
   ENDIF.
 
@@ -749,6 +780,14 @@ FORM f_monta_form_data USING    is_alv      TYPE ty_alv
     cs_form_data-agencia = lv_agencia.
   ENDIF.
 
+  CLEAR ls_bsid_form.
+  READ TABLE gt_bsid INTO ls_bsid_form
+    WITH KEY bukrs = is_alv-bukrs
+             belnr = is_alv-belnr
+             gjahr = is_alv-gjahr
+             buzei = is_alv-buzei
+    BINARY SEARCH.
+
   READ TABLE gt_t001 INTO ls_t001
     WITH KEY bukrs = is_alv-bukrs
     BINARY SEARCH.
@@ -761,16 +800,24 @@ FORM f_monta_form_data USING    is_alv      TYPE ty_alv
       cs_form_data-beneficiario = ls_adrc_ben-name1.
       cs_form_data-endereco_beneficiario = |{ ls_adrc_ben-street } { ls_adrc_ben-house_num1 } { ls_adrc_ben-city2 } { ls_adrc_ben-city1 }|.
       CONDENSE cs_form_data-endereco_beneficiario.
+      cs_form_data-cidade = ls_adrc_ben-city1.
     ENDIF.
   ENDIF.
 
+
+  lv_bukrs = is_alv-bukrs.
+
   CALL FUNCTION 'J_1BREAD_CGC_COMPANY'
     EXPORTING
-      i_bukrs = is_alv-bukrs
+      bukrs       = lv_bukrs
     IMPORTING
-      e_cgc = cs_form_data-cnpj
+      cgc_company = lv_CGC_COMPAN
+      branch      = lv_BRANCH
+      cgc_number  = lv_CGC_NUMBER
     EXCEPTIONS
-      OTHERS = 1.
+      OTHERS      = 1.
+
+  cs_form_data-cnpj = lv_CGC_NUMBER.
 
   READ TABLE gt_t012c INTO ls_t012c
     WITH KEY bukrs = is_alv-bukrs
@@ -786,7 +833,41 @@ FORM f_monta_form_data USING    is_alv      TYPE ty_alv
     cs_form_data-carteira = lv_carteira.
   ENDIF.
 
-  cs_form_data-nosso_numero = |{ lv_carteira }/{ is_alv-xref3 }|.
+  lv_nosso_raw = is_alv-xref3.
+  IF lv_nosso_raw IS INITIAL.
+    lv_nosso_raw = ls_bsid_form-xref3.
+  ENDIF.
+  IF lv_nosso_raw IS INITIAL.
+    lv_nosso_raw = ls_bsid_form-anfbn.
+  ENDIF.
+
+  CLEAR: lv_nosso_dv, lv_nosso_calc.
+  IF lv_nosso_raw IS NOT INITIAL
+     AND ls_t012-bankl IS NOT INITIAL
+     AND ls_t012k-bankn IS NOT INITIAL
+     AND lv_carteira IS NOT INITIAL.
+    CALL FUNCTION 'CALCULATE_CHECK_DIGIT_BOLETO'
+      EXPORTING
+        bankkey    = ls_t012-bankl
+        conta_corr = ls_t012k-bankn
+        carteira   = lv_carteira
+        nos_numero = lv_nosso_raw
+        docdate    = is_alv-bldat
+      IMPORTING
+        nos_check  = lv_nosso_dv
+      EXCEPTIONS
+        OTHERS     = 1.
+
+    IF sy-subrc = 0 AND lv_nosso_dv IS NOT INITIAL.
+      CONCATENATE lv_nosso_raw lv_nosso_dv INTO lv_nosso_calc.
+    ELSE.
+      lv_nosso_calc = lv_nosso_raw.
+    ENDIF.
+  ELSE.
+    lv_nosso_calc = lv_nosso_raw.
+  ENDIF.
+
+  cs_form_data-nosso_numero = |{ lv_carteira }/{ lv_nosso_raw }|.
 
   READ TABLE gt_but000 INTO ls_but000
     WITH KEY partner = is_alv-kunnr
@@ -854,57 +935,146 @@ FORM f_monta_form_data USING    is_alv      TYPE ty_alv
   cs_form_data-valor_documento    = is_alv-dmbtr.
   cs_form_data-waers              = is_alv-waers.
 
-ENDFORM.
+  CLEAR: cs_form_data-linha_digitavel, cs_form_data-barcode.
 
-*----------------------------------------------------------------------*
-* Generate PDF via Adobe Forms
-*----------------------------------------------------------------------*
-FORM f_gerar_pdf_boleto USING    is_alv      TYPE ty_alv
-                        CHANGING cv_pdf_xstr TYPE xstring.
+  " Bank data from T012 (primary when available)
+  lv_bank_key  = ls_t012-bankl.
+  lv_bank_acct = ls_t012k-bankn.
+  lv_bank_cd   = ls_t012k-bkont.
+  lv_bc_date   = is_alv-bldat.
 
-  DATA: lv_funcname     TYPE funcname,
-        ls_outputparams TYPE sfpoutputparams,
-        ls_docparams    TYPE sfpdocparams,
-        ls_formoutput   TYPE fpformoutput,
-        ls_form_data    TYPE ty_form_data.
+  " F110 payment chain: REGUP -> REGUH fills missing bank data;
+  " PAYR fills missing nosso numero (only when xref3/anfbn path gave nothing)
+  SELECT SINGLE laufd, laufi, xvorl, zbukr, lifnr, kunnr, empfg, vblnr, bldat
+    FROM regup
+    INTO @DATA(ls_regup_bc)
+    WHERE xvorl = @space
+      AND zbukr = @is_alv-bukrs
+      AND lifnr = @space
+      AND kunnr = @is_alv-kunnr
+      AND empfg = @space
+      AND belnr = @is_alv-belnr
+      AND gjahr = @is_alv-gjahr
+      AND buzei = @is_alv-buzei.
 
-  CLEAR cv_pdf_xstr.
+  IF sy-subrc = 0.
+    " Only fill bank from REGUH if T012 did not provide a bank key
+    IF lv_bank_key IS INITIAL.
+      SELECT SINGLE ubnkl, ubknt, ubkon
+        FROM reguh
+        INTO @DATA(ls_reguh_bc)
+        WHERE laufd = @ls_regup_bc-laufd
+          AND laufi = @ls_regup_bc-laufi
+          AND xvorl = @ls_regup_bc-xvorl
+          AND zbukr = @ls_regup_bc-zbukr
+          AND lifnr = @ls_regup_bc-lifnr
+          AND kunnr = @ls_regup_bc-kunnr
+          AND empfg = @ls_regup_bc-empfg
+          AND vblnr = @ls_regup_bc-vblnr.
 
-  CHECK gv_form_name IS NOT INITIAL.
+      IF sy-subrc = 0 AND ls_reguh_bc-ubnkl IS NOT INITIAL.
+        lv_bank_key  = ls_reguh_bc-ubnkl.
+        lv_bank_acct = ls_reguh_bc-ubknt.
+        lv_bank_cd   = ls_reguh_bc-ubkon.
+        lv_bc_date   = ls_regup_bc-bldat.
+      ENDIF.
+    ENDIF.
 
-  PERFORM f_monta_form_data USING is_alv CHANGING ls_form_data.
+    " Only use PAYR nosso numero if xref3/anfbn path left lv_nosso_calc empty
+    IF lv_nosso_calc IS INITIAL.
+      SELECT SINGLE chect
+        FROM payr
+        INTO @lv_payr_chect
+        WHERE zbukr = @is_alv-bukrs
+          AND hbkid = @is_alv-hbkid
+          AND hktid = @is_alv-hktid
+          AND kunnr = @is_alv-kunnr
+          AND vblnr = @ls_bsid_form-anfbn
+          AND gjahr = @is_alv-gjahr.
 
-  TRY.
-      CALL FUNCTION 'FP_FUNCTION_MODULE_NAME'
-        EXPORTING
-          i_name     = gv_form_name
-        IMPORTING
-          e_funcname = lv_funcname.
+      IF sy-subrc = 0 AND lv_payr_chect IS NOT INITIAL.
+        SHIFT lv_payr_chect LEFT DELETING LEADING space.
+        lv_nosso_8 = lv_payr_chect.
+        CALL FUNCTION 'CALCULATE_CHECK_DIGIT_BOLETO'
+          EXPORTING
+            bankkey    = lv_bank_key
+            conta_corr = lv_bank_acct
+            carteira   = lv_carteira
+            nos_numero = lv_nosso_8
+            docdate    = is_alv-bldat
+          IMPORTING
+            nos_check  = lv_nosso_dv
+          EXCEPTIONS
+            OTHERS     = 1.
+        IF sy-subrc = 0 AND lv_nosso_dv IS NOT INITIAL.
+          CONCATENATE lv_nosso_8 lv_nosso_dv INTO lv_nosso_calc.
+        ELSE.
+          lv_nosso_calc = lv_nosso_8.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDIF.
 
-      ls_outputparams-getpdf   = abap_true.
-      ls_outputparams-nodialog = abap_true.
-      ls_outputparams-preview  = abap_false.
+  IF lv_nosso_calc IS NOT INITIAL
+     AND lv_carteira IS NOT INITIAL
+     AND lv_bank_key IS NOT INITIAL
+     AND lv_bank_acct IS NOT INITIAL.
+    CALL FUNCTION 'J_1B_BARCODE_CONTROLDIGIT'
+      EXPORTING
+        amount      = is_alv-dmbtr
+        carteira    = lv_carteira
+        duedate     = is_alv-faedt
+        nos_numero  = lv_nosso_calc
+        bank_key    = lv_bank_key
+        account_key = lv_bank_acct
+        account_cd  = lv_bank_cd
+        doc_date    = lv_bc_date
+        for_flag    = space
+      IMPORTING
+        barcode_num = lv_linha_raw
+        barcode_grf = cs_form_data-barcode
+      EXCEPTIONS
+        OTHERS      = 1.
 
-      CALL FUNCTION 'FP_JOB_OPEN'
-        CHANGING
-          ie_outputparams = ls_outputparams.
+    IF sy-subrc = 0 AND lv_linha_raw IS NOT INITIAL.
+      IF strlen( lv_linha_raw ) >= 47.
+        CONCATENATE lv_linha_raw(5)
+                    '.'
+                    lv_linha_raw+5(5)
+                    ' '
+                    lv_linha_raw+10(5)
+                    '.'
+                    lv_linha_raw+15(6)
+                    ' '
+                    lv_linha_raw+21(5)
+                    '.'
+                    lv_linha_raw+26(6)
+                    ' '
+                    lv_linha_raw+32(1)
+                    ' '
+                    lv_linha_raw+33(14)
+               INTO cs_form_data-linha_digitavel
+                    RESPECTING BLANKS.
+      ELSE.
+        cs_form_data-linha_digitavel = lv_linha_raw.
+      ENDIF.
+    ENDIF.
+  ENDIF.
 
-      CALL FUNCTION lv_funcname
-        EXPORTING
-          /1bcdwb/docparams  = ls_docparams
-          is_data            = ls_form_data
-        IMPORTING
-          /1bcdwb/formoutput = ls_formoutput.
+  IF cs_form_data-linha_digitavel IS INITIAL
+     AND cs_form_data-barcode IS INITIAL
+     AND ls_bsid_form-anfbn IS NOT INITIAL.
+    lv_barcode_raw = ls_bsid_form-anfbn.
+    REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_barcode_raw WITH ''.
 
-      CALL FUNCTION 'FP_JOB_CLOSE'.
-
-      cv_pdf_xstr = ls_formoutput-pdf.
-
-    CATCH cx_root.
-      CALL FUNCTION 'FP_JOB_CLOSE'
-        EXCEPTIONS
-          OTHERS = 0.
-  ENDTRY.
+    CASE strlen( lv_barcode_raw ).
+      WHEN 44.
+        cs_form_data-barcode = lv_barcode_raw.
+      WHEN 47 OR 48.
+        cs_form_data-linha_digitavel = lv_barcode_raw.
+      WHEN OTHERS.
+    ENDCASE.
+  ENDIF.
 
 ENDFORM.
 
@@ -925,17 +1095,18 @@ FORM f_send_email_bcs USING is_alv         TYPE ty_alv
   DATA: lo_send_request TYPE REF TO cl_bcs,
         lo_document     TYPE REF TO cl_document_bcs,
         lo_recipient    TYPE REF TO if_recipient_bcs,
-        lo_cc           TYPE REF TO if_recipient_bcs.
+        lo_cc           TYPE REF TO if_recipient_bcs,
+        lv_length       TYPE  i.
 
   cv_sent = abap_false.
-
+  lv_length = lv_size.
   TRY.
       IF iv_pdf_xstring IS NOT INITIAL.
         CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
           EXPORTING
             buffer        = iv_pdf_xstring
           IMPORTING
-            output_length = lv_size
+            output_length = lv_length
           TABLES
             binary_tab    = lt_body_hex.
       ENDIF.
@@ -1014,5 +1185,444 @@ FORM f_atualiza_alv.
   IF go_salv IS BOUND.
     go_salv->refresh( ).
   ENDIF.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* 4. NEW FORM - Remove accents (Unicode-safe)
+*----------------------------------------------------------------------*
+FORM f_remove_acentos USING    iv_texto TYPE any
+                      CHANGING cv_texto TYPE string.
+
+  cv_texto = iv_texto.
+
+  REPLACE ALL OCCURRENCES OF 'Á' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'À' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'Â' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'Ã' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'Ä' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'á' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'à' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'â' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'ã' IN cv_texto WITH 'A'.
+  REPLACE ALL OCCURRENCES OF 'ä' IN cv_texto WITH 'A'.
+
+  REPLACE ALL OCCURRENCES OF 'É' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'È' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'Ê' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'Ë' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'é' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'è' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'ê' IN cv_texto WITH 'E'.
+  REPLACE ALL OCCURRENCES OF 'ë' IN cv_texto WITH 'E'.
+
+  REPLACE ALL OCCURRENCES OF 'Í' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'Ì' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'Î' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'Ï' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'í' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'ì' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'î' IN cv_texto WITH 'I'.
+  REPLACE ALL OCCURRENCES OF 'ï' IN cv_texto WITH 'I'.
+
+  REPLACE ALL OCCURRENCES OF 'Ó' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'Ò' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'Ô' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'Õ' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'Ö' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'ó' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'ò' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'ô' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'õ' IN cv_texto WITH 'O'.
+  REPLACE ALL OCCURRENCES OF 'ö' IN cv_texto WITH 'O'.
+
+  REPLACE ALL OCCURRENCES OF 'Ú' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'Ù' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'Û' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'Ü' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'ú' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'ù' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'û' IN cv_texto WITH 'U'.
+  REPLACE ALL OCCURRENCES OF 'ü' IN cv_texto WITH 'U'.
+
+  REPLACE ALL OCCURRENCES OF 'Ç' IN cv_texto WITH 'C'.
+  REPLACE ALL OCCURRENCES OF 'ç' IN cv_texto WITH 'C'.
+
+  TRANSLATE cv_texto TO UPPER CASE.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* 5. NEW FORM - Build EMV TLV field
+*----------------------------------------------------------------------*
+FORM f_emv_tlv USING    iv_tag   TYPE string
+                        iv_value TYPE string
+               CHANGING cv_tlv   TYPE string.
+
+  DATA lv_len   TYPE i.
+  DATA lv_len_2 TYPE n LENGTH 2.
+
+  lv_len = strlen( iv_value ).
+  lv_len_2 = lv_len.
+
+  CONCATENATE iv_tag lv_len_2 iv_value INTO cv_tlv.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* 6. NEW FORM - CRC16/CCITT-FALSE (Banco Central standard)
+*----------------------------------------------------------------------*
+FORM f_xor16 USING    iv_a       TYPE i
+                      iv_b       TYPE i
+             CHANGING cv_result  TYPE i.
+
+  DATA lv_a     TYPE i.
+  DATA lv_b     TYPE i.
+  DATA lv_pow   TYPE i.
+  DATA lv_bit_a TYPE i.
+  DATA lv_bit_b TYPE i.
+
+  lv_a = iv_a.
+  lv_b = iv_b.
+  lv_pow = 1.
+  cv_result = 0.
+
+  DO 16 TIMES.
+    lv_bit_a = lv_a MOD 2.
+    lv_bit_b = lv_b MOD 2.
+
+    IF lv_bit_a <> lv_bit_b.
+      cv_result = cv_result + lv_pow.
+    ENDIF.
+
+    lv_a = lv_a DIV 2.
+    lv_b = lv_b DIV 2.
+    lv_pow = lv_pow * 2.
+  ENDDO.
+
+ENDFORM.
+
+FORM f_nibble_to_hex USING    iv_nibble TYPE i
+                     CHANGING cv_char   TYPE c.
+
+  CASE iv_nibble.
+    WHEN 0.  cv_char = '0'.
+    WHEN 1.  cv_char = '1'.
+    WHEN 2.  cv_char = '2'.
+    WHEN 3.  cv_char = '3'.
+    WHEN 4.  cv_char = '4'.
+    WHEN 5.  cv_char = '5'.
+    WHEN 6.  cv_char = '6'.
+    WHEN 7.  cv_char = '7'.
+    WHEN 8.  cv_char = '8'.
+    WHEN 9.  cv_char = '9'.
+    WHEN 10. cv_char = 'A'.
+    WHEN 11. cv_char = 'B'.
+    WHEN 12. cv_char = 'C'.
+    WHEN 13. cv_char = 'D'.
+    WHEN 14. cv_char = 'E'.
+    WHEN OTHERS.
+      cv_char = 'F'.
+  ENDCASE.
+
+ENDFORM.
+
+FORM f_int_to_hex4 USING    iv_int TYPE i
+                   CHANGING cv_hex TYPE char4.
+
+  DATA lv_work TYPE i.
+  DATA lv_n1   TYPE i.
+  DATA lv_n2   TYPE i.
+  DATA lv_n3   TYPE i.
+  DATA lv_n4   TYPE i.
+  DATA lv_c1   TYPE c LENGTH 1.
+  DATA lv_c2   TYPE c LENGTH 1.
+  DATA lv_c3   TYPE c LENGTH 1.
+  DATA lv_c4   TYPE c LENGTH 1.
+
+  lv_work = iv_int.
+  IF lv_work < 0.
+    lv_work = 0.
+  ENDIF.
+
+  lv_n1 = lv_work DIV 4096.
+  lv_work = lv_work MOD 4096.
+
+  lv_n2 = lv_work DIV 256.
+  lv_work = lv_work MOD 256.
+
+  lv_n3 = lv_work DIV 16.
+  lv_n4 = lv_work MOD 16.
+
+  PERFORM f_nibble_to_hex USING lv_n1 CHANGING lv_c1.
+  PERFORM f_nibble_to_hex USING lv_n2 CHANGING lv_c2.
+  PERFORM f_nibble_to_hex USING lv_n3 CHANGING lv_c3.
+  PERFORM f_nibble_to_hex USING lv_n4 CHANGING lv_c4.
+
+  CONCATENATE lv_c1 lv_c2 lv_c3 lv_c4 INTO cv_hex.
+
+ENDFORM.
+
+FORM f_crc16_pix USING    iv_str TYPE string
+                 CHANGING cv_hex TYPE string.
+
+  DATA lv_xstr    TYPE xstring.
+  DATA lv_crc     TYPE i.
+  DATA lv_idx     TYPE i.
+  DATA lv_byte_x  TYPE x LENGTH 1.
+  DATA lv_byte_i  TYPE i.
+  DATA lv_work    TYPE i.
+  DATA lv_crc_hex TYPE c LENGTH 4.
+
+  lv_crc = 65535.
+  lv_xstr = cl_abap_codepage=>convert_to(
+              source   = iv_str
+              codepage = 'UTF-8' ).
+
+  lv_idx = 0.
+  WHILE lv_idx < xstrlen( lv_xstr ).
+
+    lv_byte_x = lv_xstr+lv_idx(1).
+    lv_byte_i = lv_byte_x.
+
+    lv_work = lv_byte_i * 256.
+    PERFORM f_xor16 USING lv_crc lv_work CHANGING lv_crc.
+    lv_crc = lv_crc MOD 65536.
+
+    DO 8 TIMES.
+      IF lv_crc >= 32768.
+        lv_crc = lv_crc * 2.
+        IF lv_crc >= 65536.
+          lv_crc = lv_crc - 65536.
+        ENDIF.
+        PERFORM f_xor16 USING lv_crc 4129 CHANGING lv_crc.
+      ELSE.
+        lv_crc = lv_crc * 2.
+        IF lv_crc >= 65536.
+          lv_crc = lv_crc - 65536.
+        ENDIF.
+      ENDIF.
+      lv_crc = lv_crc MOD 65536.
+    ENDDO.
+
+    lv_idx = lv_idx + 1.
+  ENDWHILE.
+
+  PERFORM f_int_to_hex4 USING lv_crc CHANGING lv_crc_hex.
+  cv_hex = lv_crc_hex.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* 7. NEW FORM - Generate PIX QR Code (XSTRING)
+*----------------------------------------------------------------------*
+FORM f_gerar_qrcode_pix USING    is_alv       TYPE ty_alv
+                                 is_form_data TYPE ty_form_data
+                        CHANGING cv_qrcode    TYPE xstring.
+
+  DATA lv_cnpj        TYPE string.
+  DATA lv_nome        TYPE string.
+  DATA lv_cidade      TYPE string.
+  DATA lv_nome_src    TYPE string.
+  DATA lv_cidade_src  TYPE string.
+  DATA lv_valor       TYPE string.
+  DATA lv_txid        TYPE string.
+  DATA lv_texto_cobr  TYPE string.
+  DATA lv_payload     TYPE string.
+  DATA lv_crc         TYPE string.
+
+  DATA lv_f_gui       TYPE string.
+  DATA lv_f_chave     TYPE string.
+  DATA lv_f_desc      TYPE string.
+  DATA lv_mai         TYPE string.
+  DATA lv_f_valor     TYPE string.
+  DATA lv_f_nome      TYPE string.
+  DATA lv_f_cidade    TYPE string.
+  DATA lv_f_txid      TYPE string.
+  DATA lv_f_add       TYPE string.
+
+  DATA lv_val_pack    TYPE p LENGTH 13 DECIMALS 2.
+
+  CLEAR cv_qrcode.
+
+  lv_cnpj = is_form_data-cnpj.
+  REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cnpj WITH ''.
+
+  lv_nome_src = is_form_data-beneficiario.
+  PERFORM f_remove_acentos USING lv_nome_src CHANGING lv_nome.
+  IF strlen( lv_nome ) > 25.
+    lv_nome = lv_nome(25).
+  ENDIF.
+
+  lv_cidade_src = is_form_data-cidade.
+  IF lv_cidade_src IS INITIAL.
+    lv_cidade_src = 'SAO PAULO'.
+  ENDIF.
+  PERFORM f_remove_acentos USING lv_cidade_src CHANGING lv_cidade.
+  IF strlen( lv_cidade ) > 15.
+    lv_cidade = lv_cidade(15).
+  ENDIF.
+
+  lv_val_pack = abs( is_alv-dmbtr ).
+  lv_valor = |{ lv_val_pack DECIMALS = 2 }|.
+  CONDENSE lv_valor NO-GAPS.
+  REPLACE ALL OCCURRENCES OF ',' IN lv_valor WITH '.'.
+
+  lv_txid = |{ is_form_data-carteira }{ is_alv-xref3 }|.
+  REPLACE ALL OCCURRENCES OF REGEX '[^A-Za-z0-9]' IN lv_txid WITH ''.
+  IF strlen( lv_txid ) > 25.
+    lv_txid = lv_txid(25).
+  ENDIF.
+  IF lv_txid IS INITIAL.
+    lv_txid = 'TXIDSEMVALOR'.
+  ENDIF.
+
+  lv_texto_cobr = |{ is_form_data-numero_documento } { is_alv-bukrs }/{ is_alv-belnr }/{ is_alv-buzei }|.
+  CONDENSE lv_texto_cobr.
+  IF strlen( lv_texto_cobr ) > 72.
+    lv_texto_cobr = lv_texto_cobr(72).
+  ENDIF.
+
+  PERFORM f_emv_tlv USING '00' 'BR.GOV.BCB.PIX' CHANGING lv_f_gui.
+  PERFORM f_emv_tlv USING '01' lv_cnpj          CHANGING lv_f_chave.
+  PERFORM f_emv_tlv USING '02' lv_texto_cobr    CHANGING lv_f_desc.
+  DATA(lv_key) = |{ lv_f_gui && lv_f_chave && lv_f_desc }|.
+  PERFORM f_emv_tlv USING '26' lv_key CHANGING lv_mai.
+
+  PERFORM f_emv_tlv USING '54' lv_valor  CHANGING lv_f_valor.
+  PERFORM f_emv_tlv USING '59' lv_nome   CHANGING lv_f_nome.
+  PERFORM f_emv_tlv USING '60' lv_cidade CHANGING lv_f_cidade.
+
+  PERFORM f_emv_tlv USING '05' lv_txid   CHANGING lv_f_txid.
+  PERFORM f_emv_tlv USING '62' lv_f_txid CHANGING lv_f_add.
+
+  CLEAR lv_payload.
+  CONCATENATE lv_payload '000201'   INTO lv_payload.
+  CONCATENATE lv_payload '010211'   INTO lv_payload.
+  CONCATENATE lv_payload lv_mai     INTO lv_payload.
+  CONCATENATE lv_payload '52040000' INTO lv_payload.
+  CONCATENATE lv_payload '5303986'  INTO lv_payload.
+  CONCATENATE lv_payload lv_f_valor INTO lv_payload.
+  CONCATENATE lv_payload '5802BR'   INTO lv_payload.
+  CONCATENATE lv_payload lv_f_nome  INTO lv_payload.
+  CONCATENATE lv_payload lv_f_cidade INTO lv_payload.
+  CONCATENATE lv_payload lv_f_add    INTO lv_payload.
+  CONCATENATE lv_payload '6304'      INTO lv_payload.
+
+  PERFORM f_crc16_pix USING lv_payload CHANGING lv_crc.
+  CONCATENATE lv_payload lv_crc INTO lv_payload.
+
+  TRY.
+      cl_rstx_barcode_renderer=>qr_code(
+        EXPORTING
+          i_module_size      = 5
+          i_mode             = 'A'
+          i_error_correction = 'M'
+          i_barcode_text     = lv_payload
+        IMPORTING
+          e_bitmap           = cv_qrcode ).
+    CATCH cx_root.
+      CLEAR cv_qrcode.
+  ENDTRY.
+
+ENDFORM.
+
+FORM f_gerar_pdf_boleto USING    is_alv      TYPE ty_alv
+                        CHANGING cv_pdf_xstr TYPE xstring.
+
+  DATA lv_funcname     TYPE funcname.
+  DATA ls_outputparams TYPE sfpoutputparams.
+  DATA ls_docparams    TYPE sfpdocparams.
+  DATA ls_formoutput   TYPE fpformoutput.
+  DATA ls_zsfi_boleto  TYPE zsfi_boleto_cobranca.
+  DATA ls_form_data    TYPE ty_form_data.
+  DATA lv_qrcode       TYPE xstring.
+
+  CLEAR cv_pdf_xstr.
+
+  CHECK gv_form_name IS NOT INITIAL.
+
+  PERFORM f_monta_form_data USING is_alv CHANGING ls_form_data.
+  PERFORM f_gerar_qrcode_pix USING is_alv ls_form_data CHANGING lv_qrcode.
+
+  TRY.
+      CALL FUNCTION 'FP_FUNCTION_MODULE_NAME'
+        EXPORTING
+          i_name     = gv_form_name
+        IMPORTING
+          e_funcname = lv_funcname.
+
+      CLEAR ls_outputparams.
+      IF gv_mode = 'E'.
+        ls_outputparams-getpdf   = abap_true.
+        ls_outputparams-nodialog = abap_true.
+        ls_outputparams-preview  = abap_false.
+        ls_outputparams-noprint  = abap_true.
+      ELSE.  " Print: send to spool (SP01)
+        ls_outputparams-preview   = abap_true.
+        ls_outputparams-nodialog  = abap_true.
+        ls_outputparams-device    = 'PRINTER'.
+        ls_outputparams-dest      = 'LOCL'.
+        ls_outputparams-reqimm    = abap_true.
+        ls_outputparams-reqnew    = abap_true.
+        ls_outputparams-reqfinal  = abap_true.
+        ls_outputparams-noprint   = space.
+        ls_outputparams-nopreview = space.
+      ENDIF.
+
+      CALL FUNCTION 'FP_JOB_OPEN'
+        CHANGING
+          ie_outputparams = ls_outputparams.
+
+      CLEAR ls_zsfi_boleto.
+
+      ls_zsfi_boleto-nome_banco            = ls_form_data-nome_banco.
+      ls_zsfi_boleto-codigo_banco          = ls_form_data-codigo_banco.
+      ls_zsfi_boleto-local_pagamento       = ls_form_data-local_pagamento.
+      ls_zsfi_boleto-data_vencimento       = ls_form_data-data_vencimento.
+      ls_zsfi_boleto-data_processamento    = ls_form_data-data_processamento.
+      ls_zsfi_boleto-beneficiario          = ls_form_data-beneficiario.
+      ls_zsfi_boleto-agencia               = ls_form_data-agencia.
+      ls_zsfi_boleto-data_emissao          = ls_form_data-data_emissao.
+      ls_zsfi_boleto-numero_documento      = ls_form_data-numero_documento.
+      ls_zsfi_boleto-nosso_numero          = ls_form_data-nosso_numero.
+      ls_zsfi_boleto-carteira              = ls_form_data-carteira.
+      ls_zsfi_boleto-valor_documento       = ls_form_data-valor_documento.
+      ls_zsfi_boleto-linha_digitavel       = ls_form_data-linha_digitavel.
+      ls_zsfi_boleto-barcode               = ls_form_data-barcode.
+      ls_zsfi_boleto-cnpj                  = ls_form_data-cnpj.
+      ls_zsfi_boleto-endereco_beneficiario = ls_form_data-endereco_beneficiario.
+      ls_zsfi_boleto-tipo_documento        = ls_form_data-tipo_documento.
+      ls_zsfi_boleto-aceite                = ls_form_data-aceite.
+      ls_zsfi_boleto-especie               = ls_form_data-especie.
+      ls_zsfi_boleto-multa                 = 0.
+      ls_zsfi_boleto-juros                 = 0.
+      ls_zsfi_boleto-dias_protesto         = ''.
+      ls_zsfi_boleto-pagador               = ls_form_data-pagador.
+      ls_zsfi_boleto-cnpj_pagador          = ls_form_data-cnpj_pagador.
+      ls_zsfi_boleto-endereco_pagador      = ls_form_data-endereco_pagador.
+      ls_zsfi_boleto-waers                 = ls_form_data-waers.
+      ls_zsfi_boleto-name_text             = ls_form_data-name_text.
+
+      CALL FUNCTION lv_funcname
+        EXPORTING
+          /1bcdwb/docparams  = ls_docparams
+          is_data            = ls_zsfi_boleto
+          iv_qrcode          = lv_qrcode
+        IMPORTING
+          /1bcdwb/formoutput = ls_formoutput.
+
+      CALL FUNCTION 'FP_JOB_CLOSE'.
+
+      cv_pdf_xstr = ls_formoutput-pdf.
+      IF cv_pdf_xstr IS INITIAL AND gv_mode <> 'E'.
+        cv_pdf_xstr = 'FF'X.  " print sent to spool - signal success to caller
+      ENDIF.
+
+    CATCH cx_root.
+      CALL FUNCTION 'FP_JOB_CLOSE'
+        EXCEPTIONS
+          OTHERS = 0.
+  ENDTRY.
 
 ENDFORM.

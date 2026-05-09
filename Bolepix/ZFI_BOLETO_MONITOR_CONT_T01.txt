@@ -81,7 +81,7 @@ TYPES: BEGIN OF ty_adr6,
 TYPES: BEGIN OF ty_t012,
          bukrs TYPE t012-bukrs,
          hbkid TYPE t012-hbkid,
-         baknl TYPE t012-baknl,
+         bankl TYPE t012-bankl,
          banks TYPE t012-banks,
        END OF ty_t012.
 
@@ -115,8 +115,8 @@ TYPES: BEGIN OF ty_adrc_map,
        END OF ty_adrc_map.
 
 TYPES: BEGIN OF ty_but000,
-         partner    TYPE but000-partner,
-         name_org1  TYPE but000-name_org1,
+         partner   TYPE but000-partner,
+         name_org1 TYPE but000-name_org1,
        END OF ty_but000.
 
 TYPES: BEGIN OF ty_dfkkbptaxnum_map,
@@ -167,7 +167,8 @@ TYPES: BEGIN OF ty_form_data,
          agencia               TYPE char30,    " 3.2 Agency/Account
          beneficiario          TYPE char50,    " 3.3 Beneficiary name
          cnpj                  TYPE char20,    " 3.4 Beneficiary CNPJ
-         endereco_beneficiario TYPE char255,   " 3.5 Beneficiary address
+         cidade                TYPE char15,    " 3.5 City (PIX QR Code)
+         endereco_beneficiario TYPE char255,   " 3.5.1 Beneficiary address
          carteira              TYPE char3,     " 3.6 Wallet
          nosso_numero          TYPE char30,    " 3.7 Our number
          especie               TYPE char2,     " 3.8 Currency species
@@ -180,7 +181,7 @@ TYPES: BEGIN OF ty_form_data,
          data_processamento    TYPE sydatum,   " Processing date
          data_emissao          TYPE sydatum,   " Issue date
          numero_documento      TYPE char20,    " Document number
-         valor_documento       TYPE bseg-dmbtr," Document amount
+         valor_documento       TYPE bseg-dmbtr, " Document amount
          linha_digitavel       TYPE char60,    " Typeable line
          barcode               TYPE char44,    " Barcode 44 digits
          tipo_documento        TYPE char2,     " Document type
@@ -193,7 +194,7 @@ TYPES: BEGIN OF ty_form_data,
 * Types - Parameter and log tables
 *----------------------------------------------------------------------*
 TYPES: BEGIN OF ty_param,
-         param  TYPE char30,
+         param  TYPE rvari_vnam,
          value1 TYPE char255,
          value2 TYPE char255,
        END OF ty_param.
@@ -215,21 +216,22 @@ TYPES: BEGIN OF ty_log,
 * Global data
 *----------------------------------------------------------------------*
 DATA:
-  gt_bsid          TYPE STANDARD TABLE OF ty_bsid,
-  gt_bkpf          TYPE STANDARD TABLE OF ty_bkpf,
-  gt_kna1          TYPE STANDARD TABLE OF ty_kna1,
-  gt_adr6          TYPE STANDARD TABLE OF ty_adr6,
-  gt_alv           TYPE STANDARD TABLE OF ty_alv,
-  gt_param         TYPE STANDARD TABLE OF ty_param,
-  gt_log           TYPE STANDARD TABLE OF ty_log,
-  gt_t012          TYPE STANDARD TABLE OF ty_t012,
-  gt_t012k         TYPE STANDARD TABLE OF ty_t012k,
-  gt_t012c         TYPE STANDARD TABLE OF ty_t012c,
-  gt_t001          TYPE STANDARD TABLE OF ty_t001_map,
-  gt_adrc          TYPE STANDARD TABLE OF ty_adrc_map,
-  gt_but000        TYPE STANDARD TABLE OF ty_but000,
-  gt_dfkkbptaxnum  TYPE STANDARD TABLE OF ty_dfkkbptaxnum_map,
-  gt_but020        TYPE STANDARD TABLE OF ty_but020.
+  gt_bsid         TYPE STANDARD TABLE OF ty_bsid,
+  gt_bkpf         TYPE STANDARD TABLE OF ty_bkpf,
+  gt_kna1         TYPE STANDARD TABLE OF ty_kna1,
+  gt_adr6         TYPE STANDARD TABLE OF ty_adr6,
+  gt_alv          TYPE STANDARD TABLE OF ty_alv,
+  lt_alv          TYPE TABLE OF ty_alv,
+  gt_param        TYPE STANDARD TABLE OF ty_param,
+  gt_log          TYPE STANDARD TABLE OF ty_log,
+  gt_t012         TYPE STANDARD TABLE OF ty_t012,
+  gt_t012k        TYPE STANDARD TABLE OF ty_t012k,
+  gt_t012c        TYPE STANDARD TABLE OF ty_t012c,
+  gt_t001         TYPE STANDARD TABLE OF ty_t001_map,
+  gt_adrc         TYPE STANDARD TABLE OF ty_adrc_map,
+  gt_but000       TYPE STANDARD TABLE OF ty_but000,
+  gt_dfkkbptaxnum TYPE STANDARD TABLE OF ty_dfkkbptaxnum_map,
+  gt_but020       TYPE STANDARD TABLE OF ty_but020.
 
 DATA:
   gs_bsid TYPE ty_bsid,
@@ -244,6 +246,7 @@ DATA:
   gv_mail_cc      TYPE adr6-smtp_addr,
   gv_mail_subject TYPE so_obj_des,
   gv_form_name    TYPE fpname,
+  gv_mode         TYPE c,
   gv_mail_body    TYPE string.
 
 *----------------------------------------------------------------------*
@@ -277,8 +280,8 @@ CLASS lcl_event_handler IMPLEMENTATION.
 
   METHOD on_user_command.
     DATA: lt_rows TYPE salv_t_row,
-          lo_sel  TYPE REF TO cl_salv_selections,
-          lt_alv  TYPE STANDARD TABLE OF ty_alv.
+          lo_sel  TYPE REF TO cl_salv_selections.
+*          lt_alv  TYPE TABLE OF ty_alv.
 
     lo_sel = go_salv->get_selections( ).
     lt_rows = lo_sel->get_selected_rows( ).
@@ -296,13 +299,14 @@ CLASS lcl_event_handler IMPLEMENTATION.
     ENDLOOP.
 
     CASE e_salv_function.
-      WHEN '&PRINT'.
-        PERFORM f_imprimir_boletos USING lt_alv.
+      WHEN '&ZPRINT'.
+        PERFORM f_imprimir_boletos.
         PERFORM f_atualiza_alv.
       WHEN '&EMAIL'.
-        PERFORM f_enviar_email USING lt_alv.
+        PERFORM f_enviar_email.
         PERFORM f_atualiza_alv.
     ENDCASE.
+
   ENDMETHOD.
 
 ENDCLASS.

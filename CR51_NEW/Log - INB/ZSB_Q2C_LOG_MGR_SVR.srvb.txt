@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
-// Service Binding: ZSB_Q2C_ARQ_INB_SVR
+// Service Binding: ZSB_Q2C_LOG_MGR_SVR
 // Tipo    : OData V4 - Web API  (não UI — machine-to-machine CPI → SAP)
-// Service : ZSD_Q2C_ARQ_INB_SVR
+// Service : ZSD_Q2C_LOG_MGR_SVR
 // -----------------------------------------------------------------------
 // ATENÇÃO: Service Bindings não podem ser armazenados como arquivo fonte.
 // Devem ser criados diretamente no sistema SAP via ADT.
@@ -10,16 +10,25 @@
 //   1. Botão direito no pacote > New > Other ABAP Repository Object
 //   2. Navegue em: Business Services > Service Binding
 //   3. Preencha:
-//        Name        : ZSB_Q2C_ARQ_INB_SVR
-//        Description : Service Binding ARQ INB - Callback CPI (atualiza status)
+//        Name        : ZSB_Q2C_LOG_MGR_SVR
+//        Description : Service Binding LOG MGR - Callback CPI (insere log)
 //        Binding Type: OData V4 - Web API         ← IMPORTANTE: Web API, não UI
-//        Service Def : ZSD_Q2C_ARQ_INB_SVR
+//        Service Def : ZSD_Q2C_LOG_MGR_SVR
 //   4. Ative e clique em "Publish"
 //
-// Operação CPI (PATCH — atualizar status do arquivo):
-//   PATCH /sap/opu/odata4/.../ArqInb(Pedido='XPTO',Bandeira='FORD')
-//   Body: { "Status": "PROCESSADO", "UltimoErro": "" }
-//   ou:   { "Status": "ERRO", "UltimoErro": "Mensagem de erro completa" }
+// Operação CPI (POST — inserir linha de resultado no LOG):
+//   POST /sap/opu/odata4/.../LogInb
+//   Body: {
+//     "Pedido":   "XPTO",
+//     "Bandeira": "FORD",
+//     "Datum":    "20260509",
+//     "Uzeit":    "143000",
+//     "IdRef":    "CPI-UUID-01",
+//     "Etapa":    "CONCLUSAO",
+//     "Mensagem": "Processado com sucesso",
+//     "Ernam":    "CPI_USER"
+//   }
+//   ou Etapa = "ERRO", Mensagem = "<detalhe do erro>"
 //
 // Autenticação: Basic Auth com usuário técnico CPI (configurar no iFlow)
 // -----------------------------------------------------------------------

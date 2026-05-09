@@ -2,5 +2,4 @@ projection;
 
 define behavior for ZC_Q2C_LOG_SUM_APP alias LogSumApp
 {
-  use association _Detail { }
 }

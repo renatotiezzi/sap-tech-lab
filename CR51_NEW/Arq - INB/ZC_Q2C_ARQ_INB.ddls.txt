@@ -1,0 +1,25 @@
+@EndUserText.label: 'ARQ MGR - Inbound CPI (callback de status)'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+// -----------------------------------------------------------------------
+// Projeção inbound — usada exclusivamente pelo CPI para atualizar o status
+// do arquivo após processamento assíncrono.
+//
+// Operação: PATCH com Pedido + Bandeira como chave
+// Campos atualizáveis: Status, UltimoErro, Datum, Uzeit, Ernam
+// Campos imutáveis  : todos os demais (via BDEF field readonly)
+//
+// Serviço: ZSB_Q2C_ARQ_INB_SVR (OData V4 - Web API)
+// Autenticação: usuário técnico CPI (definir na SM59 / OAuth)
+// -----------------------------------------------------------------------
+define root view entity ZC_Q2C_ARQ_INB
+  provider contract transactional_interface
+  as projection on ZI_Q2C_ARQ_MGR
+{
+  key Pedido,
+  key Bandeira,
+      Status,
+      UltimoErro,
+      Datum,
+      Uzeit,
+      Ernam
+}

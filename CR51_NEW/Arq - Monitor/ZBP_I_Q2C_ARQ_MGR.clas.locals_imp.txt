@@ -105,26 +105,17 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
               ev_status = DATA(cpi_status)
           ).
 
-          " 6. Sucesso: STATUS = PROCESSADO + limpar ULTIMO_ERRO
-          MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-            ENTITY arqmgr
-              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
-              WITH VALUE #( (
-                %key       = entity-%key
-                Status     = 'PROCESSADO'
-                UltimoErro = ''
-                Datum      = sy-datum
-                Uzeit      = sy-uzeit
-                Ernam      = sy-uname
-              ) ).
-
+          " 6. CPI aceitou o envio — NÃO atualizar status aqui.
+          " CPI processará o arquivo e chamará de volta:
+          "   PATCH ZSB_Q2C_ARQ_INB_SVR → atualiza Status + UltimoErro
+          "   POST  ZSB_Q2C_LOG_INB_SVR → insere linha de resultado no LOG
           insert_log(
             pedido   = entity-Pedido
             bandeira = entity-Bandeira
-            etapa    = 'CONCLUSAO'
+            etapa    = 'ENVIO_CPI'
             mensagem = COND #( WHEN cpi_status IS NOT INITIAL
                                THEN cpi_status
-                               ELSE 'Processado com sucesso' )
+                               ELSE 'Arquivo enviado ao CPI — aguardando callback' )
           ).
 
         CATCH cx_root INTO DATA(exc).

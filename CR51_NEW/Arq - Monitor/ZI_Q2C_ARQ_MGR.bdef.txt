@@ -13,13 +13,14 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   etag master Uzeit
 {
   // update declarado para permitir MODIFY via EML IN LOCAL MODE nas actions
-  // Não exposto na projeção — usuário não edita campos diretamente
+  // Não exposto na projeção UI — usuário não edita campos diretamente
   update;
 
-  // Todos os campos são somente leitura para o usuário
-  // O preenchimento ocorre exclusivamente via actions ou integração externa
-  field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo;
-  field ( readonly ) Status; Tentativas; Datum; Uzeit; Ernam; UltimoErro;
+  // Campos imutáveis para qualquer cliente (UI e CPI)
+  field ( readonly ) Pedido; Bandeira; TipoDoc; Arquivo; Conteudo; Tentativas;
+  // Status, UltimoErro, Datum, Uzeit, Ernam: não declarados como readonly aqui
+  // para permitir PATCH via inbound CPI (ZC_Q2C_ARQ_INB).
+  // A projeção UI (ZC_Q2C_ARQ_MGR_APP.bdef) os declara field(readonly) para o usuário.
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;

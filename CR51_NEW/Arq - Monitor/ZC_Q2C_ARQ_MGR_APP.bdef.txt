@@ -11,6 +11,10 @@ define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
   use action Reprocess;
   use action Cancel;
 
+  // Restringir campos de status para o usuário de UI
+  // Estes campos são atualizados exclusivamente via actions (CCIMP) ou callback CPI (inbound)
+  field ( readonly ) Status; UltimoErro; Datum; Uzeit; Ernam;
+
   // Navegação leitura para o LOG — abre histórico completo na Object Page
   use association _Log;
 }

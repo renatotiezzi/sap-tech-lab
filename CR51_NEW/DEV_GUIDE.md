@@ -96,16 +96,32 @@ ZSB_Q2C_ARQ_MGR_SVR  (SRVB)  → OData V4 - UI
 
 ```
 ZI_Q2C_LOG_MGR         (DDLS)  → Root entity standalone — lê ZTBQ2C_LOG_MGR
-ZI_Q2C_LOG_MGR         (BDEF)  → managed read-only (sem actions, sem create, sem impl. class)
+ZI_Q2C_LOG_MGR         (BDEF)  → managed com create (para inbound CPI via callback)
 
-ZC_Q2C_LOG_MGR_APP     (DDLS)  → Projection — histórico Fiori
-ZC_Q2C_LOG_MGR_APP     (BDEF)  → Projection BDEF read-only (obrigatório pelo RAP)
+ZC_Q2C_LOG_MGR_APP     (DDLS)  → Projection — histórico Fiori (UI)
+ZC_Q2C_LOG_MGR_APP     (BDEF)  → Projection BDEF read-only (sem create — UI não insere LOG)
 ZC_Q2C_LOG_MGR_APP_MDE (DDLX)  → Anotações UI
 ZSD_Q2C_LOG_MGR_SVR    (SRVD)  → expose LogMgrApp
 ZSB_Q2C_LOG_MGR_SVR    (SRVB)  → OData V4 - UI
 ```
 
-> **Nomenclatura:** interfaces sem sufixo adicional; projeções com `_APP`; serviços (SRVD/SRVB) com `_SVR`.
+### Inbound CPI — Callback de Resultado
+
+```
+// ARQ Inbound — CPI PATCH status + ultimo_erro
+ZC_Q2C_ARQ_INB         (DDLS)  → Projection inbound ARQ — provider contract transactional_interface
+ZC_Q2C_ARQ_INB         (BDEF)  → use update
+ZSD_Q2C_ARQ_INB_SVR    (SRVD)  → expose ArqInb
+ZSB_Q2C_ARQ_INB_SVR    (SRVB)  → OData V4 - Web API (máquina)
+
+// LOG Inbound — CPI POST nova linha de log
+ZC_Q2C_LOG_INB         (DDLS)  → Projection inbound LOG — provider contract transactional_interface
+ZC_Q2C_LOG_INB         (BDEF)  → use create
+ZSD_Q2C_LOG_INB_SVR    (SRVD)  → expose LogInb
+ZSB_Q2C_LOG_INB_SVR    (SRVB)  → OData V4 - Web API (máquina)
+```
+
+> **Nomenclatura:** interfaces sem sufixo adicional; projeções UI com `_APP`; projeções inbound com `_INB`; serviços (SRVD/SRVB) com `_SVR`.
 
 ---
 
@@ -220,18 +236,21 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
 }
 ```
 
-### BDEF — ZI_Q2C_LOG_MGR (LOG — somente leitura)
+### BDEF — ZI_Q2C_LOG_MGR (LOG — create aberto para inbound CPI)
 
 ```abap
 managed;
-strict ( 2 );
+// Sem strict(2) — strict(2) exige pelo menos um CRUD declarado;
+// create declarado aqui para permitir POST via inbound CPI (ZC_Q2C_LOG_INB).
 
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbq2c_log_mgr
   lock master
   // authorization: não declarar — acesso controlado via @AccessControl no DDLS
 {
-  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; Etapa; Mensagem; Ernam;
+  create;
+  // sem update, sem delete — LOG é insert-only
+  // sem field(readonly) — sem strict(2), field(readonly) sem CRUD provoca erro de ativação
 
   mapping for ztbq2c_log_mgr
   {
@@ -266,12 +285,22 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
    - MENSAGEM = 'Reprocessamento iniciado'
 5. Chamar ZCL_Q2C_CPI_CALLER — passa o registro ARQ completo (is_arq)
    → Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER, nunca o CCIMP
-6. Se OK:
-   - UPDATE ARQ: STATUS = 'PROCESSADO'
-   - INSERT LOG: ETAPA = 'CONCLUSAO', MENSAGEM = 'Processado com sucesso'
-7. Se ERRO:
+6. Se OK (CPI acessível — não significa que processou!):
+   - INSERT LOG: ETAPA = 'ENVIO_CPI', MENSAGEM = 'Arquivo enviado ao CPI — aguardando callback'
+   - NÃO atualizar STATUS — CPI é assíncrono; callback CPI vai atualizar Status e UltimoErro
+7. Se ERRO (CPI inacessível — HTTP error, timeout):
    - UPDATE ARQ: STATUS = 'ERRO', ULTIMO_ERRO = mensagem_erro
    - INSERT LOG: ETAPA = 'ERRO', MENSAGEM = mensagem_erro (STRING completa)
+
+> **Fluxo assíncrono CPI:**
+> ```
+> CCIMP → chama CPI → sem atualizar Status
+>      ↓ loga ENVIO_CPI
+> CPI processa independentemente...
+>      ↓
+> CPI → PATCH ZSB_Q2C_ARQ_INB_SVR (Status + UltimoErro no ARQ)
+> CPI → POST  ZSB_Q2C_LOG_INB_SVR (nova linha de resultado no LOG)
+> ```
 ```
 
 > **CRÍTICO:** O LOG é sempre INSERT — nunca UPDATE. Isso garante o histórico completo.
@@ -390,12 +419,12 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 
 ### Fase 2 — BO LOG (criar antes do ARQ — ARQ referencia o LOG na association)
 1. `ZI_Q2C_LOG_MGR` (DDLS)
-2. `ZI_Q2C_LOG_MGR` (BDEF — read-only, sem classe de impl.)
+2. `ZI_Q2C_LOG_MGR` (BDEF — `managed` com `create`; sem strict(2))
 3. `ZC_Q2C_LOG_MGR_APP` (DDLS)
-4. `ZC_Q2C_LOG_MGR_APP` (BDEF — projection read-only)
+4. `ZC_Q2C_LOG_MGR_APP` (BDEF — projection read-only, sem create)
 5. `ZC_Q2C_LOG_MGR_APP_MDE` (DDLX)
 6. `ZSD_Q2C_LOG_MGR_SVR` (SRVD)
-7. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — criar e publicar no ADT)
+7. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — criar e publicar, OData V4 - UI)
 
 ### Fase 3 — BO ARQ (depende do LOG para a association `_Log`)
 1. `ZI_Q2C_ARQ_MGR` (DDLS)
@@ -407,9 +436,30 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 7. `ZC_Q2C_ARQ_MGR_APP` (BDEF)
 8. `ZC_Q2C_ARQ_MGR_APP_MDE` (DDLX)
 9. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — expõe ARQ + LOG + StatusVH)
-10. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar no ADT)
+10. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — criar e publicar, OData V4 - UI)
 
-### Fase 4 — Job de Limpeza (APJ)
+### Fase 3.5 — CPI Caller (stub — integração futura)
+1. `ZCL_Q2C_CPI_CALLER` (CLAS) — stub que simula envio ao CPI (retorna sucesso fixo)
+   → Substituir por implementação real quando CPI iFlow for disponibilizado
+
+### Fase 4 — Inbound CPI (callback de resultado)
+> Ativar **após** BO ARQ e BO LOG — projeções dependem das interfaces.
+
+**Inbound ARQ (PATCH status):**
+1. `ZC_Q2C_ARQ_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_ARQ_MGR)
+2. `ZC_Q2C_ARQ_INB` (BDEF — `projection; use update;`)
+3. `ZSD_Q2C_ARQ_INB_SVR` (SRVD — `expose ZC_Q2C_ARQ_INB as ArqInb`)
+4. `ZSB_Q2C_ARQ_INB_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
+
+**Inbound LOG (POST resultado):**
+1. `ZC_Q2C_LOG_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_LOG_MGR)
+2. `ZC_Q2C_LOG_INB` (BDEF — `projection; use create;`)
+3. `ZSD_Q2C_LOG_INB_SVR` (SRVD — `expose ZC_Q2C_LOG_INB as LogInb`)
+4. `ZSB_Q2C_LOG_INB_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
+
+> **Autenticação:** Basic Auth com usuário técnico para o iFlow CPI. Configurar no Communication Arrangement.
+
+### Fase 5 — Job de Limpeza (APJ)
 1. Criar Log Object `ZQ2C_LOG` (subobject `CLEANUP`) via `SBAL_OBJECT`
 2. Criar `ZCL_Q2C_MGR_CLEANUP` (CLAS) — implementa `IF_APJ_DT/RT_EXEC_OBJECT`
 3. Criar Job Catalog Entry `ZQ2C_CLEANUP_CE` no ADT → aponta para `ZCL_Q2C_MGR_CLEANUP`

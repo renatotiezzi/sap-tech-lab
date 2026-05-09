@@ -1,0 +1,10 @@
+projection;
+// -----------------------------------------------------------------------
+// Projection BDEF: LOG INB — Inserção de log pelo CPI (callback)
+// Expõe create para o CPI inserir nova linha de resultado no histórico.
+// A projeção UI (ZC_Q2C_LOG_MGR_APP.bdef) não expõe create — somente leitura.
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_LOG_INB alias LogInb
+{
+  use create;
+}

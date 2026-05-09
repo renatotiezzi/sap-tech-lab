@@ -1,0 +1,8 @@
+@EndUserText.label: 'Service Definition LOG INB - Callback CPI'
+// -----------------------------------------------------------------------
+// Expõe apenas a projeção inbound — não expõe UI entities.
+// Utilizado exclusivamente pelo CPI para inserir linhas de resultado no LOG.
+// -----------------------------------------------------------------------
+define service ZSD_Q2C_LOG_INB_SVR {
+  expose ZC_Q2C_LOG_INB as LogInb;
+}

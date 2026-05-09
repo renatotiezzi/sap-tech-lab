@@ -1,0 +1,26 @@
+@EndUserText.label: 'LOG MGR - Inbound CPI (inserção de log de resultado)'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+// -----------------------------------------------------------------------
+// Projeção inbound — usada exclusivamente pelo CPI para inserir linhas
+// de resultado no histórico de processamento.
+//
+// Operação: POST (create) com todos os campos
+// CPI fornece: Pedido, Bandeira, Datum, Uzeit, Etapa, Mensagem, Ernam, IdRef
+// Datum + Uzeit devem ser timestamp do momento do processamento no CPI.
+//
+// Serviço: ZSB_Q2C_LOG_INB_SVR (OData V4 - Web API)
+// Autenticação: usuário técnico CPI (definir na SM59 / OAuth)
+// -----------------------------------------------------------------------
+define root view entity ZC_Q2C_LOG_INB
+  provider contract transactional_interface
+  as projection on ZI_Q2C_LOG_MGR
+{
+  key Pedido,
+  key Bandeira,
+  key Datum,
+  key Uzeit,
+      IdRef,
+      Etapa,
+      Mensagem,
+      Ernam
+}

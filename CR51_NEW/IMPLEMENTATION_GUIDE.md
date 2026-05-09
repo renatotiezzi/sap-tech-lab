@@ -196,9 +196,68 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 
 ---
 
-## Fase 4 — Job de Limpeza (APJ)
+## Fase 4 — Inbound CPI (callback de resultado — Web API)
 
-### 4.1 Log Object BALI
+> Pré-requisito: Fases 2 e 3 concluídas (ZI_Q2C_LOG_MGR e ZI_Q2C_ARQ_MGR ativos).
+
+### 4.1 ZC_Q2C_ARQ_INB (DDLS)
+
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_ARQ_INB`
+2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_INB.ddls.txt`
+3. Ativar
+
+### 4.2 ZC_Q2C_ARQ_INB (BDEF)
+
+1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_ARQ_INB`
+2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_INB.bdef.txt`
+3. Ativar
+
+### 4.3 ZSD_Q2C_ARQ_INB_SVR (SRVD)
+
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_INB_SVR`
+2. Copiar conteúdo de `Arq - INB/ZSD_Q2C_ARQ_INB_SVR.srvd.txt`
+3. Ativar
+
+### 4.4 ZSB_Q2C_ARQ_INB_SVR (SRVB)
+
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_INB_SVR`
+2. **Binding Type: OData V4 - Web API** ← IMPORTANTE: Web API, não UI
+3. Service Definition: `ZSD_Q2C_ARQ_INB_SVR`
+4. Ativar → **Publish**
+
+### 4.5 ZC_Q2C_LOG_INB (DDLS)
+
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_LOG_INB`
+2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_INB.ddls.txt`
+3. Ativar
+
+### 4.6 ZC_Q2C_LOG_INB (BDEF)
+
+1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_LOG_INB`
+2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_INB.bdef.txt`
+3. Ativar
+
+### 4.7 ZSD_Q2C_LOG_INB_SVR (SRVD)
+
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_LOG_INB_SVR`
+2. Copiar conteúdo de `Log - INB/ZSD_Q2C_LOG_INB_SVR.srvd.txt`
+3. Ativar
+
+### 4.8 ZSB_Q2C_LOG_INB_SVR (SRVB)
+
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_LOG_INB_SVR`
+2. **Binding Type: OData V4 - Web API** ← IMPORTANTE: Web API, não UI
+3. Service Definition: `ZSD_Q2C_LOG_INB_SVR`
+4. Ativar → **Publish**
+
+> **Autenticação CPI → SAP:** configurar usuário técnico via Communication Arrangement.
+> Consultar arquivo `.srvb.txt` de cada inbound para exemplo de payload JSON.
+
+---
+
+## Fase 5 — Job de Limpeza (APJ)
+
+### 5.1 Log Object BALI
 
 1. Transação `SBAL_OBJECT`
 2. Criar novo objeto:
@@ -207,13 +266,13 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
    - **Descrição**: `Q2C MGR — Log de limpeza de registros antigos`
 3. Salvar
 
-### 4.2 ZCL_Q2C_MGR_CLEANUP (CLAS)
+### 5.2 ZCL_Q2C_MGR_CLEANUP (CLAS)
 
 1. ADT → New → **ABAP Class** → nome `ZCL_Q2C_MGR_CLEANUP`
 2. Copiar conteúdo de `JOB/ZCL_Q2C_MGR_CLEANUP.clas.txt`
 3. Ativar
 
-### 4.3 Job Catalog Entry
+### 5.3 Job Catalog Entry
 
 1. ADT → New → **Application Job Catalog Entry**
 2. Dados:
@@ -222,7 +281,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
    - **Class**: `ZCL_Q2C_MGR_CLEANUP`
 3. Ativar
 
-### 4.4 Job Template
+### 5.4 Job Template
 
 1. ADT → New → **Application Job Template**
 2. Dados:
@@ -232,7 +291,7 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
    - **P_DAYS**: `90`
 3. Ativar
 
-### 4.5 Agendamento
+### 5.5 Agendamento
 
 1. Abrir app Fiori **F2373 Application Jobs**
 2. **Schedule New Job** → Template: `ZQ2C_CLEANUP_JT`

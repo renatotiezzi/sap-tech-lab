@@ -16,7 +16,7 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  App 1 — Monitor / Reprocessamento                  │
-│  ZSB_Q2C_ARQ_MGR_SVR (OData V4)                     │
+│  ZSB_Q2C_ARQ_MGR_SVR (OData V4 - UI)               │
 │                                                     │
 │  List Report                                        │
 │   └─ colunas: Status, Pedido, Bandeira, UltimoErro  │
@@ -29,13 +29,24 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
                                                     │ navegação _Log
 ┌───────────────────────────────────────────────────▼─┐
 │  App 2 — LOG / Histórico (também standalone)        │
-│  ZSB_Q2C_LOG_MGR_SVR (OData V4)                     │
+│  ZSB_Q2C_LOG_MGR_SVR (OData V4 - UI)               │
 │                                                     │
 │  List Report                                        │
 │   └─ Pedido, Bandeira, Datum, Uzeit, Etapa,         │
 │      Mensagem, Ernam                                │
 │   └─ filtros: Pedido, Bandeira, Data, Etapa         │
 └─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│  Inbound CPI — Callback de Resultado                │
+│                                                     │
+│  ZSB_Q2C_ARQ_INB_SVR (OData V4 - Web API)          │
+│   └─ PATCH Pedido+Bandeira → Status + UltimoErro   │
+│                                                     │
+│  ZSB_Q2C_LOG_INB_SVR (OData V4 - Web API)          │
+│   └─ POST → nova linha de resultado no LOG          │
+└─────────────────────────────────────────────────────┘
+          ↑ chamado pelo iFlow CPI após processar o arquivo
 
 ┌─────────────────────────────────────────────────────┐
 │  Job — Limpeza 90 dias (Application Jobs / F2373)   │
@@ -59,7 +70,7 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 ## Objetos SAP
 
-### App 1 — Monitor / Reprocessamento (`Monitor/`)
+### App 1 — Monitor / Reprocessamento (`Arq - Monitor/`)
 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
@@ -67,7 +78,8 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 | `ZI_Q2C_ARQ_MGR`          | BDEF  | Managed — actions Reprocess, Cancel  |
 | `ZBP_I_Q2C_ARQ_MGR`       | CLAS  | Handler global (abstract final)      |
 | `ZBP_I_Q2C_ARQ_MGR`       | CCIMP | Lógica das actions + insert_log      |
-| `ZC_Q2C_ARQ_MGR_APP`      | DDLS  | Projection — redireciona `_Log`      |
+| `ZCL_Q2C_CPI_CALLER`      | CLAS  | Envia arquivo ao CPI (stub)          |
+| `ZC_Q2C_ARQ_MGR_APP`      | DDLS  | Projection UI — redireciona `_Log`   |
 | `ZC_Q2C_ARQ_MGR_APP`      | BDEF  | use action + use association _Log    |
 | `ZC_Q2C_ARQ_MGR_APP_MDE`  | DDLX  | Anotações UI — facets, lineItem      |
 | `ZSD_Q2C_ARQ_MGR_SVR`     | SRVD  | Expõe ARQ + LOG (para navegação)     |
@@ -78,12 +90,25 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
 | `ZI_Q2C_LOG_MGR`          | DDLS  | Interface LOG — lê `ZTBQ2C_LOG_MGR` |
-| `ZI_Q2C_LOG_MGR`          | BDEF  | Read-only (sem actions, sem create)  |
-| `ZC_Q2C_LOG_MGR_APP`      | DDLS  | Projection standalone                |
-| `ZC_Q2C_LOG_MGR_APP`      | BDEF  | Projection read-only                 |
+| `ZI_Q2C_LOG_MGR`          | BDEF  | Managed com create (para inbound CPI)|
+| `ZC_Q2C_LOG_MGR_APP`      | DDLS  | Projection UI standalone             |
+| `ZC_Q2C_LOG_MGR_APP`      | BDEF  | Projection read-only (sem create)    |
 | `ZC_Q2C_LOG_MGR_APP_MDE`  | DDLX  | Anotações UI                         |
 | `ZSD_Q2C_LOG_MGR_SVR`     | SRVD  | Expõe LOG standalone                 |
 | `ZSB_Q2C_LOG_MGR_SVR`     | SRVB  | OData V4 - UI                        |
+
+### Inbound CPI — Callback de Resultado (`Arq - INB/` e `Log - INB/`)
+
+| Objeto                    | Tipo  | Descrição                            |
+|---------------------------|-------|--------------------------------------|
+| `ZC_Q2C_ARQ_INB`          | DDLS  | Projection inbound ARQ — só Status + UltimoErro |
+| `ZC_Q2C_ARQ_INB`          | BDEF  | use update — CPI faz PATCH           |
+| `ZSD_Q2C_ARQ_INB_SVR`     | SRVD  | Expõe ArqInb                         |
+| `ZSB_Q2C_ARQ_INB_SVR`     | SRVB  | OData V4 - **Web API** (máquina)    |
+| `ZC_Q2C_LOG_INB`          | DDLS  | Projection inbound LOG — todos os campos |
+| `ZC_Q2C_LOG_INB`          | BDEF  | use create — CPI faz POST           |
+| `ZSD_Q2C_LOG_INB_SVR`     | SRVD  | Expõe LogInb                         |
+| `ZSB_Q2C_LOG_INB_SVR`     | SRVB  | OData V4 - **Web API** (máquina)    |
 
 ### Job de Limpeza (`JOB/`)
 

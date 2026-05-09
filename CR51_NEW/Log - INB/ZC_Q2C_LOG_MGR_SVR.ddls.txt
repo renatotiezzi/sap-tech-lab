@@ -12,7 +12,7 @@
 // Autenticação: usuário técnico CPI (definir na SM59 / OAuth)
 // -----------------------------------------------------------------------
 define root view entity ZC_Q2C_LOG_MGR_SVR
-  provider contract transactional_interface
+  provider contract transactional_query
   as projection on ZI_Q2C_LOG_MGR
 {
   key Pedido,

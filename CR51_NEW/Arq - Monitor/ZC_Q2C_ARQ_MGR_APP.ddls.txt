@@ -20,8 +20,5 @@ define root view entity ZC_Q2C_ARQ_MGR_APP
       Datum,
       Uzeit,
       Ernam,
-      UltimoErro,
-
-      /* Associations */
-      _Log : redirected to ZC_Q2C_LOG_MGR_APP
+      UltimoErro
 }

@@ -1,30 +1,6 @@
 @Metadata.layer: #CUSTOMER
-@UI: {
-  headerInfo: {
-    typeName: 'Arquivo MGR',
-    typeNamePlural: 'Arquivos MGR',
-    title: { value: 'Pedido' },
-    description: { value: 'Bandeira' }
-  }
-}
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
-  @UI.facet: [
-    { id: 'Detalhes',
-      type: #COLLECTION,
-      label: 'Detalhes do Arquivo',
-      position: 10 },
-    { id: 'General',
-      parentId: 'Detalhes',
-      type: #IDENTIFICATION_REFERENCE,
-      label: 'Dados Gerais',
-      position: 10 },
-    { id: 'LogHistory',
-      type: #LINEITEM_REFERENCE,
-      label: 'Histórico de Processamento',
-      position: 20,
-      targetElement: '_Log' }
-  ]
 
   @EndUserText.label: 'Pedido'
   @UI.selectionField: [ { position: 10 } ]
@@ -78,18 +54,14 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
 
   @EndUserText.label: 'Último Erro'
   @UI.lineItem: [ { position: 100, importance: #LOW } ]
-  @UI.identification: [ { position: 100 } ]
   UltimoErro;
 
-  // Campo usado no payload CPI — não exibir na UI
   @UI.hidden: true
   Arquivo;
 
-  @EndUserText.label: 'Conteúdo do Arquivo'
   @UI.hidden: true
   Conteudo;
 
-  // Campo técnico usado como referência na criticality do Status — não exibir na UI
   @UI.hidden: true
   StatusCriticality;
 }

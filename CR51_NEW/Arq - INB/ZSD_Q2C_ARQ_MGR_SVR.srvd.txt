@@ -4,5 +4,5 @@
 // Utilizado exclusivamente pelo CPI para atualizar status do arquivo.
 // -----------------------------------------------------------------------
 define service ZSD_Q2C_ARQ_MGR_SVR {
-  expose ZC_Q2C_ARQ_INB as ArqInb;
+  expose ZC_Q2C_ARQ_MGR_SVR as ArqSvr;
 }

@@ -200,16 +200,16 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 
 > Pré-requisito: Fases 2 e 3 concluídas (ZI_Q2C_LOG_MGR e ZI_Q2C_ARQ_MGR ativos).
 
-### 4.1 ZC_Q2C_ARQ_INB (DDLS)
+### 4.1 ZC_Q2C_ARQ_MGR_SVR (DDLS)
 
-1. ADT → New → **Data Definition** → nome `ZC_Q2C_ARQ_INB`
-2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_INB.ddls.txt`
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_ARQ_MGR_SVR`
+2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_MGR_SVR.ddls.txt`
 3. Ativar
 
-### 4.2 ZC_Q2C_ARQ_INB (BDEF)
+### 4.2 ZC_Q2C_ARQ_MGR_SVR (BDEF)
 
-1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_ARQ_INB`
-2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_INB.bdef.txt`
+1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_ARQ_MGR_SVR`
+2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_MGR_SVR.bdef.txt`
 3. Ativar
 
 ### 4.3 ZSD_Q2C_ARQ_MGR_SVR (SRVD)
@@ -225,16 +225,16 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 3. Service Definition: `ZSD_Q2C_ARQ_MGR_SVR`
 4. Ativar → **Publish**
 
-### 4.5 ZC_Q2C_LOG_INB (DDLS)
+### 4.5 ZC_Q2C_LOG_MGR_SVR (DDLS)
 
-1. ADT → New → **Data Definition** → nome `ZC_Q2C_LOG_INB`
-2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_INB.ddls.txt`
+1. ADT → New → **Data Definition** → nome `ZC_Q2C_LOG_MGR_SVR`
+2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_MGR_SVR.ddls.txt`
 3. Ativar
 
-### 4.6 ZC_Q2C_LOG_INB (BDEF)
+### 4.6 ZC_Q2C_LOG_MGR_SVR (BDEF)
 
-1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_LOG_INB`
-2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_INB.bdef.txt`
+1. ADT → New → **Behavior Definition** → tipo **Projection** → nome `ZC_Q2C_LOG_MGR_SVR`
+2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_MGR_SVR.bdef.txt`
 3. Ativar
 
 ### 4.7 ZSD_Q2C_LOG_MGR_SVR (SRVD)

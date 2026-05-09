@@ -4,5 +4,5 @@
 // Utilizado exclusivamente pelo CPI para inserir linhas de resultado no LOG.
 // -----------------------------------------------------------------------
 define service ZSD_Q2C_LOG_MGR_SVR {
-  expose ZC_Q2C_LOG_INB as LogInb;
+  expose ZC_Q2C_LOG_MGR_SVR as LogSvr;
 }

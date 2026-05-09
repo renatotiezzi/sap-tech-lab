@@ -108,16 +108,16 @@ ZSB_Q2C_LOG_MGR_APP    (SRVB)  → OData V4 - UI
 ### Inbound CPI — Callback de Resultado
 
 ```
-// ARQ Inbound — CPI PATCH status + ultimo_erro
-ZC_Q2C_ARQ_INB         (DDLS)  → Projection inbound ARQ — provider contract transactional_interface
-ZC_Q2C_ARQ_INB         (BDEF)  → use update
-ZSD_Q2C_ARQ_MGR_SVR    (SRVD)  → expose ArqInb
+// ARQ CPI — PATCH status + ultimo_erro
+ZC_Q2C_ARQ_MGR_SVR     (DDLS)  → Projection CPI ARQ — provider contract transactional_interface
+ZC_Q2C_ARQ_MGR_SVR     (BDEF)  → use update
+ZSD_Q2C_ARQ_MGR_SVR    (SRVD)  → expose ArqSvr
 ZSB_Q2C_ARQ_MGR_SVR    (SRVB)  → OData V4 - Web API (máquina)
 
-// LOG Inbound — CPI POST nova linha de log
-ZC_Q2C_LOG_INB         (DDLS)  → Projection inbound LOG — provider contract transactional_interface
-ZC_Q2C_LOG_INB         (BDEF)  → use create
-ZSD_Q2C_LOG_MGR_SVR    (SRVD)  → expose LogInb
+// LOG CPI — POST nova linha de log
+ZC_Q2C_LOG_MGR_SVR     (DDLS)  → Projection CPI LOG — provider contract transactional_interface
+ZC_Q2C_LOG_MGR_SVR     (BDEF)  → use create
+ZSD_Q2C_LOG_MGR_SVR    (SRVD)  → expose LogSvr
 ZSB_Q2C_LOG_MGR_SVR    (SRVB)  → OData V4 - Web API (máquina)
 ```
 
@@ -298,8 +298,8 @@ define behavior for ZI_Q2C_LOG_MGR alias LogMgr
 >      ↓ loga ENVIO_CPI
 > CPI processa independentemente...
 >      ↓
-CPI → PATCH ZSB_Q2C_ARQ_MGR_SVR (Status + UltimoErro no ARQ)
-CPI → POST  ZSB_Q2C_LOG_MGR_SVR (nova linha de resultado no LOG)
+CPI → PATCH ZSB_Q2C_ARQ_MGR_SVR / ArqSvr (Status + UltimoErro no ARQ)
+CPI → POST  ZSB_Q2C_LOG_MGR_SVR / LogSvr (nova linha de resultado no LOG)
 > ```
 ```
 
@@ -448,13 +448,13 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 **Inbound ARQ (PATCH status):**
 1. `ZC_Q2C_ARQ_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_ARQ_MGR)
 2. `ZC_Q2C_ARQ_INB` (BDEF — `projection; use update;`)
-3. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — `expose ZC_Q2C_ARQ_INB as ArqInb`)
+3. `ZSD_Q2C_ARQ_MGR_SVR` (SRVD — `expose ZC_Q2C_ARQ_MGR_SVR as ArqSvr`)
 4. `ZSB_Q2C_ARQ_MGR_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
 
 **Inbound LOG (POST resultado):**
 1. `ZC_Q2C_LOG_INB` (DDLS — `provider contract transactional_interface`, projection on ZI_Q2C_LOG_MGR)
 2. `ZC_Q2C_LOG_INB` (BDEF — `projection; use create;`)
-3. `ZSD_Q2C_LOG_MGR_SVR` (SRVD — `expose ZC_Q2C_LOG_INB as LogInb`)
+3. `ZSD_Q2C_LOG_MGR_SVR` (SRVD — `expose ZC_Q2C_LOG_MGR_SVR as LogSvr`)
 4. `ZSB_Q2C_LOG_MGR_SVR` (SRVB — **OData V4 - Web API**, criar e publicar)
 
 > **Autenticação:** Basic Auth com usuário técnico para o iFlow CPI. Configurar no Communication Arrangement.

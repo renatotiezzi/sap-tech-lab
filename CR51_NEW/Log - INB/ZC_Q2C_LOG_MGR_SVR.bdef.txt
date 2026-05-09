@@ -1,0 +1,6 @@
+projection;
+
+define behavior for ZC_Q2C_LOG_MGR_SVR alias LogSvr
+{
+  use create;
+}

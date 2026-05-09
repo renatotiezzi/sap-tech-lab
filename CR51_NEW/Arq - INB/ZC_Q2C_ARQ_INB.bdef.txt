@@ -1,6 +1,0 @@
-projection;
-
-define behavior for ZC_Q2C_ARQ_INB alias ArqInb
-{
-  use update;
-}

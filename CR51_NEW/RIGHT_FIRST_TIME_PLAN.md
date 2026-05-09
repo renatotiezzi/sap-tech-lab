@@ -105,12 +105,12 @@
 
 | Seq | Objeto | Tipo | Ação ADT | Arquivo fonte |
 |-----|--------|------|----------|---------------|
-| 4.1 | `ZC_Q2C_ARQ_INB` | DDLS | New CDS View Entity → Root → copiar | `Arq - INB/ZC_Q2C_ARQ_INB.ddls.txt` |
-| 4.2 | `ZC_Q2C_ARQ_INB` | BDEF | New Behavior Definition → copiar | `Arq - INB/ZC_Q2C_ARQ_INB.bdef.txt` |
+| 4.1 | `ZC_Q2C_ARQ_MGR_SVR` | DDLS | New CDS View Entity → Root → copiar | `Arq - INB/ZC_Q2C_ARQ_MGR_SVR.ddls.txt` |
+| 4.2 | `ZC_Q2C_ARQ_MGR_SVR` | BDEF | New Behavior Definition → copiar | `Arq - INB/ZC_Q2C_ARQ_MGR_SVR.bdef.txt` |
 | 4.3 | `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | New Service Definition → copiar | `Arq - INB/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt` |
 | 4.4 | `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Arq - INB/ZSB_Q2C_ARQ_MGR_SVR.srvb.txt` (ref) |
-| 4.5 | `ZC_Q2C_LOG_INB` | DDLS | New CDS View Entity → Root → copiar | `Log - INB/ZC_Q2C_LOG_INB.ddls.txt` |
-| 4.6 | `ZC_Q2C_LOG_INB` | BDEF | New Behavior Definition → copiar | `Log - INB/ZC_Q2C_LOG_INB.bdef.txt` |
+| 4.5 | `ZC_Q2C_LOG_MGR_SVR` | DDLS | New CDS View Entity → Root → copiar | `Log - INB/ZC_Q2C_LOG_MGR_SVR.ddls.txt` |
+| 4.6 | `ZC_Q2C_LOG_MGR_SVR` | BDEF | New Behavior Definition → copiar | `Log - INB/ZC_Q2C_LOG_MGR_SVR.bdef.txt` |
 | 4.7 | `ZSD_Q2C_LOG_MGR_SVR` | SRVD | New Service Definition → copiar | `Log - INB/ZSD_Q2C_LOG_MGR_SVR.srvd.txt` |
 | 4.8 | `ZSB_Q2C_LOG_MGR_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Log - INB/ZSB_Q2C_LOG_MGR_SVR.srvb.txt` (ref) |
 
@@ -203,13 +203,13 @@ CR51_NEW/
    ├── ZSD_Q2C_ARQ_MGR_APP.srvd.txt       → 3.9
    └── ZSB_Q2C_ARQ_MGR_APP.srvb.txt       → 3.10 (ref — criar no ADT)
 ├── Arq - INB/
-│   ├── ZC_Q2C_ARQ_INB.ddls.txt            → 4.1
-│   ├── ZC_Q2C_ARQ_INB.bdef.txt            → 4.2
+   ├── ZC_Q2C_ARQ_MGR_SVR.ddls.txt        → 4.1
+   ├── ZC_Q2C_ARQ_MGR_SVR.bdef.txt        → 4.2
    ├── ZSD_Q2C_ARQ_MGR_SVR.srvd.txt       → 4.3
    └── ZSB_Q2C_ARQ_MGR_SVR.srvb.txt       → 4.4 (ref — criar no ADT, Web API)
 └── Log - INB/
-    ├── ZC_Q2C_LOG_INB.ddls.txt            → 4.5
-    ├── ZC_Q2C_LOG_INB.bdef.txt            → 4.6
+    ├── ZC_Q2C_LOG_MGR_SVR.ddls.txt        → 4.5
+    ├── ZC_Q2C_LOG_MGR_SVR.bdef.txt        → 4.6
     ├── ZSD_Q2C_LOG_MGR_SVR.srvd.txt       → 4.7
     └── ZSB_Q2C_LOG_MGR_SVR.srvb.txt       → 4.8 (ref — criar no ADT, Web API)
 ```

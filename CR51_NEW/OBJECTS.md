@@ -94,13 +94,13 @@ Chamado pelo iFlow CPI após processar o arquivo. Machine-to-machine.
 
 | Objeto | Tipo | Propósito | Necessidade |
 |--------|------|-----------|-------------|
-| `ZC_Q2C_ARQ_INB` | DDLS | Projeção restrita do ARQ — só campos `Status` e `UltimoErro`. `provider contract transactional_interface`. | CPI só deve poder atualizar estes 2 campos — principle of least privilege |
-| `ZC_Q2C_ARQ_INB` | BDEF | `use update`. CPI faz PATCH com os 2 campos. | Exposição mínima: só update, sem create/delete/actions |
-| `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_ARQ_INB` (ArqInb). | Serviço exclusivo para inbound — separado do serviço Fiori por segurança |
-| `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | Service Binding — **OData V4 - Web API**. | Web API = sem CSRF token obrigatório no header; adequado para chamadas máquina |
-| `ZC_Q2C_LOG_INB` | DDLS | Projeção completa do LOG para inserção. `provider contract transactional_interface`. | CPI cria nova linha no LOG a cada callback |
-| `ZC_Q2C_LOG_INB` | BDEF | `use create`. CPI faz POST. | Só create — CPI não pode ler ou alterar o histórico |
-| `ZSD_Q2C_LOG_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_LOG_INB` (LogInb). | |
+| `ZC_Q2C_ARQ_MGR_SVR` | DDLS | Projeção CPI do ARQ. `provider contract transactional_interface`. Expõe os campos necessários para o callback CPI. | RAP exige projeção separada com contrato `transactional_interface` para SRVB Web API |
+| `ZC_Q2C_ARQ_MGR_SVR` | BDEF | `use update`. CPI faz PATCH. | Exposição do update para o CPI atualizar o registro ARQ |
+| `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_ARQ_MGR_SVR` (ArqSvr). | Serviço separado do Fiori — contrato e binding type diferentes |
+| `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | Service Binding — **OData V4 - Web API**. | Web API = contrato adequado para machine-to-machine CPI → SAP |
+| `ZC_Q2C_LOG_MGR_SVR` | DDLS | Projeção CPI do LOG para inserção. `provider contract transactional_interface`. | CPI cria nova linha no LOG a cada callback |
+| `ZC_Q2C_LOG_MGR_SVR` | BDEF | `use create`. CPI faz POST. | Framework RAP gera o INSERT via mapping |
+| `ZSD_Q2C_LOG_MGR_SVR` | SRVD | Service Definition — expõe `ZC_Q2C_LOG_MGR_SVR` (LogSvr). | |
 | `ZSB_Q2C_LOG_MGR_SVR` | SRVB | Service Binding — **OData V4 - Web API**. | |
 
 ---

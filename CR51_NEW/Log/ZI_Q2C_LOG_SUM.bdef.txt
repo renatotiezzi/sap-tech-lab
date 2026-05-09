@@ -1,5 +1,6 @@
 unmanaged implementation in class ZBP_I_Q2C_LOG_SUM unique;
 
 define behavior for ZI_Q2C_LOG_SUM alias LogSum
+  authorization not required
 {
 }

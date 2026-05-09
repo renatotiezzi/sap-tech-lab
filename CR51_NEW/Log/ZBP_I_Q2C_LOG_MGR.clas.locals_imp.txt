@@ -1,0 +1,6 @@
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type definitions
+
+" ZI_Q2C_LOG_MGR — managed BO com create.
+" O INSERT é executado automaticamente pelo framework RAP via o mapping declarado no BDEF.
+" Nenhum handler local é necessário — sem validations, determinations ou side effects.

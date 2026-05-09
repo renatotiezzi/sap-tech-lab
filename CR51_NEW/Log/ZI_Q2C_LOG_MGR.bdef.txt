@@ -1,5 +1,6 @@
 managed;
-strict ( 2 );
+// strict(2) removido: não é compatível com BO sem nenhuma operação CRUD declarada.
+// field(readonly) removido: sem write path, a declaração é inválida em strict mode.
 
 // -----------------------------------------------------------------------
 // Root BO: LOG MGR — Histórico de Processamento
@@ -11,14 +12,10 @@ strict ( 2 );
 // action handler de ZBP_I_Q2C_ARQ_MGR (BO independente).
 // BO independente — sem composition, sem lock dependent.
 // -----------------------------------------------------------------------
-// authorization não declarada — acesso controlado pelo @AccessControl.authorizationCheck: #NOT_REQUIRED no DDLS
-// authorization master ( instance ) exigiria implementation class para handler de autorização — LOG não tem classe
 define behavior for ZI_Q2C_LOG_MGR alias LogMgr
   persistent table ztbq2c_log_mgr
   lock master
 {
-  field ( readonly ) Pedido; Bandeira; Datum; Uzeit; IdRef; Etapa; Mensagem; Ernam;
-
   mapping for ztbq2c_log_mgr
   {
     Pedido   = pedido;

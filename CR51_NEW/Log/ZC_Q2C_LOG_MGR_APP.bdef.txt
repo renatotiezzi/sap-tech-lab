@@ -1,5 +1,5 @@
 projection;
-strict ( 2 );
+// strict(2) removido: corpo vazio + strict(2) = erro de sintaxe no compiler.
 
 // -----------------------------------------------------------------------
 // Projection BDEF: LOG MGR — Histórico de Processamento

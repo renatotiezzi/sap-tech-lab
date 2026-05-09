@@ -1,0 +1,3 @@
+*"* use this source file for your ABAP unit test classes
+" Entidade ZI_Q2C_LOG_SUM é leitura apenas — sem operações declaradas.
+" Nenhum método de implementação necessário.

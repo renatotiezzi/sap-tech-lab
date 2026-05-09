@@ -1,0 +1,12 @@
+projection;
+// strict(2) não declarado: entidade de leitura sem operações.
+
+// -----------------------------------------------------------------------
+// Projection BDEF: LOG SUM APP — List Report de última execução por chave.
+// Sem operações (read-only). _Detail expõe o histórico completo na
+// Object Page via ZC_Q2C_LOG_MGR_APP.
+// -----------------------------------------------------------------------
+define behavior for ZC_Q2C_LOG_SUM_APP alias LogSumApp
+{
+  use association _Detail { }
+}

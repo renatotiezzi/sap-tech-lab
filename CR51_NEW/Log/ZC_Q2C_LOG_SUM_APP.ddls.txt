@@ -1,0 +1,24 @@
+@EndUserText.label: 'LOG MGR - App Sumário (última execução por chave)'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+
+// -----------------------------------------------------------------------
+// Projection APP para o App 2 — LOG Viewer.
+// List Report: 1 linha por (Pedido, Bandeira) com dados da última execução.
+// Object Page: _Detail → ZC_Q2C_LOG_MGR_APP (histórico completo).
+// -----------------------------------------------------------------------
+define root view entity ZC_Q2C_LOG_SUM_APP
+  provider contract transactional_query
+  as projection on ZI_Q2C_LOG_SUM
+{
+  key Pedido,
+  key Bandeira,
+      UltDatum,
+      UltUzeit,
+      UltEtapa,
+      UltMensagem,
+      UltErnam,
+
+      /* Association — histórico completo na Object Page */
+      _Detail : redirected to ZC_Q2C_LOG_MGR_APP
+}

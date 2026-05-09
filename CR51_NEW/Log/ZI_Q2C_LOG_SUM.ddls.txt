@@ -1,0 +1,36 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'LOG MGR - Sumário última execução por chave'
+@Metadata.ignorePropagatedAnnotations: true
+
+// -----------------------------------------------------------------------
+// Entidade raiz do App 2 (LOG Viewer).
+// Chave: (Pedido, Bandeira) — uma linha por combinação de chave.
+// Exibe os campos da ÚLTIMA execução registrada (UltDatum, UltEtapa...).
+//
+// _Detail → ZI_Q2C_LOG_MGR: todas as execuções para aquela chave.
+// Usado na Object Page como faceta de histórico completo.
+// -----------------------------------------------------------------------
+define view entity ZI_Q2C_LOG_SUM
+  as select from ZI_Q2C_LOG_LAST as last
+  inner join    ztbq2c_log_mgr   as log
+    on  last.Pedido    = log.pedido
+    and last.Bandeira  = log.bandeira
+    and last.LastDatum = log.datum
+    and last.LastUzeit = log.uzeit
+
+  association [0..*] to ZI_Q2C_LOG_MGR as _Detail
+    on  $projection.Pedido   = _Detail.Pedido
+    and $projection.Bandeira = _Detail.Bandeira
+{
+  key log.pedido   as Pedido,
+  key log.bandeira as Bandeira,
+      log.datum    as UltDatum,
+      log.uzeit    as UltUzeit,
+      log.etapa    as UltEtapa,
+      log.mensagem as UltMensagem,
+      log.ernam    as UltErnam,
+
+      /* Association */
+      _Detail
+}

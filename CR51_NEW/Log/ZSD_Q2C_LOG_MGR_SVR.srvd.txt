@@ -1,4 +1,7 @@
-@EndUserText.label: 'Service Definition LOG MGR - Histórico de Processamento'
+@EndUserText.label: 'Service Definition LOG MGR - Viewer App'
 define service ZSD_Q2C_LOG_MGR_SVR {
-  expose ZC_Q2C_LOG_MGR_APP as LogMgrApp;
+  // List Report: última execução por chave (Pedido + Bandeira)
+  expose ZC_Q2C_LOG_SUM_APP as LogSum;
+  // Navigation target: histórico completo na Object Page
+  expose ZC_Q2C_LOG_MGR_APP as LogDetail;
 }

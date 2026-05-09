@@ -89,12 +89,19 @@ Cockpit Fiori para monitoramento e reprocessamento de arquivos TXT recebidos da 
 
 | Objeto                    | Tipo  | Descrição                            |
 |---------------------------|-------|--------------------------------------|
-| `ZI_Q2C_LOG_MGR`          | DDLS  | Interface LOG — lê `ZTBQ2C_LOG_MGR` |
+| `ZI_Q2C_LOG_MGR`          | DDLS  | Interface LOG — lê `ZTBQ2C_LOG_MGR` (histórico completo) |
 | `ZI_Q2C_LOG_MGR`          | BDEF  | Managed com create (para inbound CPI)|
-| `ZC_Q2C_LOG_MGR_APP`      | DDLS  | Projection UI standalone             |
-| `ZC_Q2C_LOG_MGR_APP`      | BDEF  | Projection read-only (sem create)    |
-| `ZC_Q2C_LOG_MGR_APP_MDE`  | DDLX  | Anotações UI                         |
-| `ZSD_Q2C_LOG_MGR_SVR`     | SRVD  | Expõe LOG standalone                 |
+| `ZI_Q2C_LOG_LAST`         | DDLS  | Helper — max(Datum+Uzeit) por chave (sem BDEF) |
+| `ZI_Q2C_LOG_SUM`          | DDLS  | Interface sumário — 1 linha por (Pedido+Bandeira), campos da última execução, `_Detail` → LOG |
+| `ZBP_I_Q2C_LOG_SUM`       | CLAS  | Handler unmanaged (vazio — read-only) |
+| `ZI_Q2C_LOG_SUM`          | BDEF  | Unmanaged read-only, `_Detail` para navegação |
+| `ZC_Q2C_LOG_MGR_APP`      | DDLS  | Projection UI — detalhe (todos os logs da chave) |
+| `ZC_Q2C_LOG_MGR_APP`      | BDEF  | Projection read-only                 |
+| `ZC_Q2C_LOG_MGR_APP_MDE`  | DDLX  | Anotações UI — colunas da tabela de detalhe |
+| `ZC_Q2C_LOG_SUM_APP`      | DDLS  | Projection UI — List Report (última execução por chave) |
+| `ZC_Q2C_LOG_SUM_APP`      | BDEF  | use association _Detail              |
+| `ZC_Q2C_LOG_SUM_APP_MDE`  | DDLX  | Anotações UI — List Report + Object Page facet |
+| `ZSD_Q2C_LOG_MGR_SVR`     | SRVD  | Expõe LogSum + LogDetail             |
 | `ZSB_Q2C_LOG_MGR_SVR`     | SRVB  | OData V4 - UI                        |
 
 ### Inbound CPI — Callback de Resultado (`Arq - INB/` e `Log - INB/`)

@@ -1,14 +1,10 @@
-CLASS zbp_i_q2c_log_sum DEFINITION
+CLASS ZBP_I_Q2C_LOG_SUM DEFINITION
   PUBLIC
   ABSTRACT
   FINAL
-  INHERITING FROM cl_abap_behavior_handler.
+  FOR BEHAVIOR OF ZI_Q2C_LOG_SUM.
 
-  PRIVATE SECTION.
-    " Sem métodos — entidade puramente de leitura.
-    " O framework RAP lê diretamente da CDS view ZI_Q2C_LOG_SUM.
-    " A classe existe apenas porque o BDEF unmanaged exige uma classe de impl.
 ENDCLASS.
 
-CLASS zbp_i_q2c_log_sum IMPLEMENTATION.
+CLASS ZBP_I_Q2C_LOG_SUM IMPLEMENTATION.
 ENDCLASS.

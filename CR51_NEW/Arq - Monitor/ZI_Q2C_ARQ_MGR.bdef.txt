@@ -6,14 +6,10 @@ define behavior for ZI_Q2C_ARQ_MGR alias ArqMgr
   authorization master ( global )
   etag master Uzeit
 {
-  // update: permite MODIFY via EML IN LOCAL MODE nas actions e via inbound CPI
   update;
 
   action Reprocess result [1] $self;
   action Cancel    result [1] $self;
-
-  // Navegação leitura para o histórico de processamento
-  association _Log { }
 
   mapping for ztbq2c_arq_mgr
   {

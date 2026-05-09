@@ -2,9 +2,6 @@ projection;
 
 define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
 {
-  // use update NÃO exposto: usuário não edita campos diretamente
-  // field(readonly) desnecessário — sem write path, todos os campos são leitura
   use action Reprocess;
   use action Cancel;
-  use association _Log { }
 }

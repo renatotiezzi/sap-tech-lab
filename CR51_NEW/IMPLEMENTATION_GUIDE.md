@@ -94,17 +94,17 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 2. Copiar conteúdo de `Log/ZC_Q2C_LOG_MGR_APP_MDE.ddlx.txt`
 3. Ativar
 
-### 2.6 ZSD_Q2C_LOG_MGR_SVR (SRVD)
+### 2.6 ZSD_Q2C_LOG_MGR_APP (SRVD)
 
-1. ADT → New → **Service Definition** → nome `ZSD_Q2C_LOG_MGR_SVR`
-2. Copiar conteúdo de `Log/ZSD_Q2C_LOG_MGR_SVR.srvd.txt`
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_LOG_MGR_APP`
+2. Copiar conteúdo de `Log/ZSD_Q2C_LOG_MGR_APP.srvd.txt`
 3. Ativar
 
-### 2.7 ZSB_Q2C_LOG_MGR_SVR (SRVB)
+### 2.7 ZSB_Q2C_LOG_MGR_APP (SRVB)
 
-1. ADT → New → **Service Binding** → nome `ZSB_Q2C_LOG_MGR_SVR`
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_LOG_MGR_APP`
 2. Binding Type: **OData V4 - UI**
-3. Service Definition: `ZSD_Q2C_LOG_MGR_SVR`
+3. Service Definition: `ZSD_Q2C_LOG_MGR_APP`
 4. Ativar → **Publish**
 
 ---
@@ -180,18 +180,18 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 2. Copiar conteúdo de `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP_MDE.ddlx.txt`
 3. Ativar
 
-### 3.9 ZSD_Q2C_ARQ_MGR_SVR (SRVD)
+### 3.9 ZSD_Q2C_ARQ_MGR_APP (SRVD)
 
-1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_MGR_SVR`
-2. Copiar conteúdo de `Arq - Monitor/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt`
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_MGR_APP`
+2. Copiar conteúdo de `Arq - Monitor/ZSD_Q2C_ARQ_MGR_APP.srvd.txt`
 3. Ativar
-4. ℹ️ Este serviço expõe **ARQ + LOG + StatusVH** — necessário para a navegação Object Page → Histórico
+4. ℹ️ Este serviço expõe **ARQ + StatusVH**
 
-### 3.10 ZSB_Q2C_ARQ_MGR_SVR (SRVB)
+### 3.10 ZSB_Q2C_ARQ_MGR_APP (SRVB)
 
-1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_MGR_SVR`
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_MGR_APP`
 2. Binding Type: **OData V4 - UI**
-3. Service Definition: `ZSD_Q2C_ARQ_MGR_SVR`
+3. Service Definition: `ZSD_Q2C_ARQ_MGR_APP`
 4. Ativar → **Publish**
 
 ---
@@ -212,17 +212,17 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 2. Copiar conteúdo de `Arq - INB/ZC_Q2C_ARQ_INB.bdef.txt`
 3. Ativar
 
-### 4.3 ZSD_Q2C_ARQ_INB_SVR (SRVD)
+### 4.3 ZSD_Q2C_ARQ_MGR_SVR (SRVD)
 
-1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_INB_SVR`
-2. Copiar conteúdo de `Arq - INB/ZSD_Q2C_ARQ_INB_SVR.srvd.txt`
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_ARQ_MGR_SVR`
+2. Copiar conteúdo de `Arq - INB/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt`
 3. Ativar
 
-### 4.4 ZSB_Q2C_ARQ_INB_SVR (SRVB)
+### 4.4 ZSB_Q2C_ARQ_MGR_SVR (SRVB)
 
-1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_INB_SVR`
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_ARQ_MGR_SVR`
 2. **Binding Type: OData V4 - Web API** ← IMPORTANTE: Web API, não UI
-3. Service Definition: `ZSD_Q2C_ARQ_INB_SVR`
+3. Service Definition: `ZSD_Q2C_ARQ_MGR_SVR`
 4. Ativar → **Publish**
 
 ### 4.5 ZC_Q2C_LOG_INB (DDLS)
@@ -237,17 +237,17 @@ Siga a ordem exata — objetos dependentes são criados depois dos que referenci
 2. Copiar conteúdo de `Log - INB/ZC_Q2C_LOG_INB.bdef.txt`
 3. Ativar
 
-### 4.7 ZSD_Q2C_LOG_INB_SVR (SRVD)
+### 4.7 ZSD_Q2C_LOG_MGR_SVR (SRVD)
 
-1. ADT → New → **Service Definition** → nome `ZSD_Q2C_LOG_INB_SVR`
-2. Copiar conteúdo de `Log - INB/ZSD_Q2C_LOG_INB_SVR.srvd.txt`
+1. ADT → New → **Service Definition** → nome `ZSD_Q2C_LOG_MGR_SVR`
+2. Copiar conteúdo de `Log - INB/ZSD_Q2C_LOG_MGR_SVR.srvd.txt`
 3. Ativar
 
-### 4.8 ZSB_Q2C_LOG_INB_SVR (SRVB)
+### 4.8 ZSB_Q2C_LOG_MGR_SVR (SRVB)
 
-1. ADT → New → **Service Binding** → nome `ZSB_Q2C_LOG_INB_SVR`
+1. ADT → New → **Service Binding** → nome `ZSB_Q2C_LOG_MGR_SVR`
 2. **Binding Type: OData V4 - Web API** ← IMPORTANTE: Web API, não UI
-3. Service Definition: `ZSD_Q2C_LOG_INB_SVR`
+3. Service Definition: `ZSD_Q2C_LOG_MGR_SVR`
 4. Ativar → **Publish**
 
 > **Autenticação CPI → SAP:** configurar usuário técnico via Communication Arrangement.

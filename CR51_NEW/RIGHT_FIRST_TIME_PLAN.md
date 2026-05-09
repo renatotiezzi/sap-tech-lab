@@ -49,8 +49,8 @@
 | 2.11 | `ZC_Q2C_LOG_SUM_APP` | DDLS | New CDS View Entity → Root → copiar | `Log/ZC_Q2C_LOG_SUM_APP.ddls.txt` |
 | 2.12 | `ZC_Q2C_LOG_SUM_APP` | BDEF | New Behavior Definition → copiar | `Log/ZC_Q2C_LOG_SUM_APP.bdef.txt` |
 | 2.13 | `ZC_Q2C_LOG_SUM_APP_MDE` | DDLX | New Metadata Extension → copiar | `Log/ZC_Q2C_LOG_SUM_APP_MDE.ddlx.txt` |
-| 2.14 | `ZSD_Q2C_LOG_MGR_SVR` | SRVD | New Service Definition → copiar | `Log/ZSD_Q2C_LOG_MGR_SVR.srvd.txt` |
-| 2.15 | `ZSB_Q2C_LOG_MGR_SVR` | SRVB | New Service Binding → OData V4 - UI → **Publish** | `Log/ZSB_Q2C_LOG_MGR_SVR.srvb.txt` (ref) |
+| 2.14 | `ZSD_Q2C_LOG_MGR_APP` | SRVD | New Service Definition → copiar | `Log/ZSD_Q2C_LOG_MGR_APP.srvd.txt` |
+| 2.15 | `ZSB_Q2C_LOG_MGR_APP` | SRVB | New Service Binding → OData V4 - UI → **Publish** | `Log/ZSB_Q2C_LOG_MGR_APP.srvb.txt` (ref) |
 
 > **Dependências internas Fase 2 (respeitar ordem):**  
 > 2.1 → 2.2 (BDEF após DDLS)  
@@ -58,7 +58,7 @@
 > 2.4 + 2.5 → 2.6 (BDEF depende da CLAS + DDLS)  
 > 2.2 + 2.8 → 2.11 (ZC_Q2C_LOG_SUM_APP depende de ZI_Q2C_LOG_SUM BDEF + ZC_Q2C_LOG_MGR_APP)
 
-**Checkpoint 2:** Publicar `ZSB_Q2C_LOG_MGR_SVR` e testar URL no browser — deve retornar metadata vazia (sem dados ainda é normal).
+**Checkpoint 2:** Publicar `ZSB_Q2C_LOG_MGR_APP` e testar URL no browser — deve retornar metadata vazia (sem dados ainda é normal).
 
 > **App 2 — estrutura esperada:**  
 > List Report → 1 linha por (Pedido+Bandeira), campos da última execução (UltDatum, UltEtapa, UltMensagem).  
@@ -92,10 +92,10 @@
 | 3.6 | `ZC_Q2C_ARQ_MGR_APP` | DDLS | New CDS View Entity → Root | `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP.ddls.txt` | ZI_Q2C_ARQ_MGR (3.1) + ZC_Q2C_STATUS_VH_APP (3.5) + ZC_Q2C_LOG_MGR_APP (2.3) |
 | 3.7 | `ZC_Q2C_ARQ_MGR_APP` | BDEF | New Behavior Definition → copiar | `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP.bdef.txt` | BDEF ZI_Q2C_ARQ_MGR ativo (3.3) |
 | 3.8 | `ZC_Q2C_ARQ_MGR_APP_MDE` | DDLX | New Metadata Extension → copiar | `Arq - Monitor/ZC_Q2C_ARQ_MGR_APP_MDE.ddlx.txt` | ZC_Q2C_ARQ_MGR_APP ativo (3.6) |
-| 3.9 | `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | New Service Definition → copiar | `Arq - Monitor/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt` | ZC_Q2C_ARQ_MGR_APP (3.6) + ZC_Q2C_LOG_MGR_APP (2.8) + ZC_Q2C_STATUS_VH_APP (3.5) |
-| 3.10 | `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | New Service Binding → OData V4 - UI → **Publish** | `Arq - Monitor/ZSB_Q2C_ARQ_MGR_SVR.srvb.txt` (ref) | ZSD_Q2C_ARQ_MGR_SVR ativo (3.9) |
+| 3.9 | `ZSD_Q2C_ARQ_MGR_APP` | SRVD | New Service Definition → copiar | `Arq - Monitor/ZSD_Q2C_ARQ_MGR_APP.srvd.txt` | ZC_Q2C_ARQ_MGR_APP (3.6) + ZC_Q2C_STATUS_VH_APP (3.5) |
+| 3.10 | `ZSB_Q2C_ARQ_MGR_APP` | SRVB | New Service Binding → OData V4 - UI → **Publish** | `Arq - Monitor/ZSB_Q2C_ARQ_MGR_APP.srvb.txt` (ref) | ZSD_Q2C_ARQ_MGR_APP ativo (3.9) |
 
-**Checkpoint 3:** Publicar `ZSB_Q2C_ARQ_MGR_SVR` e testar via Fiori Launchpad.
+**Checkpoint 3:** Publicar `ZSB_Q2C_ARQ_MGR_APP` e testar via Fiori Launchpad.
 
 ---
 
@@ -107,12 +107,12 @@
 |-----|--------|------|----------|---------------|
 | 4.1 | `ZC_Q2C_ARQ_INB` | DDLS | New CDS View Entity → Root → copiar | `Arq - INB/ZC_Q2C_ARQ_INB.ddls.txt` |
 | 4.2 | `ZC_Q2C_ARQ_INB` | BDEF | New Behavior Definition → copiar | `Arq - INB/ZC_Q2C_ARQ_INB.bdef.txt` |
-| 4.3 | `ZSD_Q2C_ARQ_INB_SVR` | SRVD | New Service Definition → copiar | `Arq - INB/ZSD_Q2C_ARQ_INB_SVR.srvd.txt` |
-| 4.4 | `ZSB_Q2C_ARQ_INB_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Arq - INB/ZSB_Q2C_ARQ_INB_SVR.srvb.txt` (ref) |
+| 4.3 | `ZSD_Q2C_ARQ_MGR_SVR` | SRVD | New Service Definition → copiar | `Arq - INB/ZSD_Q2C_ARQ_MGR_SVR.srvd.txt` |
+| 4.4 | `ZSB_Q2C_ARQ_MGR_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Arq - INB/ZSB_Q2C_ARQ_MGR_SVR.srvb.txt` (ref) |
 | 4.5 | `ZC_Q2C_LOG_INB` | DDLS | New CDS View Entity → Root → copiar | `Log - INB/ZC_Q2C_LOG_INB.ddls.txt` |
 | 4.6 | `ZC_Q2C_LOG_INB` | BDEF | New Behavior Definition → copiar | `Log - INB/ZC_Q2C_LOG_INB.bdef.txt` |
-| 4.7 | `ZSD_Q2C_LOG_INB_SVR` | SRVD | New Service Definition → copiar | `Log - INB/ZSD_Q2C_LOG_INB_SVR.srvd.txt` |
-| 4.8 | `ZSB_Q2C_LOG_INB_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Log - INB/ZSB_Q2C_LOG_INB_SVR.srvb.txt` (ref) |
+| 4.7 | `ZSD_Q2C_LOG_MGR_SVR` | SRVD | New Service Definition → copiar | `Log - INB/ZSD_Q2C_LOG_MGR_SVR.srvd.txt` |
+| 4.8 | `ZSB_Q2C_LOG_MGR_SVR` | SRVB | New Service Binding → **OData V4 - Web API** → Publish | `Log - INB/ZSB_Q2C_LOG_MGR_SVR.srvb.txt` (ref) |
 
 > ⚠️ **Binding Type:** Web API (não UI) — obrigatório para machine-to-machine.  
 > Consultar os arquivos `.srvb.txt` para exemplos de payload JSON (PATCH ARQ + POST LOG).
@@ -134,7 +134,7 @@
 | PT1 | `ZI_Q2C_ARQ_MGR` BDEF erro `action \| ancestor \| ...` ao ativar | **RESOLVIDO**: `strict(2)` removido do BDEF — mesmo problema do ZI_Q2C_LOG_MGR. Arquivo já corrigido. |
 | PT2 | CCIMP não compila: "tipo incompatível" | Confirmar que `ZCL_Q2C_CPI_CALLER->call_cpi_reprocess` tem `is_arq TYPE ztbq2c_arq_mgr` (não o parâmetro individual do backup) |
 | PT2b | `ZI_Q2C_ARQ_MGR` BDEF falha: `ZBP_I_Q2C_ARQ_MGR` inexistente | Criar a CLAS global (passo 3.2) **antes** de ativar o BDEF (passo 3.3) |
-| PT3 | LOG não aparece na Object Page do ARQ | O SRVD do ARQ (`ZSD_Q2C_ARQ_MGR_SVR`) expõe `ZC_Q2C_LOG_MGR_APP` — verificar que está ativo e exposto |
+| PT3 | LOG não aparece na Object Page do App 2 | Verificar que `ZC_Q2C_LOG_MGR_APP` está ativo e exposto no SRVD `ZSD_Q2C_LOG_MGR_APP` |
 | PT4 | Value Help de Status vazio | `ZC_Q2C_STATUS_VH_APP` usa `SELECT DISTINCT` da tabela real — inserir pelo menos 1 registro de teste |
 | PT5 | Colisão de chave no LOG (duplicate key) | Dois reprocessamentos no mesmo segundo causam falha no INSERT. Aceito como limitação conhecida |
 | PT6 | `ZTBQ2C_LOG_MGR` inativo | Ativar no SE11 antes de iniciar Fase 2 |
@@ -147,7 +147,7 @@
 ## Verificação Pós-Ativação (smoke test)
 
 ```
-1. Acessar ZSB_Q2C_ARQ_MGR_SVR via Fiori Launchpad
+1. Acessar ZSB_Q2C_ARQ_MGR_APP via Fiori Launchpad
 2. Inserir 1 registro de teste na ZTBQ2C_ARQ_MGR (SE16N):
    PEDIDO=TEST0001, BANDEIRA=FORD, TIPO_DOC=ZVTF, STATUS=CRIADO, TENTATIVAS=0
 3. Abrir app ARQ — registro deve aparecer com status "Criado" (ícone azul)
@@ -157,8 +157,8 @@
    → Object Page → LOG App 1: 1 linha (ENVIO_CPI — "aguardando callback")
    → App 2 (LOG Viewer): 1 linha no List Report com UltEtapa = 'ENVIO_CPI'
 5. Simular callback CPI (testar inbound):
-   → PATCH `ZSB_Q2C_ARQ_INB_SVR` com `Status='PROCESSADO'`
-   → POST `ZSB_Q2C_LOG_INB_SVR` com nova linha de resultado
+   → PATCH `ZSB_Q2C_ARQ_MGR_SVR` com `Status='PROCESSADO'`
+   → POST `ZSB_Q2C_LOG_MGR_SVR` com nova linha de resultado
    → ARQ deve mostrar STATUS=PROCESSADO
    → App 2 List Report: UltEtapa = 'CONCLUSAO'
 6. Clicar "Cancelar" em outro registro com STATUS=ERRO
@@ -200,16 +200,16 @@ CR51_NEW/
 │   ├── ZC_Q2C_ARQ_MGR_APP.ddls.txt        → 3.6
 │   ├── ZC_Q2C_ARQ_MGR_APP.bdef.txt        → 3.7
 │   ├── ZC_Q2C_ARQ_MGR_APP_MDE.ddlx.txt    → 3.8
-│   ├── ZSD_Q2C_ARQ_MGR_SVR.srvd.txt       → 3.9
-│   └── ZSB_Q2C_ARQ_MGR_SVR.srvb.txt       → 3.10 (ref — criar no ADT)
+   ├── ZSD_Q2C_ARQ_MGR_APP.srvd.txt       → 3.9
+   └── ZSB_Q2C_ARQ_MGR_APP.srvb.txt       → 3.10 (ref — criar no ADT)
 ├── Arq - INB/
 │   ├── ZC_Q2C_ARQ_INB.ddls.txt            → 4.1
 │   ├── ZC_Q2C_ARQ_INB.bdef.txt            → 4.2
-│   ├── ZSD_Q2C_ARQ_INB_SVR.srvd.txt       → 4.3
-│   └── ZSB_Q2C_ARQ_INB_SVR.srvb.txt       → 4.4 (ref — criar no ADT, Web API)
+   ├── ZSD_Q2C_ARQ_MGR_SVR.srvd.txt       → 4.3
+   └── ZSB_Q2C_ARQ_MGR_SVR.srvb.txt       → 4.4 (ref — criar no ADT, Web API)
 └── Log - INB/
     ├── ZC_Q2C_LOG_INB.ddls.txt            → 4.5
     ├── ZC_Q2C_LOG_INB.bdef.txt            → 4.6
-    ├── ZSD_Q2C_LOG_INB_SVR.srvd.txt       → 4.7
-    └── ZSB_Q2C_LOG_INB_SVR.srvb.txt       → 4.8 (ref — criar no ADT, Web API)
+    ├── ZSD_Q2C_LOG_MGR_SVR.srvd.txt       → 4.7
+    └── ZSB_Q2C_LOG_MGR_SVR.srvb.txt       → 4.8 (ref — criar no ADT, Web API)
 ```

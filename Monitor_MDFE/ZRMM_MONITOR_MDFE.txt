@@ -51,8 +51,8 @@ DATA: go_cont_100   TYPE REF TO cl_gui_custom_container,
       go_alv_100    TYPE REF TO cl_gui_alv_grid,
       gs_layout_100 TYPE lvc_s_layo,
       gt_fcat_100   TYPE lvc_t_fcat,
-      gt_monitor    TYPE zcl_mdfe_monitor=>tt_monitor,
-      gs_monitor    TYPE zcl_mdfe_monitor=>ty_monitor.
+      gt_monitor    TYPE zcl_mdfe_monitor=>mtty_monitor,
+      gs_monitor    TYPE zcl_mdfe_monitor=>mty_monitor.
 
 *--- Container e ALV da Tela 200 ---
 DATA: go_cont_200   TYPE REF TO cl_gui_custom_container,
@@ -60,7 +60,7 @@ DATA: go_cont_200   TYPE REF TO cl_gui_custom_container,
       gs_layout_200 TYPE lvc_s_layo,
       gt_fcat_200   TYPE lvc_t_fcat,
       gs_detail     TYPE zmdfe_status,
-      gt_nfkeys_ui  TYPE zcl_mdfe_monitor=>tt_nfkey,
+      gt_nfkeys_ui  TYPE zcl_mdfe_monitor=>mtty_nfkey,
       gv_mode_200   TYPE char1,
       gv_add_key    TYPE zmdfe_accesskey,
       gv_add_docnum TYPE j_1bdocnum,
@@ -120,28 +120,28 @@ MODULE user_command_0100 INPUT.
       PERFORM load_monitor.
       go_alv_100->refresh_table_display( ).
 
-    WHEN zcl_mdfe_monitor=>gc_fc_criar.
+    WHEN zcl_mdfe_monitor=>mc_fc_criar.
       CLEAR gs_detail.
       CLEAR gt_nfkeys_ui.
       gv_mode_200 = 'C'.
       CALL SCREEN 200.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_enviar.
+    WHEN zcl_mdfe_monitor=>mc_fc_enviar.
       PERFORM action_mass USING 'SEND'.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_consultar.
+    WHEN zcl_mdfe_monitor=>mc_fc_consultar.
       PERFORM action_mass USING 'CONSULT'.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_encerrar.
+    WHEN zcl_mdfe_monitor=>mc_fc_encerrar.
       PERFORM action_mass USING 'CLOSE'.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_cancelar.
+    WHEN zcl_mdfe_monitor=>mc_fc_cancelar.
       PERFORM action_mass USING 'CANCEL'.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_imprimir.
+    WHEN zcl_mdfe_monitor=>mc_fc_imprimir.
       PERFORM action_mass USING 'PRINT'.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_atualizar.
+    WHEN zcl_mdfe_monitor=>mc_fc_atualizar.
       PERFORM load_monitor.
       go_alv_100->refresh_table_display( ).
 
@@ -187,10 +187,10 @@ MODULE user_command_0200 INPUT.
     WHEN 'BACK' OR 'CANCEL'.
       LEAVE TO SCREEN 100.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_add_nf.
+    WHEN zcl_mdfe_monitor=>mc_fc_add_nf.
       IF gv_add_key IS NOT INITIAL OR gv_add_docnum IS NOT INITIAL.
-        DATA(lv_next) = lines( gt_nfkeys_ui ) + 1.
-        DATA(lv_key)  = COND zmdfe_accesskey(
+        DATA(gv_next) = lines( gt_nfkeys_ui ) + 1.
+        DATA(gv_key)  = COND zmdfe_accesskey(
           WHEN gv_add_key IS NOT INITIAL
           THEN gv_add_key
           ELSE go_monitor->get_nfe_accesskey(
@@ -198,9 +198,9 @@ MODULE user_command_0200 INPUT.
                  iv_branch = gs_detail-branch
                  iv_docnum = gv_add_docnum ) ).
 
-        APPEND VALUE zcl_mdfe_monitor=>ty_nfkey(
-          item_num  = lv_next
-          accesskey = lv_key
+        APPEND VALUE zcl_mdfe_monitor=>mty_nfkey(
+          item_num  = gv_next
+          accesskey = gv_key
           docnum    = gv_add_docnum
         ) TO gt_nfkeys_ui.
 
@@ -208,18 +208,18 @@ MODULE user_command_0200 INPUT.
         go_alv_200->refresh_table_display( ).
       ENDIF.
 
-    WHEN zcl_mdfe_monitor=>gc_fc_del_nf.
-      DATA lt_sel TYPE lvc_t_row.
-      go_alv_200->get_selected_rows( IMPORTING et_index_rows = lt_sel ).
-      SORT lt_sel BY index DESCENDING.
-      LOOP AT lt_sel INTO DATA(ls_sel).
-        DELETE gt_nfkeys_ui INDEX ls_sel-index.
+    WHEN zcl_mdfe_monitor=>mc_fc_del_nf.
+      DATA gt_sel_200 TYPE lvc_t_row.
+      go_alv_200->get_selected_rows( IMPORTING et_index_rows = gt_sel_200 ).
+      SORT gt_sel_200 BY index DESCENDING.
+      LOOP AT gt_sel_200 INTO DATA(gs_sel_200).
+        DELETE gt_nfkeys_ui INDEX gs_sel_200-index.
       ENDLOOP.
       go_alv_200->refresh_table_display( ).
 
-    WHEN zcl_mdfe_monitor=>gc_fc_salvar.
+    WHEN zcl_mdfe_monitor=>mc_fc_salvar.
       go_alv_200->check_changed_data( ).
-      DATA lt_msg TYPE bapiret2_t.
+      DATA gt_msg_200 TYPE bapiret2_t.
 
       IF gv_mode_200 = 'C'.
         go_monitor->create_mdfe(
@@ -229,19 +229,19 @@ MODULE user_command_0200 INPUT.
             iv_infcomp = gv_infcomp
           IMPORTING
             es_header   = gs_detail
-            et_messages = lt_msg ).
+            et_messages = gt_msg_200 ).
       ENDIF.
 
-      READ TABLE lt_msg WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+      READ TABLE gt_msg_200 WITH KEY type = 'E' TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
         go_monitor->send_mdfe(
           EXPORTING iv_mdfe_number = gs_detail-mdfe_number
-          IMPORTING et_messages    = lt_msg ).
+          IMPORTING et_messages    = gt_msg_200 ).
       ENDIF.
 
-      PERFORM show_messages USING lt_msg.
+      PERFORM show_messages USING gt_msg_200.
 
-      READ TABLE lt_msg WITH KEY type = 'E' TRANSPORTING NO FIELDS.
+      READ TABLE gt_msg_200 WITH KEY type = 'E' TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
         PERFORM load_monitor.
         LEAVE TO SCREEN 100.
@@ -256,7 +256,7 @@ ENDMODULE.
 *======================================================================
 
 FORM load_monitor.
-  DATA(ls_sel) = VALUE zcl_mdfe_monitor=>ty_sel(
+  DATA(ls_sel) = VALUE zcl_mdfe_monitor=>mty_sel(
     bukrs_low    = s_bukrs-low    bukrs_high    = s_bukrs-high
     branch_low   = s_branch-low   branch_high   = s_branch-high
     docnum_low   = s_docnum-low   docnum_high   = s_docnum-high
@@ -272,12 +272,12 @@ FORM load_monitor.
       go_monitor->select_data(
         EXPORTING is_sel     = ls_sel
         IMPORTING et_monitor = gt_monitor ).
-    CATCH cx_root INTO DATA(lx).
-      MESSAGE lx->get_text( ) TYPE 'I'.
+    CATCH cx_root INTO DATA(lx_err).
+      MESSAGE lx_err->get_text( ) TYPE 'I'.
   ENDTRY.
 ENDFORM.
 
-FORM action_mass USING iv_action TYPE string.
+FORM action_mass USING pv_action TYPE string.
   DATA lt_rows TYPE lvc_t_row.
   DATA lt_msg  TYPE bapiret2_t.
   go_alv_100->get_selected_rows( IMPORTING et_index_rows = lt_rows ).
@@ -289,7 +289,7 @@ FORM action_mass USING iv_action TYPE string.
   LOOP AT lt_rows INTO DATA(ls_row).
     READ TABLE gt_monitor INTO DATA(ls_mon) INDEX ls_row-index.
     CHECK ls_mon-mdfe_number IS NOT INITIAL.
-    CASE iv_action.
+    CASE pv_action.
       WHEN 'SEND'.
         go_monitor->send_mdfe(
           EXPORTING iv_mdfe_number = ls_mon-mdfe_number
@@ -316,9 +316,9 @@ FORM action_mass USING iv_action TYPE string.
   go_alv_100->refresh_table_display( ).
 ENDFORM.
 
-FORM show_messages USING it_msg TYPE bapiret2_t.
+FORM show_messages USING pt_msg TYPE bapiret2_t.
   DATA lv_msg_type TYPE sy-msgty.
-  LOOP AT it_msg INTO DATA(ls_msg).
+  LOOP AT pt_msg INTO DATA(ls_msg).
     lv_msg_type = COND #( WHEN ls_msg-type = 'E' THEN 'I' ELSE ls_msg-type ).
     MESSAGE ls_msg-message TYPE lv_msg_type.
   ENDLOOP.

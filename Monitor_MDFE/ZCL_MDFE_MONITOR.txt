@@ -10,41 +10,41 @@
     " 1=Pendente  2=Enviado  3=Autorizado  4=Erro  5=Encerrado  6=Cancelado
     "--------------------------------------------------------------------
     CONSTANTS:
-      gc_st_pendente   TYPE char1 VALUE '1',
-      gc_st_enviado    TYPE char1 VALUE '2',
-      gc_st_autorizado TYPE char1 VALUE '3',
-      gc_st_erro       TYPE char1 VALUE '4',
-      gc_st_encerrado  TYPE char1 VALUE '5',
-      gc_st_cancelado  TYPE char1 VALUE '6'.
+      mc_st_pendente   TYPE char1 VALUE '1',
+      mc_st_enviado    TYPE char1 VALUE '2',
+      mc_st_autorizado TYPE char1 VALUE '3',
+      mc_st_erro       TYPE char1 VALUE '4',
+      mc_st_encerrado  TYPE char1 VALUE '5',
+      mc_st_cancelado  TYPE char1 VALUE '6'.
 
     "--------------------------------------------------------------------
     " Constantes de Ambiente DRC
     "--------------------------------------------------------------------
     CONSTANTS:
-      gc_amb_prod  TYPE char1 VALUE '1',
-      gc_amb_homol TYPE char1 VALUE '2'.
+      mc_amb_prod  TYPE char1 VALUE '1',
+      mc_amb_homol TYPE char1 VALUE '2'.
 
     "--------------------------------------------------------------------
     " Constantes de OK-codes (Funcoes GUI Status Bar)
     " Devem coincidir exatamente com os codigos definidos no Menu Painter (SE41)
     "--------------------------------------------------------------------
     CONSTANTS:
-      gc_fc_criar     TYPE syucomm VALUE 'CRIAR',
-      gc_fc_enviar    TYPE syucomm VALUE 'ENVIAR',
-      gc_fc_consultar TYPE syucomm VALUE 'CONSULTAR',
-      gc_fc_encerrar  TYPE syucomm VALUE 'ENCERRAR',
-      gc_fc_cancelar  TYPE syucomm VALUE 'CANCELAR',
-      gc_fc_imprimir  TYPE syucomm VALUE 'IMPRIMIR',
-      gc_fc_atualizar TYPE syucomm VALUE 'ATUALIZAR',
-      gc_fc_add_nf    TYPE syucomm VALUE 'ADD_NF',
-      gc_fc_del_nf    TYPE syucomm VALUE 'DEL_NF',
-      gc_fc_salvar    TYPE syucomm VALUE 'SALVAR'.
+      mc_fc_criar     TYPE syucomm VALUE 'CRIAR',
+      mc_fc_enviar    TYPE syucomm VALUE 'ENVIAR',
+      mc_fc_consultar TYPE syucomm VALUE 'CONSULTAR',
+      mc_fc_encerrar  TYPE syucomm VALUE 'ENCERRAR',
+      mc_fc_cancelar  TYPE syucomm VALUE 'CANCELAR',
+      mc_fc_imprimir  TYPE syucomm VALUE 'IMPRIMIR',
+      mc_fc_atualizar TYPE syucomm VALUE 'ATUALIZAR',
+      mc_fc_add_nf    TYPE syucomm VALUE 'ADD_NF',
+      mc_fc_del_nf    TYPE syucomm VALUE 'DEL_NF',
+      mc_fc_salvar    TYPE syucomm VALUE 'SALVAR'.
 
     "--------------------------------------------------------------------
     " Tipo: linha do monitor (grid ALV Tela 02)
     "--------------------------------------------------------------------
     TYPES:
-      BEGIN OF ty_monitor,
+      BEGIN OF mty_monitor,
         status_icon  TYPE icon-id,
         doc_status   TYPE char1,
         mdfe_number  TYPE j_1bdocnum,
@@ -64,14 +64,14 @@
         last_msg     TYPE bapi_msg,
         uuid_drc     TYPE sysuuid_c32,
         ernam        TYPE ernam,
-      END OF ty_monitor,
-      tt_monitor TYPE STANDARD TABLE OF ty_monitor WITH DEFAULT KEY.
+      END OF mty_monitor,
+      mtty_monitor TYPE STANDARD TABLE OF mty_monitor WITH DEFAULT KEY.
 
     "--------------------------------------------------------------------
     " Tipo: chave de acesso NF-e (sub-ALV Tela 03)
     "--------------------------------------------------------------------
     TYPES:
-      BEGIN OF ty_nfkey,
+      BEGIN OF mty_nfkey,
         item_num  TYPE zmdfe_itemnum,
         accesskey TYPE zmdfe_accesskey,
         docnum    TYPE j_1bdocnum,
@@ -79,14 +79,14 @@
         series    TYPE j_1bseries,
         bukrs     TYPE bukrs,
         branch    TYPE j_1bbranc_,
-      END OF ty_nfkey,
-      tt_nfkey TYPE STANDARD TABLE OF ty_nfkey WITH DEFAULT KEY.
+      END OF mty_nfkey,
+      mtty_nfkey TYPE STANDARD TABLE OF mty_nfkey WITH DEFAULT KEY.
 
     "--------------------------------------------------------------------
     " Tipo: parametros de selecao (Tela 01)
     "--------------------------------------------------------------------
     TYPES:
-      BEGIN OF ty_sel,
+      BEGIN OF mty_sel,
         bukrs_low    TYPE bukrs,
         bukrs_high   TYPE bukrs,
         branch_low   TYPE j_1bnfdoc-branch,
@@ -109,7 +109,7 @@
         cb_pendente  TYPE abap_bool,
         cb_erro      TYPE abap_bool,
         cb_encerrado TYPE abap_bool,
-      END OF ty_sel.
+      END OF mty_sel.
 
     "--------------------------------------------------------------------
     " CONSTRUCTOR
@@ -122,9 +122,9 @@
     "--------------------------------------------------------------------
     METHODS select_data
       IMPORTING
-        is_sel         TYPE ty_sel
+        is_sel         TYPE mty_sel
       EXPORTING
-        et_monitor     TYPE tt_monitor
+        et_monitor     TYPE mtty_monitor
       RAISING
         cx_sy_dyn_call_error.
 
@@ -136,7 +136,7 @@
     METHODS create_mdfe
       IMPORTING
         is_header      TYPE zmdfe_status
-        it_nfkeys      TYPE tt_nfkey
+        it_nfkeys      TYPE mtty_nfkey
         iv_infcomp     TYPE string OPTIONAL
       EXPORTING
         es_header      TYPE zmdfe_status
@@ -217,7 +217,7 @@
       IMPORTING
         iv_mdfe_number TYPE j_1bdocnum
       EXPORTING
-        et_nfkeys      TYPE tt_nfkey.
+        et_nfkeys      TYPE mtty_nfkey.
 
     "--------------------------------------------------------------------
     " HELPER – Deriva chave de acesso NF-e a partir de NFENUM / DOCNUM
@@ -251,7 +251,7 @@
     METHODS build_json_payload
       IMPORTING
         is_header    TYPE zmdfe_status
-        it_nfkeys    TYPE tt_nfkey
+        it_nfkeys    TYPE mtty_nfkey
       RETURNING
         VALUE(rv_json) TYPE string.
 
@@ -270,7 +270,7 @@
     METHODS save_nfkeys
       IMPORTING
         iv_mdfe_number TYPE j_1bdocnum
-        it_nfkeys      TYPE tt_nfkey
+        it_nfkeys      TYPE mtty_nfkey
       EXPORTING
         et_messages    TYPE bapiret2_t.
 
@@ -380,7 +380,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     DATA ls_status TYPE zmdfe_status.
     LOOP AT lt_nfdoc INTO DATA(ls_nf).
       CLEAR ls_status.
-      DATA(ls_row) = VALUE ty_monitor(
+      DATA(ls_row) = VALUE mty_monitor(
         bukrs   = ls_nf-bukrs
         branch  = ls_nf-branch
         brgew   = ls_nf-brgew
@@ -419,22 +419,22 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
         ls_row-ernam       = ls_status-ernam.
       ELSE.
         "--- NF-e sem MDF-e: trata como Pendente ---
-        ls_row-doc_status = gc_st_pendente.
+        ls_row-doc_status = mc_st_pendente.
         ls_row-credat     = ls_nf-credat.
       ENDIF.
 
       "--- Aplicar filtros de status (checkboxes Tela 01) ---
       IF is_sel-cb_pendente = abap_true
-         AND ls_row-doc_status <> gc_st_pendente
-         AND ls_row-doc_status <> gc_st_erro.
+         AND ls_row-doc_status <> mc_st_pendente
+         AND ls_row-doc_status <> mc_st_erro.
         CONTINUE.
       ENDIF.
       IF is_sel-cb_encerrado = abap_true
-         AND ls_row-doc_status <> gc_st_encerrado.
+         AND ls_row-doc_status <> mc_st_encerrado.
         CONTINUE.
       ENDIF.
       IF is_sel-cb_erro = abap_true
-         AND ls_row-doc_status <> gc_st_erro.
+         AND ls_row-doc_status <> mc_st_erro.
         CONTINUE.
       ENDIF.
 
@@ -528,7 +528,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
 
     "--- Preparar cabecalho para gravar ---
     es_header           = is_header.
-    es_header-doc_status = gc_st_pendente.
+    es_header-doc_status = mc_st_pendente.
     es_header-credat    = sy-datum.
     es_header-crezet    = sy-uzeit.
     es_header-ernam     = sy-uname.
@@ -588,7 +588,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       IMPORTING es_header      = es_status ).
 
     "--- Carregar chaves NF-e ---
-    DATA lt_nfkeys TYPE tt_nfkey.
+    DATA lt_nfkeys TYPE mtty_nfkey.
     me->read_nfkeys(
       EXPORTING iv_mdfe_number = iv_mdfe_number
       IMPORTING et_nfkeys      = lt_nfkeys ).
@@ -613,12 +613,12 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
 *         EXPORTING iv_request_json = lv_json
 *         IMPORTING rs_response     = ls_resp ).
         "--- Stub ativo: marca como Enviado ate que DRC seja configurado ---
-        es_status-doc_status = gc_st_enviado.
+        es_status-doc_status = mc_st_enviado.
         es_status-last_msg   = 'JSON montado – envio DRC pendente de configuracao'.
 
-    CATCH cx_root INTO DATA(lx).
-        es_status-doc_status = gc_st_erro.
-        es_status-last_msg   = lx->get_text( ).
+    CATCH cx_root INTO DATA(lx_err).
+        es_status-doc_status = mc_st_erro.
+        es_status-last_msg   = lx_err->get_text( ).
         APPEND VALUE #( type = 'E' message = es_status-last_msg ) TO et_messages.
         RETURN.
     ENDTRY.
@@ -632,8 +632,8 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       IMPORTING et_messages = et_messages ).
 
     APPEND VALUE #(
-      type    = COND #( WHEN es_status-doc_status = gc_st_enviado THEN 'S' ELSE 'W' )
-      message = COND #( WHEN es_status-doc_status = gc_st_enviado
+      type    = COND #( WHEN es_status-doc_status = mc_st_enviado THEN 'S' ELSE 'W' )
+      message = COND #( WHEN es_status-doc_status = mc_st_enviado
                         THEN |MDF-e enviado ao DRC. Aguardando autorizacao SEFAZ.|
                         ELSE es_status-last_msg )
     ) TO et_messages.
@@ -671,7 +671,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       EXPORTING iv_mdfe_number = iv_mdfe_number
       IMPORTING es_header      = ls_status ).
 
-    IF ls_status-doc_status <> gc_st_autorizado.
+    IF ls_status-doc_status <> mc_st_autorizado.
       APPEND VALUE #( type = 'E' message = 'Somente MDF-e Autorizado pode ser encerrado' ) TO et_messages.
       RETURN.
     ENDIF.
@@ -679,7 +679,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "--- Stub: chamar DRC evento encerramento ---
     "   mo_proc->close_mdfe( iv_uuid = ls_status-uuid_drc ... )
 
-    ls_status-doc_status = gc_st_encerrado.
+    ls_status-doc_status = mc_st_encerrado.
     me->save_status(
       EXPORTING is_header   = ls_status
       IMPORTING et_messages = et_messages ).
@@ -700,11 +700,11 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF ls_status-doc_status = gc_st_cancelado.
+    IF ls_status-doc_status = mc_st_cancelado.
       APPEND VALUE #( type = 'E' message = 'MDF-e já foi cancelado' ) TO et_messages.
       RETURN.
     ENDIF.
-    IF ls_status-doc_status = gc_st_encerrado.
+    IF ls_status-doc_status = mc_st_encerrado.
       APPEND VALUE #( type = 'E' message = 'MDF-e encerrado não pode ser cancelado' ) TO et_messages.
       RETURN.
     ENDIF.
@@ -712,7 +712,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "--- Stub: chamar DRC evento cancelamento ---
     "   mo_proc->cancel_mdfe( iv_uuid = ls_status-uuid_drc ... )
 
-    ls_status-doc_status = gc_st_cancelado.
+    ls_status-doc_status = mc_st_cancelado.
     me->save_status(
       EXPORTING is_header   = ls_status
       IMPORTING et_messages = et_messages ).
@@ -729,7 +729,7 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
       EXPORTING iv_mdfe_number = iv_mdfe_number
       IMPORTING es_header      = ls_status ).
 
-    IF ls_status-doc_status <> gc_st_autorizado.
+    IF ls_status-doc_status <> mc_st_autorizado.
       MESSAGE 'Somente MDF-e Autorizado pode ser impresso.' TYPE 'E'.
       RETURN.
     ENDIF.
@@ -804,12 +804,12 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
   "=================================================================
   METHOD get_status_icon.
     rv_icon = SWITCH #( iv_status
-      WHEN gc_st_autorizado THEN icon_led_green   " @5B Verde
-      WHEN gc_st_pendente   THEN icon_led_yellow  " @5D Amarelo
-      WHEN gc_st_enviado    THEN icon_led_yellow  " @5D Amarelo
-      WHEN gc_st_erro       THEN icon_led_red     " @5C Vermelho
-      WHEN gc_st_encerrado  THEN icon_led_green   " @5B Verde (encerrado OK)
-      WHEN gc_st_cancelado  THEN icon_led_red     " @5C Vermelho
+      WHEN mc_st_autorizado THEN icon_led_green   " @5B Verde
+      WHEN mc_st_pendente   THEN icon_led_yellow  " @5D Amarelo
+      WHEN mc_st_enviado    THEN icon_led_yellow  " @5D Amarelo
+      WHEN mc_st_erro       THEN icon_led_red     " @5C Vermelho
+      WHEN mc_st_encerrado  THEN icon_led_green   " @5B Verde (encerrado OK)
+      WHEN mc_st_cancelado  THEN icon_led_red     " @5C Vermelho
       ELSE                       icon_led_yellow ).
   ENDMETHOD.
 
@@ -832,8 +832,10 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     "    WRITE...NO-GROUPING suprime o separador de milhar de forma deterministica.
     DATA lv_peso  TYPE c LENGTH 30.
     DATA lv_valor TYPE c LENGTH 30.
-    WRITE is_header-brgew TO lv_peso  NO-GROUPING LEFT-JUSTIFIED.
-    WRITE is_header-nftot TO lv_valor NO-GROUPING LEFT-JUSTIFIED.
+    DATA lv_nftot_num TYPE p DECIMALS 2.  " intermediario p/ evitar SLIN CURR warning
+    lv_nftot_num = is_header-nftot.
+    WRITE is_header-brgew TO lv_peso  NO-GROUPING LEFT-JUSTIFIED UNIT is_header-gewei.
+    WRITE lv_nftot_num    TO lv_valor NO-GROUPING LEFT-JUSTIFIED.
     CONDENSE lv_peso  NO-GAPS.
     CONDENSE lv_valor NO-GAPS.
     REPLACE ALL OCCURRENCES OF ',' IN lv_peso  WITH '.'.
@@ -848,13 +850,13 @@ CLASS zcl_mdfe_monitor IMPLEMENTATION.
     DATA lv_cep_descar TYPE string.
     lv_cep_carga  = is_header-cep_carga.
     lv_cep_descar = is_header-cep_descar.
-    REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cep_carga  WITH ''.
-    REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cep_descar WITH ''.
+    REPLACE ALL OCCURRENCES OF PCRE '[^0-9]' IN lv_cep_carga  WITH ''.
+    REPLACE ALL OCCURRENCES OF PCRE '[^0-9]' IN lv_cep_descar WITH ''.
     lv_cep_carga  = |{ lv_cep_carga  WIDTH = 8 ALIGN = RIGHT PAD = '0' }|.
     lv_cep_descar = |{ lv_cep_descar WIDTH = 8 ALIGN = RIGHT PAD = '0' }|.
 
     "--- Ambiente: padrao Producao, parametrizavel ---
-    DATA(lv_amb) = gc_amb_prod.
+    DATA(lv_amb) = mc_amb_prod.
 
     DATA(lv_motorista_j) = CONV string( condense( is_header-motorista ) ).
     DATA(lv_cpf_j)       = CONV string( condense( is_header-cpf_motor ) ).

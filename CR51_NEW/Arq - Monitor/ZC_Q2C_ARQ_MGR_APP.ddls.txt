@@ -1,6 +1,16 @@
 @EndUserText.label: 'ARQ MGR - Cockpit Reprocessamento'
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @Metadata.allowExtensions: true
+@UI.headerInfo: {
+  typeName:       'Arquivo',
+  typeNamePlural: 'Arquivos',
+  title:          { type: #STANDARD, value: 'Pedido' },
+  description:    { type: #STANDARD, value: 'Bandeira' }
+}
+@UI.facet: [
+  { id: 'GeneralInfo', type: #IDENTIFICATION_REFERENCE,
+    label: 'Detalhes do Arquivo', position: 10 }
+]
 define root view entity ZC_Q2C_ARQ_MGR_APP
   provider contract transactional_query
   as projection on ZI_Q2C_ARQ_MGR

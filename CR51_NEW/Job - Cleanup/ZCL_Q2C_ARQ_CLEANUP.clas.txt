@@ -1,0 +1,200 @@
+CLASS zcl_q2c_arq_cleanup DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_apj_dt_exec_object.
+    INTERFACES if_apj_rt_exec_object.
+
+  PRIVATE SECTION.
+    CONSTANTS c_status_cancelado TYPE c LENGTH 20 VALUE 'CANCELADO'.
+    CONSTANTS c_log_object        TYPE c LENGTH 20 VALUE 'ZQ2C_ARQ'.
+    CONSTANTS c_log_subobject     TYPE c LENGTH 20 VALUE 'CLEANUP'.
+    CONSTANTS c_default_dias      TYPE numc3       VALUE '090'.
+
+ENDCLASS.
+
+
+CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
+
+* -----------------------------------------------------------------------
+* GET_PARAMETERS — define a tela de seleção do job (design time)
+* -----------------------------------------------------------------------
+  METHOD if_apj_dt_exec_object~get_parameters.
+
+    " Definição dos parâmetros
+    et_parameter_def = VALUE #(
+
+      " P_DIAS — número de dias de retenção (padrão 90)
+      ( selname        = 'P_DIAS'
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'N'
+        length         = 3
+        param_text     = 'Retenção (dias)'
+        changeable_ind = abap_true )
+
+      " P_TESTE — checkbox modo teste (sem delete real)
+      ( selname        = 'P_TESTE'
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 1
+        param_text     = 'Modo Teste (sem delete)'
+        checkbox_ind   = abap_true
+        changeable_ind = abap_true )
+
+    ).
+
+    " Valores padrão
+    et_parameter_val = VALUE #(
+      ( selname = 'P_DIAS'
+        kind    = if_apj_dt_exec_object=>parameter
+        sign    = 'I'
+        option  = 'EQ'
+        low     = c_default_dias )
+    ).
+
+  ENDMETHOD.
+
+
+* -----------------------------------------------------------------------
+* EXECUTE — lógica de limpeza (runtime)
+*
+* Lógica:
+*   1. Calcula data de corte = sy-datum - P_DIAS
+*   2. Apura registros elegíveis (STATUS = 'CANCELADO' AND DATUM <= corte)
+*   3. Se modo teste: apenas loga contagens, sem delete
+*   4. Se produção:
+*      a. DELETE ZTBQ2C_LOG_MGR dos pedidos elegíveis (FK primeiro)
+*      b. DELETE ZTBQ2C_ARQ_MGR dos registros elegíveis
+*      c. COMMIT WORK
+* -----------------------------------------------------------------------
+  METHOD if_apj_rt_exec_object~execute.
+
+    DATA lv_dias    TYPE numc3.
+    DATA lv_teste   TYPE c LENGTH 1.
+    DATA lv_corte   TYPE dats.
+    DATA lv_cnt_arq TYPE i.
+    DATA lv_cnt_log TYPE i.
+    DATA lv_del_arq TYPE i.
+    DATA lv_del_log TYPE i.
+
+    " --- Coletar parâmetros -------------------------------------------
+    LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<lwa>).
+      CASE <lwa>-selname.
+        WHEN 'P_DIAS'.
+          lv_dias = <lwa>-low.
+        WHEN 'P_TESTE'.
+          lv_teste = <lwa>-low.
+      ENDCASE.
+    ENDLOOP.
+
+    " Default: 90 dias se não informado ou zero
+    IF lv_dias = 0.
+      lv_dias = c_default_dias.
+    ENDIF.
+
+    " Data de corte (registros com DATUM <= corte serão deletados)
+    lv_corte = sy-datum - lv_dias.
+
+    " --- BALI log -------------------------------------------------------
+    TRY.
+        DATA(lo_log) = cl_bali_log=>create_with_header(
+          cl_bali_header_setter=>create(
+            object      = c_log_object
+            subobject   = c_log_subobject
+            external_id = |CLEANUP_{ sy-datum }_{ sy-uzeit }|
+          )
+        ).
+
+        " Mensagem de início
+        lo_log->add_item( cl_bali_free_text_setter=>create(
+          severity = if_bali_constants=>c_severity_status
+          text     = |Cleanup iniciado — Status: CANCELADO, corte: { lv_corte DATE = ISO } ({ lv_dias } dias)|
+        ) ).
+
+        " --- Apurar contagens -------------------------------------------
+        SELECT COUNT(*) FROM ztbq2c_arq_mgr
+          WHERE status = @c_status_cancelado
+            AND datum  <= @lv_corte
+          INTO @lv_cnt_arq.
+
+        SELECT COUNT(*) FROM ztbq2c_log_mgr AS log
+          INNER JOIN ztbq2c_arq_mgr AS arq
+            ON  log~pedido   = arq~pedido
+            AND log~bandeira = arq~bandeira
+          WHERE arq~status = @c_status_cancelado
+            AND arq~datum  <= @lv_corte
+          INTO @lv_cnt_log.
+
+        lo_log->add_item( cl_bali_free_text_setter=>create(
+          severity = if_bali_constants=>c_severity_status
+          text     = |Registros elegíveis → ARQ: { lv_cnt_arq } / LOG: { lv_cnt_log }|
+        ) ).
+
+        " --- Modo Teste -------------------------------------------------
+        IF lv_teste = abap_true.
+
+          lo_log->add_item( cl_bali_free_text_setter=>create(
+            severity = if_bali_constants=>c_severity_warning
+            text     = 'MODO TESTE ativo — nenhum registro foi deletado.'
+          ) ).
+
+        " --- Produção ----------------------------------------------------
+        ELSE.
+
+          IF lv_cnt_arq = 0.
+            lo_log->add_item( cl_bali_free_text_setter=>create(
+              severity = if_bali_constants=>c_severity_status
+              text     = 'Nenhum registro elegível — nada a deletar.'
+            ) ).
+          ELSE.
+
+            " 1. DELETE LOG primeiro (evita órfãos / integridade)
+            SELECT log~pedido, log~bandeira, log~datum, log~uzeit
+              FROM ztbq2c_log_mgr AS log
+              INNER JOIN ztbq2c_arq_mgr AS arq
+                ON  log~pedido   = arq~pedido
+                AND log~bandeira = arq~bandeira
+              WHERE arq~status = @c_status_cancelado
+                AND arq~datum  <= @lv_corte
+              INTO TABLE @DATA(lt_log_keys).
+
+            IF lt_log_keys IS NOT INITIAL.
+              DELETE ztbq2c_log_mgr FROM TABLE @lt_log_keys.
+              lv_del_log = sy-dbcnt.
+            ENDIF.
+
+            " 2. DELETE ARQ
+            DELETE FROM ztbq2c_arq_mgr
+              WHERE status = @c_status_cancelado
+                AND datum  <= @lv_corte.
+            lv_del_arq = sy-dbcnt.
+
+            COMMIT WORK.
+
+            lo_log->add_item( cl_bali_free_text_setter=>create(
+              severity = if_bali_constants=>c_severity_status
+              text     = |Concluído — deletados: ARQ { lv_del_arq } / LOG { lv_del_log }|
+            ) ).
+
+          ENDIF.
+
+        ENDIF.
+
+        " Salvar log vinculado ao job
+        cl_bali_log_db=>get_instance( )->save_log(
+          log                        = lo_log
+          assign_to_current_appl_job = abap_true
+        ).
+
+      CATCH cx_bali_runtime INTO DATA(lx).
+        RAISE EXCEPTION TYPE cx_apj_rt_content
+          EXPORTING
+            textid   = cx_apj_rt_content=>generic_error
+            previous = lx.
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.

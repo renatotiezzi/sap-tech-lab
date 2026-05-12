@@ -5,19 +5,16 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @EndUserText.label: 'Pedido'
   @UI.selectionField: [ { position: 10 } ]
   @UI.lineItem: [ { position: 10, importance: #HIGH } ]
-  @UI.identification: [ { position: 10 } ]
   Pedido;
 
   @EndUserText.label: 'Bandeira'
   @UI.selectionField: [ { position: 20 } ]
   @UI.lineItem: [ { position: 20, importance: #HIGH } ]
-  @UI.identification: [ { position: 20 } ]
   Bandeira;
 
   @EndUserText.label: 'Tipo de Documento'
   @UI.selectionField: [ { position: 30 } ]
   @UI.lineItem: [ { position: 30 } ]
-  @UI.identification: [ { position: 30 } ]
   TipoDoc;
 
   @EndUserText.label: 'Status'
@@ -27,29 +24,24 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
     { position: 110, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
     { position: 120, type: #FOR_ACTION, dataAction: 'Cancel',    label: 'Cancelar' }
   ]
-  @UI.identification: [ { position: 40 } ]
   Status;
 
   @EndUserText.label: 'Tentativas'
   @UI.lineItem: [ { position: 50 } ]
-  @UI.identification: [ { position: 50 } ]
   Tentativas;
 
   @EndUserText.label: 'Data'
   @UI.selectionField: [ { position: 50 } ]
   @UI.lineItem: [ { position: 70 } ]
-  @UI.identification: [ { position: 70 } ]
   Datum;
 
   @EndUserText.label: 'Hora'
   @UI.lineItem: [ { position: 80 } ]
-  @UI.identification: [ { position: 80 } ]
   Uzeit;
 
   @EndUserText.label: 'Usuário'
   @UI.selectionField: [ { position: 60 } ]
   @UI.lineItem: [ { position: 90 } ]
-  @UI.identification: [ { position: 90 } ]
   Ernam;
 
   @EndUserText.label: 'Último Erro'

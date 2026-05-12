@@ -10,10 +10,9 @@
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
   @UI.facet: [
-    { id: 'GeneralInfo',
-      type: #IDENTIFICATION_REFERENCE,
-      label: 'Detalhes do Arquivo',
-      position: 10 }
+    { id: 'Main',    type: #IDENTIFICATION_REFERENCE, label: 'Detalhes',       position: 10 },
+    { id: 'Payload', type: #FIELDGROUP_REFERENCE,     label: 'Payload',         position: 20, targetQualifier: 'Payload' },
+    { id: 'Erro',    type: #FIELDGROUP_REFERENCE,     label: 'Ultimo Erro',     position: 30, targetQualifier: 'Erro' }
   ]
 
   @EndUserText.label: 'Pedido'
@@ -37,12 +36,15 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @EndUserText.label: 'Status'
   @UI.selectionField: [ { position: 40 } ]
   @UI.lineItem: [
-    { position: 40, importance: #HIGH, criticality: 'StatusCriticality' },
+    { position: 40, importance: #HIGH, criticality: 'StatusCriticality', criticalityRepresentation: #WITH_ICON },
     { position: 110, type: #FOR_ACTION, dataAction: 'Reprocess', label: 'Reprocessar' },
     { position: 120, type: #FOR_ACTION, dataAction: 'Cancel',    label: 'Cancelar' }
   ]
-  @UI.identification: [ { position: 40, criticality: 'StatusCriticality' } ]
+  @UI.identification: [ { position: 40, criticality: 'StatusCriticality', criticalityRepresentation: #WITH_ICON } ]
   Status;
+
+  @UI.hidden: true
+  StatusCriticality;
 
   @EndUserText.label: 'Tentativas'
   @UI.lineItem:       [ { position: 50 } ]
@@ -51,32 +53,33 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
 
   @EndUserText.label: 'Data'
   @UI.selectionField: [ { position: 50 } ]
-  @UI.lineItem:       [ { position: 70 } ]
-  @UI.identification: [ { position: 70 } ]
+  @UI.lineItem:       [ { position: 60 } ]
+  @UI.identification: [ { position: 60 } ]
   Datum;
 
   @EndUserText.label: 'Hora'
-  @UI.lineItem:       [ { position: 80 } ]
-  @UI.identification: [ { position: 80 } ]
+  @UI.lineItem:       [ { position: 70 } ]
+  @UI.identification: [ { position: 70 } ]
   Uzeit;
 
   @EndUserText.label: 'Usuario'
   @UI.selectionField: [ { position: 60 } ]
-  @UI.lineItem:       [ { position: 90 } ]
-  @UI.identification: [ { position: 90 } ]
+  @UI.lineItem:       [ { position: 80 } ]
+  @UI.identification: [ { position: 80 } ]
   Ernam;
 
-  @EndUserText.label: 'Ultimo Erro'
-  @UI.lineItem:       [ { position: 100, importance: #LOW } ]
-  @UI.identification: [ { position: 100 } ]
-  UltimoErro;
-
-  @UI.hidden: true
-  Arquivo;
-
-  @UI.hidden: true
+  @EndUserText.label: 'Conteudo do Arquivo'
+  @UI.multiLineText: true
+  @UI.fieldGroup: [ { qualifier: 'Payload', position: 10 } ]
   Conteudo;
 
-  @UI.hidden: true
-  StatusCriticality;
+  @EndUserText.label: 'Arquivo'
+  @UI.fieldGroup: [ { qualifier: 'Payload', position: 20 } ]
+  Arquivo;
+
+  @EndUserText.label: 'Ultimo Erro'
+  @UI.lineItem:   [ { position: 90, importance: #LOW } ]
+  @UI.multiLineText: true
+  @UI.fieldGroup: [ { qualifier: 'Erro', position: 10 } ]
+  UltimoErro;
 }

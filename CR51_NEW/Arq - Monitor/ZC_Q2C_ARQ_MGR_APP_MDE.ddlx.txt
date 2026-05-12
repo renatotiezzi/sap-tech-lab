@@ -1,14 +1,12 @@
 @Metadata.layer: #CUSTOMER
-@UI.headerInfo: {
-  typeName:       'Arquivo',
-  typeNamePlural: 'Arquivos',
-  title:       { type: #STANDARD, value: 'Pedido' },
-  description: { type: #STANDARD, value: 'Bandeira' }
+@UI: {
+  headerInfo: {
+    typeName:       'Arquivo',
+    typeNamePlural: 'Arquivos',
+    title:       { type: #STANDARD, value: 'Pedido' },
+    description: { type: #STANDARD, value: 'Bandeira' }
+  }
 }
-@UI.facet: [
-  { id: 'GeneralInfo', type: #IDENTIFICATION_REFERENCE,
-    label: 'Detalhes do Arquivo', position: 10 }
-]
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
 

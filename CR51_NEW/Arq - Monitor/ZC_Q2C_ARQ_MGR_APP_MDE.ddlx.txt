@@ -11,8 +11,7 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
 {
   @UI.facet: [
     { id: 'Main',    type: #IDENTIFICATION_REFERENCE, label: 'Detalhes',       position: 10 },
-    { id: 'Payload', type: #FIELDGROUP_REFERENCE,     label: 'Payload',         position: 20, targetQualifier: 'Payload' },
-    { id: 'Erro',    type: #FIELDGROUP_REFERENCE,     label: 'Ultimo Erro',     position: 30, targetQualifier: 'Erro' }
+    { id: 'Erro',    type: #FIELDGROUP_REFERENCE,     label: 'Ultimo Erro',     position: 20, targetQualifier: 'Erro' }
   ]
 
   @EndUserText.label: 'Pedido'
@@ -68,13 +67,10 @@ annotate view ZC_Q2C_ARQ_MGR_APP with
   @UI.identification: [ { position: 80 } ]
   Ernam;
 
-  @EndUserText.label: 'Conteudo do Arquivo'
-  @UI.multiLineText: true
-  @UI.fieldGroup: [ { qualifier: 'Payload', position: 10 } ]
+  @UI.hidden: true
   Conteudo;
 
-  @EndUserText.label: 'Arquivo'
-  @UI.fieldGroup: [ { qualifier: 'Payload', position: 20 } ]
+  @UI.hidden: true
   Arquivo;
 
   @EndUserText.label: 'Ultimo Erro'

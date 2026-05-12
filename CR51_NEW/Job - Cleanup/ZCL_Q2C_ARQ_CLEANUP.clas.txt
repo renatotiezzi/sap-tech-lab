@@ -8,15 +8,39 @@ CLASS zcl_q2c_arq_cleanup DEFINITION
     INTERFACES if_apj_rt_exec_object.
 
   PRIVATE SECTION.
-    CONSTANTS c_status_cancelado TYPE c LENGTH 20 VALUE 'CANCELADO'.
-    CONSTANTS c_log_object        TYPE c LENGTH 20 VALUE 'ZQ2C_ARQ'.
-    CONSTANTS c_log_subobject     TYPE c LENGTH 20 VALUE 'CLEANUP'.
-    CONSTANTS c_default_dias      TYPE numc3       VALUE '090'.
+    CONSTANTS c_status_cancelado TYPE c LENGTH 20  VALUE 'CANCELADO'.
+    CONSTANTS c_log_object        TYPE c LENGTH 20  VALUE 'ZQ2C_ARQ'.
+    CONSTANTS c_log_subobject     TYPE c LENGTH 20  VALUE 'CLEANUP'.
+    CONSTANTS c_default_dias      TYPE numc3        VALUE '090'.
+    CONSTANTS c_tvarv_key         TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
+
+    METHODS get_dias_retencao
+      RETURNING VALUE(rv_dias) TYPE numc3.
 
 ENDCLASS.
 
 
 CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
+
+* -----------------------------------------------------------------------
+* GET_DIAS_RETENCAO — lê ZZ1_TVARVC_Q2C; fallback para c_default_dias
+* -----------------------------------------------------------------------
+  METHOD get_dias_retencao.
+
+    SELECT SINGLE low
+      FROM zz1_tvarvc_q2c
+      WHERE name = @c_tvarv_key
+        AND type = 'P'
+      INTO @DATA(lv_tvarv).
+
+    IF sy-subrc = 0 AND lv_tvarv IS NOT INITIAL.
+      rv_dias = lv_tvarv.
+    ELSE.
+      rv_dias = c_default_dias.
+    ENDIF.
+
+  ENDMETHOD.
+
 
 * -----------------------------------------------------------------------
 * GET_PARAMETERS — define a tela de seleção do job (design time)
@@ -45,13 +69,13 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
     ).
 
-    " Valores padrão
+    " Valores padrão — lê TVARV; se não encontrar usa 90
     et_parameter_val = VALUE #(
       ( selname = 'P_DIAS'
         kind    = if_apj_dt_exec_object=>parameter
         sign    = 'I'
         option  = 'EQ'
-        low     = c_default_dias )
+        low     = get_dias_retencao( ) )
     ).
 
   ENDMETHOD.
@@ -89,9 +113,9 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
 
-    " Default: 90 dias se não informado ou zero
+    " Se P_DIAS não foi informado ou é zero: lê TVARV, senão fallback 90
     IF lv_dias = 0.
-      lv_dias = c_default_dias.
+      lv_dias = get_dias_retencao( ).
     ENDIF.
 
     " Data de corte (registros com DATUM <= corte serão deletados)

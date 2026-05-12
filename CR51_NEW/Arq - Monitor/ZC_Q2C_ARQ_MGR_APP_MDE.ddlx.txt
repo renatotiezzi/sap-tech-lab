@@ -5,14 +5,17 @@
     typeNamePlural: 'Arquivos',
     title:       { value: 'Pedido' },
     description: { value: 'Bandeira' }
-  },
-  facet: [
-    { id: 'GeneralInfo', type: #IDENTIFICATION_REFERENCE,
-      label: 'Detalhes do Arquivo', position: 10 }
-  ]
+  }
 }
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
+  @UI.facet: [
+    { id: 'GeneralInfo',
+      type: #IDENTIFICATION_REFERENCE,
+      label: 'Detalhes do Arquivo',
+      position: 10 }
+  ]
+
   @EndUserText.label: 'Pedido'
   @UI.selectionField:  [ { position: 10 } ]
   @UI.lineItem:        [ { position: 10, importance: #HIGH } ]

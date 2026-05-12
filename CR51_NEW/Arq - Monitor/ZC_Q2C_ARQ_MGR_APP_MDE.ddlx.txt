@@ -1,4 +1,5 @@
 @Metadata.layer: #CUSTOMER
+@UI.facet: []
 annotate view ZC_Q2C_ARQ_MGR_APP with
 {
 

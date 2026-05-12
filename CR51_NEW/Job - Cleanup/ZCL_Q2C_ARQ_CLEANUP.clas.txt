@@ -215,7 +215,8 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
       CATCH cx_bali_runtime INTO DATA(lx).
         RAISE EXCEPTION TYPE cx_apj_rt_content
-          MESSAGE lx.
+          EXPORTING
+            previous = lx.
     ENDTRY.
 
   ENDMETHOD.

@@ -151,6 +151,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           ELSE.
 
             " 1. DELETE LOG primeiro (evita órfãos / integridade)
+            DATA lt_log_keys TYPE TABLE OF ztbq2c_log_mgr WITH EMPTY KEY.
             SELECT log~pedido, log~bandeira, log~datum, log~uzeit
               FROM ztbq2c_log_mgr AS log
               INNER JOIN ztbq2c_arq_mgr AS arq
@@ -158,7 +159,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
                 AND log~bandeira = arq~bandeira
               WHERE arq~status = @c_status_cancelado
                 AND arq~datum  <= @lv_corte
-              INTO TABLE @DATA(lt_log_keys).
+              INTO CORRESPONDING FIELDS OF TABLE @lt_log_keys.
 
             IF lt_log_keys IS NOT INITIAL.
               DELETE ztbq2c_log_mgr FROM TABLE @lt_log_keys.
@@ -190,9 +191,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
       CATCH cx_bali_runtime INTO DATA(lx).
         RAISE EXCEPTION TYPE cx_apj_rt_content
-          EXPORTING
-            textid   = cx_apj_rt_content=>generic_error
-            previous = lx.
+          MESSAGE lx.
     ENDTRY.
 
   ENDMETHOD.

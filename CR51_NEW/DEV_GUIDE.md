@@ -460,11 +460,14 @@ define root view entity ZC_Q2C_LOG_MGR_APP
 > **Autenticação:** Basic Auth com usuário técnico para o iFlow CPI. Configurar no Communication Arrangement.
 
 ### Fase 5 — Job de Limpeza (APJ)
-1. Criar Log Object `ZQ2C_LOG` (subobject `CLEANUP`) via `SBAL_OBJECT`
-2. Criar `ZCL_Q2C_MGR_CLEANUP` (CLAS) — implementa `IF_APJ_DT/RT_EXEC_OBJECT`
-3. Criar Job Catalog Entry `ZQ2C_CLEANUP_CE` no ADT → aponta para `ZCL_Q2C_MGR_CLEANUP`
-4. Criar Job Template `ZQ2C_CLEANUP_JT` no ADT → usa Catalog Entry, `P_DAYS = 90`
-5. Agendar via app Fiori **F2373 Application Jobs**
+1. Inserir entrada na tabela `ZZ1_TVARVC_Q2C`: `NAME = ZZ_GAP014_ARQ_DIAS`, `TYPE = P`, `LOW = 090`
+2. Criar Log Object `ZQ2C_ARQ` (subobject `CLEANUP`) via `SBAL_OBJECT`
+3. Criar `ZCL_Q2C_ARQ_CLEANUP` (CLAS) — copiar de `Job - Cleanup/ZCL_Q2C_ARQ_CLEANUP.clas.txt`
+4. Criar Job Catalog Entry `ZQ2C_ARQ_CLEANUP_CE` no ADT → aponta para `ZCL_Q2C_ARQ_CLEANUP`
+5. Criar Job Template `ZQ2C_ARQ_CLEANUP_JT` no ADT → usa Catalog Entry, `P_DIAS` default da TVARV (90)
+6. Agendar via app Fiori **F4580 Application Jobs**
+
+> Parâmetros do job: `P_DIAS` (retenção em dias — padrão lido de `ZZ1_TVARVC_Q2C / ZZ_GAP014_ARQ_DIAS`, fallback 90), `P_TESTE` (checkbox — executa sem delete real).
 
 ---
 

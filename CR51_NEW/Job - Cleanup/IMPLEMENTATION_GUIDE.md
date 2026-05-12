@@ -10,10 +10,25 @@
 
 | # | Objeto | Tipo | Descrição |
 |---|--------|------|-----------|
+| 0 | `ZZ1_TVARVC_Q2C` | Entrada de tabela | Parâmetro `ZZ_GAP014_ARQ_DIAS = 090` |
 | 1 | `ZQ2C_ARQ` / `CLEANUP` | Application Log Object / Subobject | Log de execução do job |
 | 2 | `ZCL_Q2C_ARQ_CLEANUP` | ABAP Class | Lógica do job (DT + RT) |
 | 3 | `ZQ2C_ARQ_CLEANUP_CE` | Job Catalog Entry | Registra o job no framework APJ |
 | 4 | `ZQ2C_ARQ_CLEANUP_JT` | Job Template | Template com parâmetros default para agendar |
+
+---
+
+## Passo 0 — Entrada na ZZ1_TVARVC_Q2C
+
+Antes de qualquer objeto, inserir o parâmetro de retenção na tabela de variáveis customizáveis:
+
+| Campo | Valor |
+|-------|-------|
+| NAME  | `ZZ_GAP014_ARQ_DIAS` |
+| TYPE  | `P` |
+| LOW   | `090` |
+
+> Se a entrada não existir, a classe usa o fallback hard-coded de **90 dias**. Ajustar `LOW` para mudar a retenção sem reativar a classe.
 
 ---
 
@@ -58,7 +73,7 @@ INTERFACES if_apj_rt_exec_object.   " Runtime:     lógica de execução
 
 | SELNAME | Tipo | Descrição | Default |
 |---------|------|-----------|---------|
-| `P_DIAS` | NUMC(3) | Retenção em dias | 90 |
+| `P_DIAS` | NUMC(3) | Retenção em dias | Lido de `ZZ1_TVARVC_Q2C / ZZ_GAP014_ARQ_DIAS` (fallback 90) |
 | `P_TESTE` | CHAR(1) checkbox | Modo Teste — sem delete real | ` ` |
 
 ---

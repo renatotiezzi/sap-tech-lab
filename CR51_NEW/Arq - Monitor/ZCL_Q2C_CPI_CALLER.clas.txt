@@ -1,4 +1,4 @@
-*&---------------------------------------------------------------------*
+﻿*&---------------------------------------------------------------------*
 *& Classe: ZCL_Q2C_CPI_CALLER
 *& Responsável por chamar o iFlow CPI para reprocessamento de arquivos.
 *&
@@ -15,7 +15,7 @@
 *&   Host, porta e path do iFlow já configurados no destino.
 *&
 *& Payload enviado ao CPI (/http/mgr/reprocessamento):
-*&   { "filename": "<tipo_doc>", "conteudo": "<arquivo base64>" }
+*&   { "filename": "<tipo_doc>", "conteudo": "<conteudo base64>" }
 *&---------------------------------------------------------------------*
 
 CLASS zcl_q2c_cpi_caller DEFINITION
@@ -41,13 +41,14 @@ CLASS zcl_q2c_cpi_caller DEFINITION
 
   PRIVATE SECTION.
     " Destino RFC configurado na SM59 (tipo G - HTTP para sistema externo)
+    " Host, porta (443) e path (/http/mgr/reprocessamento) definidos no destino.
     CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
 
     " Campos usados para montar o payload.
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
     TYPES: BEGIN OF ty_payload_fields,
              tipo_doc TYPE ztbq2c_arq_mgr-tipo_doc,
-             arquivo  TYPE ztbq2c_arq_mgr-arquivo,
+             conteudo TYPE ztbq2c_arq_mgr-conteudo,
            END OF ty_payload_fields.
 
     " Único método a alterar quando o contrato do iFlow muda.
@@ -57,31 +58,135 @@ CLASS zcl_q2c_cpi_caller DEFINITION
       RETURNING
         VALUE(rv_payload) TYPE string.
 
+    " Executa a chamada HTTP. Erros sinalizados via mv_error_detail.
+    " rv_response vazio + mv_error_detail preenchido = chamada com erro.
+    METHODS execute_http_call
+      IMPORTING
+        payload            TYPE string
+      RETURNING
+        VALUE(rv_response) TYPE string.
+
 ENDCLASS.
 
 CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
   METHOD call_cpi_reprocess.
-    " -----------------------------------------------------------------------
-    " STUB — implementação real a desenvolver em sprint seguinte.
-    " Responsabilidade: enviar HTTP POST ao destino RFC CPI_MGR_REPROCESSO.
-    " Quando implementado:
-    "   1. Montar payload via build_payload( tipo_doc + arquivo )
-    "   2. Criar instância cl_http_client via destination
-    "   3. POST /http/mgr/reprocessamento com content-type application/json
-    "   4. Ler response — HTTP 200 = sucesso, qualquer outro = RAISE cx_static_check
-    "   5. Preencher ev_status com mensagem de retorno do CPI
-    " -----------------------------------------------------------------------
-    " STUB: simula sucesso para permitir testes do fluxo RAP sem o CPI disponível.
-    " Trocar por implementação real antes de go-live.
-    ev_status = 'STUB: CPI nao integrado — reprocessamento simulado com sucesso'.
+    CLEAR me->mv_error_detail.
+
+    " 1. Montar payload — dados já disponíveis em is_arq, sem SELECT adicional
+    DATA(lv_payload) = build_payload(
+      VALUE #(
+        tipo_doc = is_arq-tipo_doc
+        conteudo = is_arq-conteudo
+      )
+    ).
+
+    " 2. Enviar ao CPI
+    DATA(lv_response) = execute_http_call( lv_payload ).
+
+    IF me->mv_error_detail IS NOT INITIAL.
+      RAISE EXCEPTION TYPE cx_sy_no_handler.
+    ENDIF.
+
+    ev_status = lv_response.
+
   ENDMETHOD.
 
   METHOD build_payload.
-    " Montar JSON para o iFlow CPI.
-    " Formato: { "filename": "<tipo_doc>", "conteudo": "<arquivo base64>" }
-    rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", |
-               && |"conteudo": "{ is_fields-arquivo }" \}|.
+    " ==========================================================
+    " CONTRATO DO IFLOW CPI (/http/mgr/reprocessamento):
+    "   "filename" → TipoDoc  (ex: NF, NFSE)
+    "   "conteudo" → Conteudo (Base64 — gravado assim na tabela pelo POST inicial)
+    "
+    " Para mudar/adicionar campo:
+    "   1. Adicione em ty_payload_fields
+    "   2. Preencha no VALUE # em call_cpi_reprocess
+    "   3. Inclua na string abaixo
+    " ==========================================================
+    rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", | &
+                 |"conteudo": "{ is_fields-conteudo }" \}|.
+  ENDMETHOD.
+
+  METHOD execute_http_call.
+    DATA: lo_client    TYPE REF TO if_http_client,
+          lv_body_xstr TYPE xstring,
+          lv_http_code TYPE i,
+          lv_reason    TYPE string.
+
+    " 1. Criar cliente HTTP via RFC Destination (SM59: CPI_MGR_REPROCESSO, tipo G)
+    cl_http_client=>create_by_destination(
+      EXPORTING
+        destination              = c_destination
+      IMPORTING
+        client                   = lo_client
+      EXCEPTIONS
+        argument_not_found       = 1
+        destination_not_found    = 2
+        destination_no_authority = 3
+        plugin_not_active        = 4
+        internal_error           = 5
+        OTHERS                   = 6
+    ).
+    IF sy-subrc <> 0.
+      me->mv_error_detail = |Destino RFC '{ c_destination }' não encontrado/acessível (subrc={ sy-subrc })|.
+      RETURN.
+    ENDIF.
+
+    " 2. Método POST + Content-Type JSON
+    lo_client->request->set_method( if_http_request=>co_request_method_post ).
+    lo_client->request->set_header_field( name  = 'Content-Type'
+                                          value = 'application/json' ).
+
+    " 3. Converter payload JSON string → xstring e setar como body
+    cl_bcs_convert=>string_to_xstring(
+      EXPORTING iv_string  = payload
+      RECEIVING ev_xstring = lv_body_xstr
+    ).
+    lo_client->request->set_data( lv_body_xstr ).
+
+    " 4. Enviar
+    lo_client->send(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        OTHERS                     = 3
+    ).
+    IF sy-subrc <> 0.
+      me->mv_error_detail = |Falha de comunicação HTTP ao enviar para CPI (subrc={ sy-subrc })|.
+      lo_client->close( ).
+      RETURN.
+    ENDIF.
+
+    " 5. Receber resposta
+    lo_client->receive(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        http_processing_failed     = 3
+        OTHERS                     = 4
+    ).
+    IF sy-subrc <> 0.
+      me->mv_error_detail = |Falha ao receber resposta do CPI (subrc={ sy-subrc })|.
+      lo_client->close( ).
+      RETURN.
+    ENDIF.
+
+    " 6. Verificar HTTP status code
+    lo_client->response->get_status(
+      IMPORTING
+        code   = lv_http_code
+        reason = lv_reason
+    ).
+
+    rv_response = lo_client->response->get_cdata( ).
+    lo_client->close( ).
+
+    " HTTP != 2xx = erro de negócio CPI
+    IF lv_http_code < 200 OR lv_http_code >= 300.
+      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rv_response }|.
+      CLEAR rv_response.
+    ENDIF.
+
   ENDMETHOD.
 
 ENDCLASS.

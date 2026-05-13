@@ -137,6 +137,9 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
                                           value = 'application/json' ).
 
     " 3. Setar body diretamente como string (sem conversão)
+*   " Conversão para xstring não necessária — conteudo já está em Base64
+*   " lv_body_xstr = cl_bcs_convert=>string_to_xstring( iv_string = payload ).
+*   " lo_client->request->set_data( lv_body_xstr ).
     lo_client->request->set_cdata( payload ).
 
     " 4. Enviar

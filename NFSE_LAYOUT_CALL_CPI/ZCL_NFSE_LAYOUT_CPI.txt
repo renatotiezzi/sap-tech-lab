@@ -1,0 +1,409 @@
+CLASS zcl_nfse_layout_cpi DEFINITION
+    PUBLIC
+    FINAL
+    CREATE PUBLIC.
+
+    PUBLIC SECTION.
+        "--------------------------------------------------------------------
+        " Tipo: payload JSON para chamada CPI (city + key)
+        "--------------------------------------------------------------------
+        TYPES: BEGIN OF mty_json,
+                         city TYPE string,
+                         key  TYPE string,
+                     END OF mty_json.
+
+        CLASS-METHODS download_selected_rows
+            IMPORTING
+                it_selected_rows TYPE STANDARD TABLE
+                it_nfe_alv       TYPE STANDARD TABLE
+            RETURNING
+                VALUE(rv_success) TYPE abap_bool.
+
+    PRIVATE SECTION.
+        "--------------------------------------------------------------------
+        " Tipo: chave de acesso por docnum
+        "--------------------------------------------------------------------
+        TYPES: BEGIN OF mty_doc_key,
+                     docnum TYPE j_1bnfdoc-docnum,
+                     key    TYPE string,
+                 END OF mty_doc_key.
+
+        TYPES mtty_doc_key TYPE STANDARD TABLE OF mty_doc_key WITH DEFAULT KEY.
+
+        "--------------------------------------------------------------------
+        " Tipo: cidade por docnum
+        "--------------------------------------------------------------------
+        TYPES: BEGIN OF mty_doc_city,
+                     docnum TYPE j_1bnfdoc-docnum,
+                     city   TYPE string,
+                 END OF mty_doc_city.
+
+        TYPES mtty_doc_city TYPE STANDARD TABLE OF mty_doc_city.
+
+        "--------------------------------------------------------------------
+        " Constantes de conectividade CPI
+        "--------------------------------------------------------------------
+        CONSTANTS mc_destination    TYPE rfcdest VALUE 'CPI_FIN_HTTP_GEN'.
+        CONSTANTS mc_interface_name TYPE string  VALUE 'NFSE_GET_PDF'.
+
+        CLASS-METHODS preload_doc_data
+            IMPORTING
+                it_selected_rows TYPE STANDARD TABLE
+                it_nfe_alv       TYPE STANDARD TABLE
+            EXPORTING
+                et_doc_key       TYPE mtty_doc_key
+                et_doc_city      TYPE mtty_doc_city.
+
+        CLASS-METHODS get_doc_data
+            IMPORTING
+                iv_docnum   TYPE j_1bnfdoc-docnum
+                it_doc_key  TYPE mtty_doc_key
+                it_doc_city TYPE mtty_doc_city
+            EXPORTING
+                ev_key      TYPE string
+                ev_city     TYPE string
+            RETURNING
+                VALUE(rv_ok) TYPE abap_bool.
+
+        CLASS-METHODS call_cpi_for_pdf
+            IMPORTING
+                iv_key  TYPE string
+                iv_city TYPE string
+            RETURNING
+                VALUE(rv_base64) TYPE string.
+
+        CLASS-METHODS save_pdf_to_frontend
+            IMPORTING
+                iv_base64   TYPE string
+                iv_fullpath TYPE string
+            RETURNING
+                VALUE(rv_ok) TYPE abap_bool.
+
+ENDCLASS.
+
+
+CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
+
+    METHOD download_selected_rows.
+        FIELD-SYMBOLS: <ls_row>    TYPE any,
+                                     <ls_alv>    TYPE any,
+                                     <lv_index>  TYPE any,
+                                     <lv_docnum> TYPE any,
+                                     <lv_form>   TYPE any,
+                                     <lv_code>   TYPE any,
+                                     <lv_nfnum9> TYPE any.
+
+        DATA: lv_path      TYPE string,
+                    lv_docnum    TYPE j_1bnfdoc-docnum,
+                    lv_form      TYPE string,
+                    lv_code      TYPE string,
+                    lv_nfnum9    TYPE string,
+                    lv_key       TYPE string,
+                    lv_city      TYPE string,
+                    lv_file_name TYPE string,
+                    lv_fullpath  TYPE string,
+                    lv_base64    TYPE string,
+                    lt_doc_key   TYPE mtty_doc_key,
+                    lt_doc_city  TYPE mtty_doc_city.
+
+        rv_success = abap_false.
+
+        CALL METHOD cl_gui_frontend_services=>directory_browse
+            EXPORTING
+                window_title    = 'Salvar NFSe em PDF'
+                initial_folder  = 'C:\'
+            CHANGING
+                selected_folder = lv_path.
+
+        IF lv_path IS INITIAL.
+            MESSAGE 'Operacao cancelada pelo usuario' TYPE 'S'.
+            RETURN.
+        ENDIF.
+
+        " Prefetch data once to avoid SELECT inside processing loop
+        preload_doc_data(
+            EXPORTING
+                it_selected_rows = it_selected_rows
+                it_nfe_alv       = it_nfe_alv
+            IMPORTING
+                et_doc_key       = lt_doc_key
+                et_doc_city      = lt_doc_city ).
+
+        LOOP AT it_selected_rows ASSIGNING <ls_row>.
+            ASSIGN COMPONENT 'INDEX' OF STRUCTURE <ls_row> TO <lv_index>.
+            CHECK sy-subrc = 0.
+
+            READ TABLE it_nfe_alv ASSIGNING <ls_alv> INDEX <lv_index>.
+            CHECK sy-subrc = 0.
+
+            ASSIGN COMPONENT 'DOCNUM' OF STRUCTURE <ls_alv> TO <lv_docnum>.
+            ASSIGN COMPONENT 'FORM'   OF STRUCTURE <ls_alv> TO <lv_form>.
+            ASSIGN COMPONENT 'CODE'   OF STRUCTURE <ls_alv> TO <lv_code>.
+            ASSIGN COMPONENT 'NFNUM9' OF STRUCTURE <ls_alv> TO <lv_nfnum9>.
+            CHECK sy-subrc = 0.
+
+            lv_docnum = <lv_docnum>.
+            lv_form   = <lv_form>.
+            lv_code   = <lv_code>.
+            lv_nfnum9 = <lv_nfnum9>.
+
+            CHECK lv_code = '100'.
+            CHECK lv_form = 'NF01'.
+
+            IF get_doc_data(
+                     EXPORTING
+                         iv_docnum   = lv_docnum
+                         it_doc_key  = lt_doc_key
+                         it_doc_city = lt_doc_city
+                     IMPORTING
+                         ev_key      = lv_key
+                         ev_city     = lv_city ) = abap_false.
+                CONTINUE.
+            ENDIF.
+
+            lv_base64 = call_cpi_for_pdf(
+                                        iv_key  = lv_key
+                                        iv_city = lv_city ).
+            CHECK lv_base64 IS NOT INITIAL.
+
+            IF lv_nfnum9 IS INITIAL.
+                lv_file_name = |danfe-{ lv_key }.pdf|.
+            ELSE.
+                lv_file_name = |{ lv_nfnum9 }.pdf|.
+            ENDIF.
+
+            lv_fullpath = |{ lv_path } \\ { lv_file_name }|.
+
+            IF save_pdf_to_frontend(
+                     iv_base64   = lv_base64
+                     iv_fullpath = lv_fullpath ) = abap_true.
+                rv_success = abap_true.
+            ENDIF.
+        ENDLOOP.
+    ENDMETHOD.
+
+
+    METHOD preload_doc_data.
+        FIELD-SYMBOLS: <ls_row>    TYPE any,
+                             <ls_alv>    TYPE any,
+                             <lv_index>  TYPE any,
+                             <lv_docnum> TYPE any.
+
+        DATA: lt_docnum TYPE STANDARD TABLE OF j_1bnfdoc-docnum WITH DEFAULT KEY,
+                    lv_docnum TYPE j_1bnfdoc-docnum,
+                    ls_city   TYPE mty_doc_city.
+
+        CLEAR: et_doc_key, et_doc_city.
+
+        LOOP AT it_selected_rows ASSIGNING <ls_row>.
+            ASSIGN COMPONENT 'INDEX' OF STRUCTURE <ls_row> TO <lv_index>.
+            CHECK sy-subrc = 0.
+
+            READ TABLE it_nfe_alv ASSIGNING <ls_alv> INDEX <lv_index>.
+            CHECK sy-subrc = 0.
+
+            ASSIGN COMPONENT 'DOCNUM' OF STRUCTURE <ls_alv> TO <lv_docnum>.
+            CHECK sy-subrc = 0.
+
+            lv_docnum = <lv_docnum>.
+            CHECK lv_docnum IS NOT INITIAL.
+
+            APPEND lv_docnum TO lt_docnum.
+        ENDLOOP.
+
+        SORT lt_docnum.
+        DELETE ADJACENT DUPLICATES FROM lt_docnum.
+
+        IF lt_docnum IS INITIAL.
+            RETURN.
+        ENDIF.
+
+        SELECT docnum, value AS key
+            FROM nfe_cloud_extens
+            FOR ALL ENTRIES IN @lt_docnum
+            WHERE docnum = @lt_docnum-table_line
+                AND name   = 'chave'
+            INTO TABLE @DATA(lt_doc_key_db).
+
+        et_doc_key = lt_doc_key_db.
+        SORT et_doc_key BY docnum.
+
+        SELECT j_1bnfdoc~docnum, t001w~ort01 AS city
+            FROM j_1bnfdoc
+            INNER JOIN t001w
+                ON t001w~j_1bbranch = j_1bnfdoc~branch
+            FOR ALL ENTRIES IN @lt_docnum
+            WHERE j_1bnfdoc~docnum = @lt_docnum-table_line
+            INTO TABLE @DATA(lt_doc_city_db).
+
+        et_doc_city = lt_doc_city_db.
+
+        LOOP AT et_doc_city INTO ls_city.
+            TRANSLATE ls_city-city TO UPPER CASE.
+            MODIFY et_doc_city FROM ls_city.
+        ENDLOOP.
+
+        SORT et_doc_city BY docnum.
+    ENDMETHOD.
+
+
+    METHOD get_doc_data.
+        DATA: ls_doc_key  TYPE mty_doc_key,
+                    ls_doc_city TYPE mty_doc_city.
+
+        rv_ok = abap_false.
+        CLEAR: ev_key, ev_city.
+
+        READ TABLE it_doc_key INTO ls_doc_key
+            WITH KEY docnum = iv_docnum
+            BINARY SEARCH.
+
+        IF sy-subrc <> 0 OR ls_doc_key-key IS INITIAL.
+            RETURN.
+        ENDIF.
+
+        READ TABLE it_doc_city INTO ls_doc_city
+            WITH KEY docnum = iv_docnum
+            BINARY SEARCH.
+
+        IF sy-subrc <> 0 OR ls_doc_city-city IS INITIAL.
+            RETURN.
+        ENDIF.
+
+        ev_key = ls_doc_key-key.
+        ev_city = ls_doc_city-city.
+        rv_ok = abap_true.
+    ENDMETHOD.
+
+
+    METHOD call_cpi_for_pdf.
+        DATA: lo_http_client TYPE REF TO if_http_client,
+                    ls_json        TYPE mty_json,
+                    lv_status      TYPE i,
+                    lv_reason      TYPE string,
+                    lv_json        TYPE string.
+
+        CLEAR rv_base64.
+
+        ls_json-key  = iv_key.
+        ls_json-city = iv_city.
+
+        TRY.
+                lv_json = /ui2/cl_json=>serialize(
+                                        data        = ls_json
+                                        compress    = abap_false
+                                        pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
+            CATCH cx_root.
+                RETURN.
+        ENDTRY.
+
+        cl_http_client=>create_by_destination(
+            EXPORTING
+                destination              = mc_destination
+            IMPORTING
+                client                   = lo_http_client
+            EXCEPTIONS
+                argument_not_found       = 1
+                destination_not_found    = 2
+                destination_no_authority = 3
+                plugin_not_active        = 4
+                internal_error           = 5
+                OTHERS                   = 6 ).
+
+        IF sy-subrc <> 0 OR lo_http_client IS INITIAL.
+            RETURN.
+        ENDIF.
+
+        lo_http_client->request->set_header_field(
+            name  = 'Content-Type'
+            value = 'application/json' ).
+
+        lo_http_client->request->set_header_field(
+            name  = 'SAPINTERFACENAME'
+            value = mc_interface_name ).
+
+        lo_http_client->request->set_method( if_http_request=>co_request_method_post ).
+        lo_http_client->request->set_cdata( lv_json ).
+
+        lo_http_client->send(
+            EXCEPTIONS
+                http_communication_failure = 1
+                http_invalid_state         = 2
+                http_processing_failed     = 3
+                http_invalid_timeout       = 4
+                OTHERS                     = 5 ).
+
+        IF sy-subrc <> 0.
+            lo_http_client->close( ).
+            RETURN.
+        ENDIF.
+
+        lo_http_client->receive(
+            EXCEPTIONS
+                http_communication_failure = 1
+                http_invalid_state         = 2
+                http_processing_failed     = 3
+                OTHERS                     = 4 ).
+
+        IF sy-subrc <> 0.
+            lo_http_client->close( ).
+            RETURN.
+        ENDIF.
+
+        lo_http_client->response->get_status(
+            IMPORTING
+                code   = lv_status
+                reason = lv_reason ).
+
+        IF lv_status = 200.
+            rv_base64 = lo_http_client->response->get_cdata( ).
+        ENDIF.
+
+        lo_http_client->close( ).
+    ENDMETHOD.
+
+
+    METHOD save_pdf_to_frontend.
+        DATA: lv_xstring TYPE xstring,
+                    lv_len     TYPE i,
+                    lt_binary  TYPE solix_tab.
+
+        rv_ok = abap_false.
+
+        CALL FUNCTION 'SCMS_BASE64_DECODE_STR'
+            EXPORTING
+                input  = iv_base64
+            IMPORTING
+                output = lv_xstring
+            EXCEPTIONS
+                failed = 1
+                OTHERS = 2.
+
+        IF sy-subrc <> 0 OR lv_xstring IS INITIAL.
+            RETURN.
+        ENDIF.
+
+        CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+            EXPORTING
+                buffer     = lv_xstring
+            TABLES
+                binary_tab = lt_binary.
+
+        lv_len = xstrlen( lv_xstring ).
+
+        CALL FUNCTION 'GUI_DOWNLOAD'
+            EXPORTING
+                filename     = iv_fullpath
+                filetype     = 'BIN'
+                bin_filesize = lv_len
+            TABLES
+                data_tab     = lt_binary
+            EXCEPTIONS
+                OTHERS       = 1.
+
+        IF sy-subrc = 0.
+            rv_ok = abap_true.
+        ENDIF.
+    ENDMETHOD.
+
+ENDCLASS.

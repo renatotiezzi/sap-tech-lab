@@ -47,7 +47,7 @@ CLASS zcl_q2c_cpi_caller DEFINITION
     " Campos usados para montar o payload.
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
     TYPES: BEGIN OF ty_payload_fields,
-             tipo_doc TYPE ztbq2c_arq_mgr-tipo_doc,
+             bandeira TYPE ztbq2c_arq_mgr-bandeira,
              arquivo  TYPE ztbq2c_arq_mgr-arquivo,
            END OF ty_payload_fields.
 
@@ -76,7 +76,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     " 1. Montar payload — dados já disponíveis em is_arq, sem SELECT adicional
     DATA(lv_payload) = build_payload(
       VALUE #(
-        tipo_doc = is_arq-tipo_doc
+        bandeira = is_arq-bandeira
         arquivo  = is_arq-arquivo
       )
     ).
@@ -95,15 +95,15 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
   METHOD build_payload.
     " ==========================================================
     " CONTRATO DO IFLOW CPI (/http/mgr/reprocessamento):
-    "   "filename" → TipoDoc  (ex: NF, NFSE)
-    "   "conteudo" → Arquivo  (nome do arquivo — ex: NF_FORD_001.xml)
+    "   "filename" → Bandeira  (ex: FORD, RENAULT)
+    "   "conteudo" → Arquivo   (nome do arquivo — ex: NF_FORD_001.xml)
     "
     " Para mudar/adicionar campo:
     "   1. Adicione em ty_payload_fields
     "   2. Preencha no VALUE # em call_cpi_reprocess
     "   3. Inclua na string abaixo
     " ==========================================================
-    rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", | &
+    rv_payload = |\{ "filename": "{ is_fields-bandeira }", | &
                  |"conteudo": "{ is_fields-arquivo }" \}|.
   ENDMETHOD.
 

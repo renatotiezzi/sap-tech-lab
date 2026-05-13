@@ -48,7 +48,7 @@ CLASS zcl_q2c_cpi_caller DEFINITION
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
     TYPES: BEGIN OF ty_payload_fields,
              tipo_doc TYPE ztbq2c_arq_mgr-tipo_doc,
-             conteudo TYPE ztbq2c_arq_mgr-conteudo,
+             arquivo  TYPE ztbq2c_arq_mgr-arquivo,
            END OF ty_payload_fields.
 
     " Único método a alterar quando o contrato do iFlow muda.
@@ -77,7 +77,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     DATA(lv_payload) = build_payload(
       VALUE #(
         tipo_doc = is_arq-tipo_doc
-        conteudo = is_arq-conteudo
+        arquivo  = is_arq-arquivo
       )
     ).
 
@@ -96,7 +96,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     " ==========================================================
     " CONTRATO DO IFLOW CPI (/http/mgr/reprocessamento):
     "   "filename" → TipoDoc  (ex: NF, NFSE)
-    "   "conteudo" → Conteudo (Base64 — gravado assim na tabela pelo POST inicial)
+    "   "conteudo" → Arquivo  (nome do arquivo — ex: NF_FORD_001.xml)
     "
     " Para mudar/adicionar campo:
     "   1. Adicione em ty_payload_fields
@@ -104,7 +104,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     "   3. Inclua na string abaixo
     " ==========================================================
     rv_payload = |\{ "filename": "{ is_fields-tipo_doc }", | &
-                 |"conteudo": "{ is_fields-conteudo }" \}|.
+                 |"conteudo": "{ is_fields-arquivo }" \}|.
   ENDMETHOD.
 
   METHOD execute_http_call.

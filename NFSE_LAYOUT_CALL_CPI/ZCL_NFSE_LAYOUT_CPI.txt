@@ -38,7 +38,7 @@ CLASS zcl_nfse_layout_cpi DEFINITION
                      city   TYPE string,
                  END OF mty_doc_city.
 
-        TYPES mtty_doc_city TYPE STANDARD TABLE OF mty_doc_city.
+        TYPES mtty_doc_city TYPE STANDARD TABLE OF mty_doc_city WITH DEFAULT KEY.
 
         "--------------------------------------------------------------------
         " Constantes de conectividade CPI
@@ -108,12 +108,12 @@ CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
 
         rv_success = abap_false.
 
-        CALL METHOD cl_gui_frontend_services=>directory_browse
+        cl_gui_frontend_services=>directory_browse(
             EXPORTING
                 window_title    = 'Salvar NFSe em PDF'
                 initial_folder  = 'C:\'
             CHANGING
-                selected_folder = lv_path.
+                selected_folder = lv_path ).
 
         IF lv_path IS INITIAL.
             MESSAGE 'Operacao cancelada pelo usuario' TYPE 'S'.
@@ -172,7 +172,7 @@ CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
                 lv_file_name = |{ lv_nfnum9 }.pdf|.
             ENDIF.
 
-            lv_fullpath = |{ lv_path } \\ { lv_file_name }|.
+            lv_fullpath = |{ lv_path }\{ lv_file_name }|.
 
             IF save_pdf_to_frontend(
                      iv_base64   = lv_base64
@@ -223,9 +223,8 @@ CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
             FOR ALL ENTRIES IN @lt_docnum
             WHERE docnum = @lt_docnum-table_line
                 AND name   = 'chave'
-            INTO TABLE @DATA(lt_doc_key_db).
+            INTO CORRESPONDING FIELDS OF TABLE @et_doc_key.
 
-        et_doc_key = lt_doc_key_db.
         SORT et_doc_key BY docnum.
 
         SELECT j_1bnfdoc~docnum, t001w~ort01 AS city
@@ -234,9 +233,7 @@ CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
                 ON t001w~j_1bbranch = j_1bnfdoc~branch
             FOR ALL ENTRIES IN @lt_docnum
             WHERE j_1bnfdoc~docnum = @lt_docnum-table_line
-            INTO TABLE @DATA(lt_doc_city_db).
-
-        et_doc_city = lt_doc_city_db.
+            INTO CORRESPONDING FIELDS OF TABLE @et_doc_city.
 
         LOOP AT et_doc_city INTO ls_city.
             TRANSLATE ls_city-city TO UPPER CASE.

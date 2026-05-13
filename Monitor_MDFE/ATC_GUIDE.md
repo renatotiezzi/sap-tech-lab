@@ -130,11 +130,43 @@ Os blocos da Selection Screen mostram texto em branco sem esses símbolos.
 
 **Tcode:** `SE38` → `ZRMM_MONITOR_MDFE` → **Change** → menu `Goto → Text Elements → Text Symbols`
 
+#### Blocos da Selection Screen (prefixo B)
+
 | Símbolo | Texto |
 |---|---|
 | `B01` | Dados da Nota Fiscal |
 | `B02` | Dados do MDF-e |
 | `B03` | Filtro de Status |
+
+#### Colunas do ALV Tela 100 (prefixo C)
+
+| Símbolo | Texto |
+|---|---|
+| `C01` | Status |
+| `C02` | Nº MDF-e |
+| `C03` | Série |
+| `C04` | Empresa |
+| `C05` | Local Neg. |
+| `C06` | Data Emissão |
+| `C07` | UF Orig. |
+| `C08` | UF Dest. |
+| `C09` | Placa |
+| `C10` | Motorista |
+| `C11` | Chave MDF-e |
+| `C12` | Protocolo |
+| `C13` | Peso (kg) |
+| `C14` | Vl. Total |
+| `C15` | Última Mensagem |
+
+#### Colunas do ALV Tela 200 (prefixo D)
+
+| Símbolo | Texto |
+|---|---|
+| `D01` | Item |
+| `D02` | Chave NF-e |
+| `D03` | Nº Documento |
+| `D04` | Nº NF-e |
+| `D05` | Série |
 
 Salvar → Activate.
 
@@ -169,7 +201,7 @@ Alguns itens do ATC **não podem nem devem ser corrigidos**. Para cada um, criar
 8. SE41: criar TITLE_200_CRE       ← Ação 2
 9. SE41: criar TITLE_200_EDT       ← Ação 2
 10. SE41: criar TITLE_200_DSP      ← Ação 2
-11. SE38: criar text symbols B01/B02/B03 ← Ação 3
+11. SE38: criar text symbols B01/B02/B03 + C01-C15 + D01-D05 ← Ação 3
 12. ATC: criar exceções para J_1BNFE_MONITOR e ZCL_NFSE_LAYOUT_CPI ← Ação 4
 13. ATC: re-executar check no TR GHDK9A0JVA → confirmar Critical Errors = 0
 14. SE01: release do TR GHDK9A0JVA
@@ -183,7 +215,7 @@ Alguns itens do ATC **não podem nem devem ser corrigidos**. Para cada um, criar
 - [ ] `ZRMM_MONITOR_MDFE` ativado sem erros de sintaxe no ADT
 - [ ] 4 GUI Statuses criados e ativos no SE41
 - [ ] 4 GUI Titles criados e ativos no SE41
-- [ ] Text symbols B01/B02/B03 criados no SE38
+- [ ] Text symbols B01/B02/B03 + C01–C15 + D01–D05 criados no SE38
 - [ ] Exceções ATC criadas para `J_1BNFE_MONITOR` e `ZCL_NFSE_LAYOUT_CPI`
 - [ ] ATC re-executado → **Critical Errors = 0** para objetos do TR
 - [ ] TR `GHDK9A0JVA` liberado (SE01)

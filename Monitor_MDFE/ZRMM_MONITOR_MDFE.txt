@@ -328,6 +328,23 @@ FORM build_fcat_100 CHANGING ct_fcat TYPE lvc_t_fcat.
   CLEAR ct_fcat.
   DATA ls_fc TYPE lvc_s_fcat.
 
+  CONSTANTS:
+    lc_fn_status_icon TYPE lvc_fname VALUE 'STATUS_ICON',
+    lc_fn_mdfe_number TYPE lvc_fname VALUE 'MDFE_NUMBER',
+    lc_fn_series      TYPE lvc_fname VALUE 'SERIES',
+    lc_fn_bukrs       TYPE lvc_fname VALUE 'BUKRS',
+    lc_fn_branch      TYPE lvc_fname VALUE 'BRANCH',
+    lc_fn_credat      TYPE lvc_fname VALUE 'CREDAT',
+    lc_fn_uf_orig     TYPE lvc_fname VALUE 'UF_ORIG',
+    lc_fn_uf_dest     TYPE lvc_fname VALUE 'UF_DEST',
+    lc_fn_placa       TYPE lvc_fname VALUE 'PLACA',
+    lc_fn_motorista   TYPE lvc_fname VALUE 'MOTORISTA',
+    lc_fn_access_key  TYPE lvc_fname VALUE 'ACCESS_KEY',
+    lc_fn_nprot       TYPE lvc_fname VALUE 'NPROT',
+    lc_fn_brgew       TYPE lvc_fname VALUE 'BRGEW',
+    lc_fn_nftot       TYPE lvc_fname VALUE 'NFTOT',
+    lc_fn_last_msg    TYPE lvc_fname VALUE 'LAST_MSG'.
+
   DEFINE add_col.
     CLEAR ls_fc.
     ls_fc-fieldname = &1. ls_fc-coltext = &2.
@@ -335,26 +352,33 @@ FORM build_fcat_100 CHANGING ct_fcat TYPE lvc_t_fcat.
     APPEND ls_fc TO ct_fcat.
   END-OF-DEFINITION.
 
-  add_col 'STATUS_ICON' 'Status'          4  abap_true.
-  add_col 'MDFE_NUMBER' 'Nº MDF-e'       10  abap_false.
-  add_col 'SERIES'      'Série'            4  abap_false.
-  add_col 'BUKRS'       'Empresa'          6  abap_false.
-  add_col 'BRANCH'      'Local Neg.'       6  abap_false.
-  add_col 'CREDAT'      'Data Emissão'    10  abap_false.
-  add_col 'UF_ORIG'     'UF Orig.'         4  abap_false.
-  add_col 'UF_DEST'     'UF Dest.'         4  abap_false.
-  add_col 'PLACA'       'Placa'            8  abap_false.
-  add_col 'MOTORISTA'   'Motorista'       20  abap_false.
-  add_col 'ACCESS_KEY'  'Chave MDF-e'    44  abap_false.
-  add_col 'NPROT'       'Protocolo'       15  abap_false.
-  add_col 'BRGEW'       'Peso (kg)'       12  abap_false.
-  add_col 'NFTOT'       'Vl. Total'       15  abap_false.
-  add_col 'LAST_MSG'    'Última Mensagem' 50  abap_false.
+  add_col lc_fn_status_icon TEXT-c01  4  abap_true.   " 'Status'
+  add_col lc_fn_mdfe_number TEXT-c02 10  abap_false.  " 'Nº MDF-e'
+  add_col lc_fn_series      TEXT-c03  4  abap_false.  " 'Série'
+  add_col lc_fn_bukrs       TEXT-c04  6  abap_false.  " 'Empresa'
+  add_col lc_fn_branch      TEXT-c05  6  abap_false.  " 'Local Neg.'
+  add_col lc_fn_credat      TEXT-c06 10  abap_false.  " 'Data Emissão'
+  add_col lc_fn_uf_orig     TEXT-c07  4  abap_false.  " 'UF Orig.'
+  add_col lc_fn_uf_dest     TEXT-c08  4  abap_false.  " 'UF Dest.'
+  add_col lc_fn_placa       TEXT-c09  8  abap_false.  " 'Placa'
+  add_col lc_fn_motorista   TEXT-c10 20  abap_false.  " 'Motorista'
+  add_col lc_fn_access_key  TEXT-c11 44  abap_false.  " 'Chave MDF-e'
+  add_col lc_fn_nprot       TEXT-c12 15  abap_false.  " 'Protocolo'
+  add_col lc_fn_brgew       TEXT-c13 12  abap_false.  " 'Peso (kg)'
+  add_col lc_fn_nftot       TEXT-c14 15  abap_false.  " 'Vl. Total'
+  add_col lc_fn_last_msg    TEXT-c15 50  abap_false.  " 'Última Mensagem'
 ENDFORM.
 
 FORM build_fcat_200 CHANGING ct_fcat TYPE lvc_t_fcat.
   CLEAR ct_fcat.
   DATA ls_fc TYPE lvc_s_fcat.
+
+  CONSTANTS:
+    lc_fn_item_num  TYPE lvc_fname VALUE 'ITEM_NUM',
+    lc_fn_accesskey TYPE lvc_fname VALUE 'ACCESSKEY',
+    lc_fn_docnum    TYPE lvc_fname VALUE 'DOCNUM',
+    lc_fn_nfenum    TYPE lvc_fname VALUE 'NFENUM',
+    lc_fn_series    TYPE lvc_fname VALUE 'SERIES'.
 
   DEFINE add_col2.
     CLEAR ls_fc.
@@ -363,9 +387,9 @@ FORM build_fcat_200 CHANGING ct_fcat TYPE lvc_t_fcat.
     APPEND ls_fc TO ct_fcat.
   END-OF-DEFINITION.
 
-  add_col2 'ITEM_NUM'  'Item'           4  abap_false.
-  add_col2 'ACCESSKEY' 'Chave NF-e'   44  abap_true.
-  add_col2 'DOCNUM'    'Nº Documento' 10  abap_true.
-  add_col2 'NFENUM'    'Nº NF-e'       9  abap_false.
-  add_col2 'SERIES'    'Série'          4  abap_false.
+  add_col2 lc_fn_item_num  TEXT-d01  4  abap_false.  " 'Item'
+  add_col2 lc_fn_accesskey TEXT-d02 44  abap_true.   " 'Chave NF-e'
+  add_col2 lc_fn_docnum    TEXT-d03 10  abap_true.   " 'Nº Documento'
+  add_col2 lc_fn_nfenum    TEXT-d04  9  abap_false.  " 'Nº NF-e'
+  add_col2 lc_fn_series    TEXT-d05  4  abap_false.  " 'Série'
 ENDFORM.

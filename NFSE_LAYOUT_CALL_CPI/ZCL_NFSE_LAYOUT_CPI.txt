@@ -172,7 +172,7 @@ CLASS zcl_nfse_layout_cpi IMPLEMENTATION.
                 lv_file_name = |{ lv_nfnum9 }.pdf|.
             ENDIF.
 
-            lv_fullpath = |{ lv_path }\{ lv_file_name }|.
+            lv_fullpath = |{ lv_path }\\{ lv_file_name }|.
 
             IF save_pdf_to_frontend(
                      iv_base64   = lv_base64

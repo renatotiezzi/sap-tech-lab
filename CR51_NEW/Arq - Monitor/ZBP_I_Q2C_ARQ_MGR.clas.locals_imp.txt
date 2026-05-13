@@ -96,11 +96,18 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       ).
 
       TRY.
-          " 5. Chamar CPI — passa estrutura de tabela plana para desacoplar do tipo RAP.
+          " 5. Buscar dados direto da tabela — CORRESPONDING não mapeia CamelCase → snake_case
+          "    (ex: TipoDoc ≠ tipo_doc, UltimoErro ≠ ultimo_erro → campos ficam em branco).
+          SELECT SINGLE * FROM ztbq2c_arq_mgr
+            WHERE pedido   = @entity-Pedido
+            AND   bandeira = @entity-Bandeira
+            INTO @DATA(ls_arq).
+
+          " 6. Chamar CPI — passa estrutura de tabela plana para desacoplar do tipo RAP.
           " Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER.
           cpi_caller->call_cpi_reprocess(
             EXPORTING
-              is_arq    = CORRESPONDING ztbq2c_arq_mgr( entity )
+              is_arq    = ls_arq
             IMPORTING
               ev_status = DATA(cpi_status)
           ).

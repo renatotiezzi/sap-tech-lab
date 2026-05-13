@@ -109,7 +109,6 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
   METHOD execute_http_call.
     DATA: lo_client    TYPE REF TO if_http_client,
-          lv_body_xstr TYPE xstring,
           lv_http_code TYPE i,
           lv_reason    TYPE string.
 
@@ -137,12 +136,8 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     lo_client->request->set_header_field( name  = 'Content-Type'
                                           value = 'application/json' ).
 
-    " 3. Converter payload JSON string → xstring e setar como body
-    cl_bcs_convert=>string_to_xstring(
-      EXPORTING iv_string  = payload
-      RECEIVING ev_xstring = lv_body_xstr
-    ).
-    lo_client->request->set_data( lv_body_xstr ).
+    " 3. Setar body diretamente como string (sem conversão)
+    lo_client->request->set_cdata( payload ).
 
     " 4. Enviar
     lo_client->send(

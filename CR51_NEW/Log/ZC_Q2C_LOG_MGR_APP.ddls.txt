@@ -2,12 +2,11 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @Metadata.allowExtensions: true
 // -----------------------------------------------------------------------
-// Projeção independente — root entity standalone (sem redirected to parent)
-// Filtrar por Pedido + Bandeira para ver o histórico de um arquivo
+// Projeção filha para histórico via composição de ZC_Q2C_LOG_SUM_APP.
+// Não é root entity independente.
 // -----------------------------------------------------------------------
-define root view entity ZC_Q2C_LOG_MGR_APP
-  provider contract transactional_query
-  as projection on ZI_Q2C_LOG_MGR
+define view entity ZC_Q2C_LOG_MGR_APP
+  as projection on ZI_Q2C_LOG_DET
 {
   key Pedido,
   key Bandeira,
@@ -16,5 +15,7 @@ define root view entity ZC_Q2C_LOG_MGR_APP
       IdRef,
       Etapa,
       Mensagem,
-      Ernam
+      Ernam,
+
+      _Parent
 }

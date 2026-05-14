@@ -8,8 +8,8 @@
 // Chave: (Pedido, Bandeira) — uma linha por combinação de chave.
 // Exibe os campos da ÚLTIMA execução registrada (UltDatum, UltEtapa...).
 //
-// _Detail → ZI_Q2C_LOG_MGR: todas as execuções para aquela chave.
-// Usado na Object Page como faceta de histórico completo.
+// _Detail → ZI_Q2C_LOG_DET: todas as execuções para aquela chave.
+// Composição pai→filho: filho não é acessível como root entity independente.
 // -----------------------------------------------------------------------
 define root view entity ZI_Q2C_LOG_SUM
   as select from ZI_Q2C_LOG_LAST as last
@@ -19,9 +19,7 @@ define root view entity ZI_Q2C_LOG_SUM
     and last.LastDatum = log.datum
     and last.LastUzeit = log.uzeit
 
-  association [0..*] to ZI_Q2C_LOG_MGR as _Detail
-    on  $projection.Pedido   = _Detail.Pedido
-    and $projection.Bandeira = _Detail.Bandeira
+  composition [0..*] of ZI_Q2C_LOG_DET as _Detail
 {
   key log.pedido   as Pedido,
   key log.bandeira as Bandeira,

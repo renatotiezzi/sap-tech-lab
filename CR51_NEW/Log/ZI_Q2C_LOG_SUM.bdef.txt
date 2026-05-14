@@ -4,3 +4,8 @@ define behavior for ZI_Q2C_LOG_SUM alias LogSum
   authorization not required
 {
 }
+
+define behavior for ZI_Q2C_LOG_DET alias LogDet
+  authorization not required
+{
+}

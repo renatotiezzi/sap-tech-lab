@@ -1,7 +1,7 @@
 @EndUserText.label: 'Service Definition LOG MGR - Viewer App'
 define service ZSD_Q2C_LOG_MGR_APP {
   // List Report: última execução por chave (Pedido + Bandeira)
+  // Object Page: histórico completo acessível via composição _Detail
+  // ZC_Q2C_LOG_DET_APP é filho de ZC_Q2C_LOG_SUM_APP — não exposto como root entity
   expose ZC_Q2C_LOG_SUM_APP as LogSum;
-  // Navigation target: histórico completo na Object Page
-  expose ZC_Q2C_LOG_MGR_APP as LogDetail;
 }

@@ -1,0 +1,35 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'LOG MGR - Sumário última execução (consolidado)'
+@Metadata.ignorePropagatedAnnotations: true
+
+// -----------------------------------------------------------------------
+// V2 FIX: SIMPLIFICAR para compatibilidade com old CDS.
+// 1. GROUP BY (Pedido, Bandeira) na tabela bruta (ztbq2c_log_mgr)
+// 2. Aggregar: max(datum), MAX(uzeit) separado (aceitável se dados são únicos por data)
+// 3. INNER JOIN para puxar a linha completa
+//
+// ASSUNÇÃO: Na tabela, para cada (Pedido, Bandeira, datum),
+// existe apenas um uzeit (last execution por dia).
+// Se não, use apenas MAX(datum) e ignore uzeit no JOIN.
+// -----------------------------------------------------------------------
+define root view entity ZI_Q2C_LOG_SUM
+  as select from ZI_Q2C_LOG_LAST as last
+  inner join    ztbq2c_log_mgr   as log
+    on  last.Pedido    = log.pedido
+    and last.Bandeira  = log.bandeira
+    and last.LastDatum = log.datum
+
+  composition [0..*] of ZI_Q2C_LOG_DET as _Detail
+{
+  key log.pedido   as Pedido,
+  key log.bandeira as Bandeira,
+      log.datum    as UltDatum,
+      log.uzeit    as UltUzeit,
+      log.etapa    as UltEtapa,
+      log.mensagem as UltMensagem,
+      log.ernam    as UltErnam,
+
+      /* Association */
+      _Detail
+}

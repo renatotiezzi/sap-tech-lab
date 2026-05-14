@@ -1,0 +1,56 @@
+@Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Processamento MGR',
+    typeNamePlural: 'Processamentos MGR',
+    title:       { value: 'Pedido' },
+    description: { value: 'Bandeira' }
+  }
+}
+annotate view ZC_Q2C_LOG_SUM_APP with
+{
+  // -----------------------------------------------------------------------
+  // Object Page: tabela com TODAS as execuções para aquela chave
+  // via association _Detail → ZC_Q2C_LOG_MGR_APP
+  // -----------------------------------------------------------------------
+  @UI.facet: [
+    { id:            'Historico',
+      purpose:       #STANDARD,
+      type:          #LINEITEM_REFERENCE,
+      label:         'Histórico de Execuções',
+      targetElement: '_Detail',
+      position:      10 }
+  ]
+
+  @EndUserText.label: 'Pedido'
+  @UI.selectionField: [{ position: 10 }]
+  @UI.lineItem: [{ position: 10, importance: #HIGH }]
+  Pedido;
+
+  @EndUserText.label: 'Bandeira'
+  @UI.selectionField: [{ position: 20 }]
+  @UI.lineItem: [{ position: 20, importance: #HIGH }]
+  Bandeira;
+
+  @EndUserText.label: 'Última Execução — Data'
+  @UI.selectionField: [{ position: 30 }]
+  @UI.lineItem: [{ position: 30, importance: #HIGH }]
+  UltDatum;
+
+  @EndUserText.label: 'Última Execução — Hora'
+  @UI.lineItem: [{ position: 40, importance: #HIGH }]
+  UltUzeit;
+
+  @EndUserText.label: 'Última Etapa'
+  @UI.selectionField: [{ position: 40 }]
+  @UI.lineItem: [{ position: 50, importance: #HIGH }]
+  UltEtapa;
+
+  @EndUserText.label: 'Última Mensagem'
+  @UI.lineItem: [{ position: 60, importance: #MEDIUM }]
+  UltMensagem;
+
+  @EndUserText.label: 'Executado por'
+  @UI.lineItem: [{ position: 70 }]
+  UltErnam;
+}

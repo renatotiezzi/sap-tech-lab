@@ -1,0 +1,15 @@
+unmanaged implementation in class ZBP_I_Q2C_LOG_SUM unique;
+
+define behavior for ZI_Q2C_LOG_SUM alias LogSum
+  lock master
+  authorization master ( global )
+{
+  association _Detail;
+}
+
+define behavior for ZI_Q2C_LOG_DET alias LogDet
+  lock dependent by _Parent
+  authorization dependent by _Parent
+{
+  association _Parent;
+}

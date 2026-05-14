@@ -18,7 +18,6 @@
 - ZBP_I_Q2C_LOG_SUM.clas.locals_imp.txt
 - ZI_Q2C_LOG_SUM.bdef.txt
 - ZC_Q2C_LOG_MGR_APP.ddls.txt
-- ZC_Q2C_LOG_MGR_APP.bdef.txt
 - ZC_Q2C_LOG_MGR_APP_MDE.ddlx.txt
 - ZC_Q2C_LOG_SUM_APP.ddls.txt
 - ZC_Q2C_LOG_SUM_APP.bdef.txt
@@ -35,22 +34,20 @@
 6. ZBP_I_Q2C_LOG_SUM.clas.locals_imp
 7. ZI_Q2C_LOG_SUM.bdef
 8. ZC_Q2C_LOG_MGR_APP.ddls
-9. ZC_Q2C_LOG_MGR_APP.bdef
-10. ZC_Q2C_LOG_SUM_APP.ddls
-11. ZC_Q2C_LOG_SUM_APP.bdef
-12. ZC_Q2C_LOG_MGR_APP_MDE.ddlx
-13. ZC_Q2C_LOG_SUM_APP_MDE.ddlx
-14. ZSD_Q2C_LOG_MGR_APP.srvd
-15. Republicar ZSB_Q2C_LOG_MGR_APP
+9. ZC_Q2C_LOG_SUM_APP.ddls
+10. ZC_Q2C_LOG_SUM_APP.bdef
+11. ZC_Q2C_LOG_MGR_APP_MDE.ddlx
+12. ZC_Q2C_LOG_SUM_APP_MDE.ddlx
+13. ZSD_Q2C_LOG_MGR_APP.srvd
+14. Republicar ZSB_Q2C_LOG_MGR_APP
 
 ## Sequencia minima para destravar quando aparece "mostra tudo"
 
 1. Ativar ZC_Q2C_LOG_MGR_APP.ddls (tem que selecionar de ZI_Q2C_LOG_DET)
-2. Ativar ZC_Q2C_LOG_MGR_APP.bdef
-3. Ativar ZC_Q2C_LOG_SUM_APP.ddls (tem que redirecionar _Detail para ZC_Q2C_LOG_MGR_APP)
-4. Ativar ZC_Q2C_LOG_SUM_APP.bdef
-5. Ativar ZSD_Q2C_LOG_MGR_APP.srvd
-6. Republicar binding
+2. Ativar ZC_Q2C_LOG_SUM_APP.ddls (tem que redirecionar _Detail para ZC_Q2C_LOG_MGR_APP)
+3. Ativar ZC_Q2C_LOG_SUM_APP.bdef (inclui child LogMgrApp no mesmo arquivo)
+4. Ativar ZSD_Q2C_LOG_MGR_APP.srvd
+5. Republica binding
 
 ## Check rapido no Eclipse
 

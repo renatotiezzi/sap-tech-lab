@@ -18,7 +18,7 @@ Converter o Log Viewer de **cross-BO association** (com dois List Reports mistur
 | 5 | `ZBP_I_Q2C_LOG_SUM.clas.locals_imp` | Classe Locals | **ALTERADO** | Add `lhc_log_det` handler class |
 | 6 | `ZC_Q2C_LOG_DET_APP.ddls` | CDS Projection | **NOVO** | Child projection, acesso via composição |
 | 7 | `ZC_Q2C_LOG_DET_APP_MDE.ddlx` | Metadata Extension | **NOVO** | UI annotations (tabela sem drill-down, sem facets) |
-| 8 | `ZC_Q2C_LOG_SUM_APP.ddls` | CDS Projection | **ALTERADO** | `redirected to composition child ZC_Q2C_LOG_DET_APP` |
+| 8 | `ZC_Q2C_LOG_SUM_APP.ddls` | CDS Projection | **ALTERADO** | `redirected to ZC_Q2C_LOG_DET_APP` (compatível com release antigo) |
 | 9 | `ZC_Q2C_LOG_SUM_APP.bdef` | Projection BDEF | **ALTERADO** | Add child projection behavior `LogDetApp` |
 | 10 | `ZSD_Q2C_LOG_MGR_APP.srvd` | Service Definition | **ALTERADO** | Remove `expose ZC_Q2C_LOG_MGR_APP as LogDetail` (era root standalone) |
 | 11 | `ZC_Q2C_LOG_SUM_APP_MDE.ddlx` | Metadata Extension | **NÃO alterado** | Facet `_Detail` ainda válido, agora aponta para filho |
@@ -64,7 +64,7 @@ Converter o Log Viewer de **cross-BO association** (com dois List Reports mistur
 
 ### Fase 4: Root Projection + Service (Projection + Service Layer)
 **8️⃣  ZC_Q2C_LOG_SUM_APP.ddls**
-   - Root projection com `_Detail : redirected to composition child ZC_Q2C_LOG_DET_APP`
+   - Root projection com `_Detail : redirected to ZC_Q2C_LOG_DET_APP` (sintaxe compatível)
    - Depende de: ZC_Q2C_LOG_DET_APP.ddls (projeção filho)
 
 **9️⃣  ZC_Q2C_LOG_SUM_APP.bdef**

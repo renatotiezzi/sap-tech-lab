@@ -18,5 +18,7 @@ define view entity ZC_Q2C_LOG_DET_APP
       IdRef,
       Etapa,
       Mensagem,
-      Ernam
+      Ernam,
+
+      _Parent
 }

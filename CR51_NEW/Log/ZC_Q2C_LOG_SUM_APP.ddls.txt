@@ -19,6 +19,6 @@ define root view entity ZC_Q2C_LOG_SUM_APP
       UltMensagem,
       UltErnam,
 
-      /* Composição filho — histórico completo na Object Page, sem drill-down adicional */
-      _Detail : redirected to composition child ZC_Q2C_LOG_DET_APP
+      /* Composição filho — sintaxe compatível com release antigo RAP */
+      _Detail : redirected to ZC_Q2C_LOG_DET_APP
 }

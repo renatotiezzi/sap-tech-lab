@@ -1,0 +1,9 @@
+projection;
+
+define behavior for ZC_Q2C_LOG_SUM_APP alias LogSumApp
+{
+}
+
+define behavior for ZC_Q2C_LOG_DET_APP alias LogDetApp
+{
+}

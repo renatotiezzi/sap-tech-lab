@@ -2,7 +2,7 @@
 
 ## Delta do V2 final
 
-- Modelo de navegacao consolidado em SUM -> MGR (sem DET_APP no pacote).
+- Modelo de navegacao consolidado em SUM -> DET (child dedicado).
 - Calculo do ultimo registro feito em 2 helpers deterministicos:
   - ZI_Q2C_LOG_LAST: max(datum) por chave
   - ZI_Q2C_LOG_LAST_TIME: max(uzeit) na ultima data
@@ -19,6 +19,8 @@
 - ZI_Q2C_LOG_SUM.bdef.txt
 - ZC_Q2C_LOG_MGR_APP.ddls.txt
 - ZC_Q2C_LOG_MGR_APP_MDE.ddlx.txt
+- ZC_Q2C_LOG_DET_APP.ddls.txt
+- ZC_Q2C_LOG_DET_APP_MDE.ddlx.txt
 - ZC_Q2C_LOG_SUM_APP.ddls.txt
 - ZC_Q2C_LOG_SUM_APP.bdef.txt
 - ZC_Q2C_LOG_SUM_APP_MDE.ddlx.txt
@@ -34,18 +36,19 @@
 6. ZBP_I_Q2C_LOG_SUM.clas.locals_imp
 7. ZI_Q2C_LOG_SUM.bdef
 8. ZC_Q2C_LOG_MGR_APP.ddls
-9. ZC_Q2C_LOG_SUM_APP.ddls
-10. ZC_Q2C_LOG_SUM_APP.bdef
-11. ZC_Q2C_LOG_MGR_APP_MDE.ddlx
-12. ZC_Q2C_LOG_SUM_APP_MDE.ddlx
-13. ZSD_Q2C_LOG_MGR_APP.srvd
-14. Republicar ZSB_Q2C_LOG_MGR_APP
+9. ZC_Q2C_LOG_DET_APP.ddls
+10. ZC_Q2C_LOG_SUM_APP.ddls
+11. ZC_Q2C_LOG_SUM_APP.bdef
+12. ZC_Q2C_LOG_DET_APP_MDE.ddlx
+13. ZC_Q2C_LOG_SUM_APP_MDE.ddlx
+14. ZSD_Q2C_LOG_MGR_APP.srvd
+15. Republicar ZSB_Q2C_LOG_MGR_APP
 
 ## Sequencia minima para destravar quando aparece "mostra tudo"
 
-1. Ativar ZC_Q2C_LOG_MGR_APP.ddls (tem que selecionar de ZI_Q2C_LOG_DET)
-2. Ativar ZC_Q2C_LOG_SUM_APP.ddls (tem que redirecionar _Detail para ZC_Q2C_LOG_MGR_APP)
-3. Ativar ZC_Q2C_LOG_SUM_APP.bdef (inclui child LogMgrApp no mesmo arquivo)
+1. Ativar ZC_Q2C_LOG_DET_APP.ddls
+2. Ativar ZC_Q2C_LOG_SUM_APP.ddls (redirecionando _Detail para ZC_Q2C_LOG_DET_APP)
+3. Ativar ZC_Q2C_LOG_SUM_APP.bdef
 4. Ativar ZSD_Q2C_LOG_MGR_APP.srvd
 5. Republica binding
 

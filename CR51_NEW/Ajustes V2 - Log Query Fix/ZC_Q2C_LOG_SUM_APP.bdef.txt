@@ -4,3 +4,8 @@ define behavior for ZC_Q2C_LOG_SUM_APP alias LogSumApp
 {
 	use association _Detail;
 }
+
+define behavior for ZC_Q2C_LOG_DET_APP alias LogDetApp
+{
+	use association _Parent;
+}

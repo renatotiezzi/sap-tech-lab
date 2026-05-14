@@ -3,6 +3,8 @@
 ## Objetivo
 Converter o Log Viewer de **cross-BO association** (com dois List Reports misturados) para **composition parent-child** (com List Report limpo + Object Page com histórico completo).
 
+**NOTA CRÍTICA:** ZI_Q2C_LOG_LAST também foi corrigido para retornar o último registro **único** por chave usando NOT EXISTS (antes usava max(datum)+max(uzeit) separados, que não casava registros diferentes).
+
 ## Problema que resolve
 - ❌ Antes: duas previews, uma mostrando todos os 23 logs misturados ("em um mostra tudo"), outra mostrando 1 log apenas ("qnd clica não mostra tudo")
 - ✅ Depois: List Report com 1 linha por (Pedido + Bandeira) + última mensagem. Ao clicar → Object Page com TODOS os logs daquela chave em uma tabela, sem chevron de drill-down adicional

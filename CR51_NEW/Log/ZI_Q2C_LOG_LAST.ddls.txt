@@ -5,17 +5,21 @@
 
 // -----------------------------------------------------------------------
 // Helper interno (sem BDEF) — não expor diretamente em serviço.
-// Pressupõe que os registros são inseridos com sy-datum/sy-uzeit em
-// ordem cronológica, portanto max(Datum)+max(Uzeit) identifica
-// corretamente o registro mais recente por chave.
-// Usado exclusivamente por ZI_Q2C_LOG_SUM como base do JOIN.
+// Busca o ÚLTIMO registro de cada (Pedido, Bandeira) usando NOT EXISTS.
+// Compatível com releases antigas do SAP (sem window functions/limit).
 // -----------------------------------------------------------------------
 define view entity ZI_Q2C_LOG_LAST
-  as select from ztbq2c_log_mgr
+  as select from ztbq2c_log_mgr as t1
+  where not exists (
+    select * from ztbq2c_log_mgr as t2
+    where t1.pedido = t2.pedido
+    and t1.bandeira = t2.bandeira
+    and ( t2.datum > t1.datum or 
+          ( t2.datum = t1.datum and t2.uzeit > t1.uzeit ) )
+  )
 {
-  key pedido          as Pedido,
-  key bandeira        as Bandeira,
-      max( datum )    as LastDatum,
-      max( uzeit )    as LastUzeit
+  key t1.pedido   as Pedido,
+  key t1.bandeira as Bandeira,
+      t1.datum    as LastDatum,
+      t1.uzeit    as LastUzeit
 }
-group by pedido, bandeira

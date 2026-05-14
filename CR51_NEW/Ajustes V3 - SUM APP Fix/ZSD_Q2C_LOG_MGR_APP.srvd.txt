@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service Definition LOG MGR - Viewer App'
+define service ZSD_Q2C_LOG_MGR_APP {
+  expose ZC_Q2C_LOG_SUM_APP as LogSum;
+  expose ZC_Q2C_LOG_DET_APP as LogDet;
+}

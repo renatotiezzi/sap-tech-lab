@@ -1,0 +1,24 @@
+@EndUserText.label: 'LOG MGR - App Detalhe (histórico por chave)'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+
+// -----------------------------------------------------------------------
+// Projeção filho — acessível SOMENTE via composição a partir de
+// ZC_Q2C_LOG_SUM_APP._Detail.
+// Não é root entity: não há tile/app standalone para esta entidade.
+// Exibe todas as execuções de um (Pedido + Bandeira).
+// -----------------------------------------------------------------------
+define view entity ZC_Q2C_LOG_DET_APP
+  as projection on ZI_Q2C_LOG_DET
+{
+  key Pedido,
+  key Bandeira,
+  key Datum,
+  key Uzeit,
+      IdRef,
+      Etapa,
+      Mensagem,
+      Ernam,
+
+      _Parent
+}

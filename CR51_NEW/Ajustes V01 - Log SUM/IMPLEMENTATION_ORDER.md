@@ -3,16 +3,17 @@
 ## Objetivo
 Converter o Log Viewer de **cross-BO association** (com dois List Reports misturados) para **composition parent-child** (com List Report limpo + Object Page com histórico completo).
 
-**NOTA CRÍTICA:** ZI_Q2C_LOG_LAST também foi corrigido para retornar o último registro **único** por chave usando NOT EXISTS (antes usava max(datum)+max(uzeit) separados, que não casava registros diferentes).
+**NOTA CRÍTICA:** ZI_Q2C_LOG_LAST foi corrigido: usa `GROUP BY + max()` (sintaxe CDS válida) em vez de WHERE complexo (não suportado em CDS views).
 
 ## Problema que resolve
 - ❌ Antes: duas previews, uma mostrando todos os 23 logs misturados ("em um mostra tudo"), outra mostrando 1 log apenas ("qnd clica não mostra tudo")
 - ✅ Depois: List Report com 1 linha por (Pedido + Bandeira) + última mensagem. Ao clicar → Object Page com TODOS os logs daquela chave em uma tabela, sem chevron de drill-down adicional
 
-## Arquivos envolvidos (9 objetos)
+## Arquivos envolvidos (10 objetos)
 
 | # | Arquivo | Tipo | Status | Motivo |
 |---|---|---|---|---|
+| 0 | `ZI_Q2C_LOG_LAST.ddls` | CDS (modificado) | **ALTERADO** | GROUP BY + max() para último registro por chave (antes: WHERE não válido em CDS) |
 | 1 | `ZI_Q2C_LOG_DET.ddls` | CDS (novo) | **NOVO** | Child interface, non-root, dentro da composition |
 | 2 | `ZI_Q2C_LOG_SUM.ddls` | CDS | **ALTERADO** | `association` → `composition [0..*] of ZI_Q2C_LOG_DET` |
 | 3 | `ZI_Q2C_LOG_SUM.bdef` | BDEF | **ALTERADO** | Add child behavior `LogDet` |

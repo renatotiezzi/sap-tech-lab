@@ -8,6 +8,8 @@
 // Chave: (Pedido, Bandeira) — uma linha por combinação de chave.
 // Exibe os campos da ÚLTIMA execução registrada (UltDatum, UltEtapa...).
 //
+// Usa ZI_Q2C_LOG_LAST para identificar o último registro (max datum+uzeit),
+// depois faz INNER JOIN para puxar todos os campos do registro.
 // _Detail → ZI_Q2C_LOG_DET: todas as execuções para aquela chave.
 // Composição pai→filho: filho não é acessível como root entity independente.
 // -----------------------------------------------------------------------

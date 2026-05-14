@@ -5,9 +5,10 @@
 
 // -----------------------------------------------------------------------
 // Helper interno (sem BDEF) — não expor diretamente em serviço.
-// Retorna APENAS a chave (Pedido, Bandeira) + máximo datum + máximo uzeit
-// por chave, agregado corretamente.
-// Usado exclusivamente por ZI_Q2C_LOG_SUM para encontrar o último registro.
+// Pressupõe que os registros são inseridos com sy-datum/sy-uzeit em
+// ordem cronológica, portanto max(Datum)+max(Uzeit) identifica
+// corretamente o registro mais recente por chave.
+// Usado exclusivamente por ZI_Q2C_LOG_SUM como base do JOIN.
 // -----------------------------------------------------------------------
 define view entity ZI_Q2C_LOG_LAST
   as select from ztbq2c_log_mgr

@@ -1,0 +1,22 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'LOG MGR - Última hora na última data (helper)'
+@Metadata.ignorePropagatedAnnotations: true
+
+// -----------------------------------------------------------------------
+// Helper 2/2: para a última DATA de cada chave, calcula a última HORA.
+// Resultado determinístico para JOIN final com a tabela de log.
+// -----------------------------------------------------------------------
+define view entity ZI_Q2C_LOG_LAST_TIME
+  as select from ZI_Q2C_LOG_LAST as d
+  inner join    ztbq2c_log_mgr   as log
+    on  d.Pedido    = log.pedido
+    and d.Bandeira  = log.bandeira
+    and d.LastDatum = log.datum
+{
+  key d.Pedido       as Pedido,
+  key d.Bandeira     as Bandeira,
+  key d.LastDatum    as LastDatum,
+      max( log.uzeit ) as LastUzeit
+}
+group by d.Pedido, d.Bandeira, d.LastDatum

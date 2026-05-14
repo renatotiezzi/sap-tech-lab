@@ -1,14 +1,11 @@
 @AbapCatalog.viewEnhancementCategory: [#NONE]
 @AccessControl.authorizationCheck: #NOT_REQUIRED
-@EndUserText.label: 'LOG MGR - Última data de execução por chave (V2)'
+@EndUserText.label: 'LOG MGR - Última data por chave (helper)'
 @Metadata.ignorePropagatedAnnotations: true
 
 // -----------------------------------------------------------------------
-// V2: SIMPLIFICADO para compatibilidade.
-// Retorna APENAS max(datum) por chave — sem uzeit.
-// Assume que por dia há uma única execução por (Pedido, Bandeira).
-// Se houver múltiplas execuções no mesmo dia, JOIN retorna a PRIMEIRA
-// que bater com max(datum) (determinística).
+// Helper 1/2: última DATA por (Pedido, Bandeira).
+// Sem subquery complexa; compatível com releases antigos.
 // -----------------------------------------------------------------------
 define view entity ZI_Q2C_LOG_LAST
   as select from ztbq2c_log_mgr

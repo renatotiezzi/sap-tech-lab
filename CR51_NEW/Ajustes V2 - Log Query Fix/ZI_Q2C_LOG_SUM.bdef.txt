@@ -4,6 +4,7 @@ define behavior for ZI_Q2C_LOG_SUM alias LogSum
   lock master
   authorization master ( global )
 {
+  field ( readonly ) Pedido, Bandeira, UltDatum, UltUzeit, UltEtapa, UltMensagem, UltErnam;
   association _Detail;
 }
 
@@ -11,5 +12,6 @@ define behavior for ZI_Q2C_LOG_DET alias LogDet
   lock dependent by _Parent
   authorization dependent by _Parent
 {
+  field ( readonly ) Pedido, Bandeira, Datum, Uzeit, IdRef, Etapa, Mensagem, Ernam;
   association _Parent;
 }

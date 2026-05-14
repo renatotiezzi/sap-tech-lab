@@ -3,12 +3,10 @@
 @Metadata.allowExtensions: true
 
 // -----------------------------------------------------------------------
-// Projeção filho — acessível SOMENTE via composição a partir de
-// ZC_Q2C_LOG_SUM_APP._Detail.
-// Não é root entity: não há tile/app standalone para esta entidade.
-// Exibe todas as execuções de um (Pedido + Bandeira) sem drill-down adicional.
+// Projeção filha para histórico via composição de ZC_Q2C_LOG_SUM_APP.
+// Mantém o nome MGR_APP para evitar conflito com objetos já existentes.
 // -----------------------------------------------------------------------
-define view entity ZC_Q2C_LOG_DET_APP
+define view entity ZC_Q2C_LOG_MGR_APP
   as projection on ZI_Q2C_LOG_DET
 {
   key Pedido,

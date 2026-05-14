@@ -1,13 +1,10 @@
 @Metadata.layer: #CUSTOMER
 
 // -----------------------------------------------------------------------
-// Metadata Extension para ZC_Q2C_LOG_DET_APP (entidade filho).
-// Exibida como tabela dentro da Object Page de ZC_Q2C_LOG_SUM_APP.
-// SEM @UI.facet aqui — intencionalmente sem Object Page própria,
-// para evitar drill-down adicional nas linhas de log.
-// Cada linha é somente leitura, sem chevron de navegação.
+// Metadata da entidade filha exibida na Object Page do SUM.
+// Sem @UI.facet para evitar Object Page própria e drill-down adicional.
 // -----------------------------------------------------------------------
-annotate view ZC_Q2C_LOG_DET_APP with
+annotate view ZC_Q2C_LOG_MGR_APP with
 {
   @EndUserText.label: 'Data'
   @UI.lineItem: [ { position: 10, importance: #HIGH } ]
@@ -30,7 +27,6 @@ annotate view ZC_Q2C_LOG_DET_APP with
   @UI.lineItem: [ { position: 50 } ]
   Ernam;
 
-  // Campos de chave herdados do contexto do pai — ocultos na tabela
   @UI.hidden: true
   Pedido;
 

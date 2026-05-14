@@ -1,0 +1,25 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'LOG MGR - Sumário última execução por chave'
+@Metadata.ignorePropagatedAnnotations: true
+
+define root view entity ZI_Q2C_LOG_SUM
+  as select from ZI_Q2C_LOG_LAST_TIME as last
+  inner join    ztbq2c_log_mgr   as log
+    on  last.Pedido    = log.pedido
+    and last.Bandeira  = log.bandeira
+    and last.LastDatum = log.datum
+    and last.LastUzeit = log.uzeit
+
+  composition [0..*] of ZI_Q2C_LOG_DET as _Detail
+{
+  key log.pedido   as Pedido,
+  key log.bandeira as Bandeira,
+      log.datum    as UltDatum,
+      log.uzeit    as UltUzeit,
+      log.etapa    as UltEtapa,
+      log.mensagem as UltMensagem,
+      log.ernam    as UltErnam,
+
+      _Detail
+}

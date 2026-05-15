@@ -35,6 +35,10 @@ FUNCTION zfm_q2c_cpi_call_async
 
   CHECK sy-subrc = 0.
 
+  " Aguardar antes de chamar o CPI — garante que o lock RAP foi liberado
+  " e o commit do handler já foi processado pelo banco antes do callback
+  WAIT UP TO 5 SECONDS.
+
   " Chamar CPI — mesma lógica de sempre, só que em nova work process
   " O callback do CPI para ZSB_Q2C_ARQ_INB_SVR agora funciona pois
   " o lock RAP já foi liberado antes deste FM rodar

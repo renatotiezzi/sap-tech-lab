@@ -1,0 +1,16 @@
+*&---------------------------------------------------------------------*
+*& Function Group: ZFG_Q2C_ASYNC
+*&---------------------------------------------------------------------*
+*& Criação: SE37 → Ir para → Function Group → criar
+*&
+*& Atributos do grupo:
+*&   Nome curto : ZFG_Q2C_ASYNC
+*&   Descrição  : Chamadas assíncronas Q2C (STARTING NEW TASK)
+*&   Pacote     : Mesmo pacote do projeto (ex: ZPACK_Q2C ou $TMP para teste)
+*&
+*& Objetos do grupo:
+*&   ZFM_Q2C_CPI_CALL_ASYNC → RFC-enabled, chama CPI de forma assíncrona
+*&
+*& Não há dados globais (INCLUDE LZFG_Q2C_ASYNCTOP) necessários.
+*& O grupo existe apenas como container do FM RFC.
+*&---------------------------------------------------------------------*

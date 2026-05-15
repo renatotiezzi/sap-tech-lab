@@ -1,0 +1,140 @@
+*&---------------------------------------------------------------------*
+*& Function Module: ZFM_Q2C_CPI_CALL_ASYNC
+*&---------------------------------------------------------------------*
+*& Grupo de funções : ZFG_Q2C_ASYNC
+*& Tipo de acesso   : Remote-Enabled Module (RFC) — OBRIGATÓRIO para
+*&                    STARTING NEW TASK funcionar
+*&
+*& Propósito:
+*&   Executa a chamada ao CPI em uma nova work process, desacoplada do
+*&   contexto RAP. O handler RAP (ZBP_I_Q2C_ARQ_MGR) dispara este FM
+*&   via STARTING NEW TASK e retorna IMEDIATAMENTE, liberando o lock.
+*&
+*&   Este FM é o único responsável por:
+*&     - Chamar ZCL_Q2C_CPI_CALLER->call_cpi_reprocess
+*&     - Atualizar Status / UltimoErro em ZTBQ2C_ARQ_MGR (via SQL direto)
+*&     - Inserir linha de resultado em ZTBQ2C_LOG_MGR
+*&     - COMMIT WORK
+*&
+*& IMPORTANTE: Não usar MODIFY ENTITIES aqui — fora do contexto RAP.
+*&             Atualizações via ABAP SQL direto (UPDATE/INSERT).
+*&
+*& Parâmetros (pass by VALUE — exigido por RFC):
+*&   IV_PEDIDO   : Chave 1 do registro (ztbq2c_arq_mgr-pedido)
+*&   IV_BANDEIRA : Chave 2 do registro (ztbq2c_arq_mgr-bandeira)
+*&---------------------------------------------------------------------*
+FUNCTION zfm_q2c_cpi_call_async
+  IMPORTING
+    VALUE(iv_pedido)   TYPE ztbq2c_arq_mgr-pedido
+    VALUE(iv_bandeira) TYPE ztbq2c_arq_mgr-bandeira.
+
+  " ---------------------------------------------------------------
+  " 1. Ler dados completos do registro
+  "    Necessário para montar o payload do CPI (bandeira, arquivo etc.)
+  " ---------------------------------------------------------------
+  SELECT SINGLE *
+    FROM ztbq2c_arq_mgr
+    WHERE pedido   = @iv_pedido
+      AND bandeira = @iv_bandeira
+    INTO @DATA(ls_arq).
+
+  IF sy-subrc <> 0.
+    " Registro não encontrado — registrar e encerrar
+    INSERT INTO ztbq2c_log_mgr VALUES @(
+      VALUE ztbq2c_log_mgr(
+        pedido   = iv_pedido
+        bandeira = iv_bandeira
+        id_ref   = CONV #( |{ sy-datum+4(4) }{ sy-uzeit }| )
+        datum    = sy-datum
+        uzeit    = sy-uzeit
+        etapa    = 'ERRO'
+        mensagem = |Registro { iv_pedido }/{ iv_bandeira } não encontrado para reprocessamento|
+        ernam    = sy-uname
+      )
+    ).
+    COMMIT WORK.
+    RETURN.
+  ENDIF.
+
+  " ---------------------------------------------------------------
+  " 2. Chamar CPI
+  " ---------------------------------------------------------------
+  DATA(lo_cpi) = NEW zcl_q2c_cpi_caller( ).
+
+  TRY.
+      lo_cpi->call_cpi_reprocess(
+        EXPORTING
+          is_arq    = ls_arq
+        IMPORTING
+          ev_status = DATA(lv_status)
+      ).
+
+      " ---------------------------------------------------------------
+      " 3. Sucesso: atualizar status do registro
+      "    O CPI aceitou o envio — status = PROCESSADO.
+      "    (Callback do CPI foi removido para evitar HTTP 423.)
+      " ---------------------------------------------------------------
+      UPDATE ztbq2c_arq_mgr
+        SET status  = 'PROCESSADO'
+            datum   = @sy-datum
+            uzeit   = @sy-uzeit
+            ernam   = @sy-uname
+        WHERE pedido   = @iv_pedido
+          AND bandeira = @iv_bandeira.
+
+      INSERT INTO ztbq2c_log_mgr VALUES @(
+        VALUE ztbq2c_log_mgr(
+          pedido   = iv_pedido
+          bandeira = iv_bandeira
+          id_ref   = CONV #( |{ sy-datum+4(4) }{ sy-uzeit }| )
+          datum    = sy-datum
+          uzeit    = sy-uzeit
+          etapa    = 'REPROCESSAMENTO'
+          mensagem = COND #( WHEN lv_status IS NOT INITIAL
+                             THEN lv_status
+                             ELSE 'Reprocessado com sucesso pelo CPI' )
+          ernam    = sy-uname
+        )
+      ).
+
+    CATCH cx_root INTO DATA(lx_err).
+
+      " ---------------------------------------------------------------
+      " 4. Erro: gravar STATUS = ERRO + detalhe do erro em ULTIMO_ERRO
+      " ---------------------------------------------------------------
+      DATA(lv_erro) = COND string(
+        WHEN lo_cpi->mv_error_detail IS NOT INITIAL
+        THEN lo_cpi->mv_error_detail
+        ELSE lx_err->get_text( )
+      ).
+
+      UPDATE ztbq2c_arq_mgr
+        SET status      = 'ERRO'
+            ultimo_erro = @lv_erro
+            datum       = @sy-datum
+            uzeit       = @sy-uzeit
+            ernam       = @sy-uname
+        WHERE pedido   = @iv_pedido
+          AND bandeira = @iv_bandeira.
+
+      INSERT INTO ztbq2c_log_mgr VALUES @(
+        VALUE ztbq2c_log_mgr(
+          pedido   = iv_pedido
+          bandeira = iv_bandeira
+          id_ref   = CONV #( |{ sy-datum+4(4) }{ sy-uzeit }| )
+          datum    = sy-datum
+          uzeit    = sy-uzeit
+          etapa    = 'ERRO'
+          mensagem = lv_erro
+          ernam    = sy-uname
+        )
+      ).
+
+  ENDTRY.
+
+  " ---------------------------------------------------------------
+  " 5. COMMIT — obrigatório, pois esta work process não tem LUW pai
+  " ---------------------------------------------------------------
+  COMMIT WORK.
+
+ENDFUNCTION.

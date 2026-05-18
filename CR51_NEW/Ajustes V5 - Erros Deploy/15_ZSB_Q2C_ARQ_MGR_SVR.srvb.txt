@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------
+// Service Binding: ZSB_Q2C_ARQ_MGR_SVR
+// Tipo    : OData V4 - Web API  (não UI — machine-to-machine CPI → SAP)
+// Service : ZSD_Q2C_ARQ_MGR_SVR
+// -----------------------------------------------------------------------
+// ATENÇÃO: Service Bindings não podem ser armazenados como arquivo fonte.
+// Devem ser criados diretamente no sistema SAP via ADT.
+//
+// Passos de criação no ADT:
+//   1. Botão direito no pacote > New > Other ABAP Repository Object
+//   2. Navegue em: Business Services > Service Binding
+//   3. Preencha:
+//        Name        : ZSB_Q2C_ARQ_MGR_SVR
+//        Description : Service Binding ARQ MGR - Callback CPI (atualiza status)
+//        Binding Type: OData V4 - Web API         ← IMPORTANTE: Web API, não UI
+//        Service Def : ZSD_Q2C_ARQ_MGR_SVR
+//   4. Ative e clique em "Publish"
+//
+// Operação CPI (PATCH — atualizar status do arquivo):
+//   PATCH /sap/opu/odata4/.../ArqSvr(Pedido='XPTO',Bandeira='FORD')
+//   Body: { "Status": "PROCESSADO", "UltimoErro": "" }
+//   ou:   { "Status": "ERRO", "UltimoErro": "Mensagem de erro completa" }
+//
+// Autenticação: Basic Auth com usuário técnico CPI (configurar no iFlow)
+// -----------------------------------------------------------------------

@@ -1,0 +1,7 @@
+projection;
+
+define behavior for ZC_Q2C_ARQ_MGR_SVR alias ArqSvr
+{
+  use create;
+  use update;
+}

@@ -1,0 +1,33 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'LOG MGR - Detalhe de Execução (filho do SUM)'
+@Metadata.ignorePropagatedAnnotations: true
+
+// -----------------------------------------------------------------------
+// Entidade filho dentro do BO ZI_Q2C_LOG_SUM.
+// Chave: (Pedido, Bandeira, Datum, Uzeit) — cada linha = uma execução.
+// Acessível SOMENTE via composição a partir de ZI_Q2C_LOG_SUM._Detail.
+// NÃO é root entity — não pode ser consultado diretamente.
+//
+// ATENÇÃO: Ativar junto com ZI_Q2C_LOG_SUM (18) — referência circular.
+// -----------------------------------------------------------------------
+define view entity ZI_Q2C_LOG_DET
+  as select from ztbq2c_log_mgr as log
+
+  association to parent ZI_Q2C_LOG_SUM as _Parent
+    on  $projection.Pedido   = _Parent.Pedido
+    and $projection.Bandeira = _Parent.Bandeira
+
+{
+  key log.pedido   as Pedido,
+  key log.bandeira as Bandeira,
+  key log.datum    as Datum,
+  key log.uzeit    as Uzeit,
+      log.id_ref   as IdRef,
+      log.etapa    as Etapa,
+      log.mensagem as Mensagem,
+      log.ernam    as Ernam,
+
+      /* Association para o pai */
+      _Parent
+}

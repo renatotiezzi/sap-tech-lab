@@ -1,8 +1,0 @@
-@EndUserText.label: 'Service Definition ARQ MGR - Callback CPI (Web API)'
-// -----------------------------------------------------------------------
-// Expõe apenas a projeção inbound — não expõe UI entities nem Value Help.
-// Utilizado exclusivamente pelo CPI para atualizar status do arquivo.
-// -----------------------------------------------------------------------
-define service ZSD_Q2C_ARQ_MGR_SVR {
-  expose ZC_Q2C_ARQ_MGR_SVR as ArqSvr;
-}

@@ -3,6 +3,9 @@ define service ZSD_Q2C_LOG_MGR_APP {
   // List Report: última execução por chave (Pedido + Bandeira)
   // Object Page: histórico completo via composição _Detail → ZC_Q2C_LOG_DET_APP
   // OBRIGATÓRIO: target de composição deve ser exposto junto com o pai
+  // Sem isso a Service Definition não ativa corretamente e o serviço não
+  // aparece no Fiori Generator (regra RAP: toda entidade referenciada em
+  // "redirected to" deve estar exposta na mesma Service Definition).
   expose ZC_Q2C_LOG_SUM_APP as LogSum;
   expose ZC_Q2C_LOG_DET_APP as LogDet;
 }

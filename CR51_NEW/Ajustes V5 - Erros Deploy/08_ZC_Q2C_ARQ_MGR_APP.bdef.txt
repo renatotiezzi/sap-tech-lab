@@ -1,7 +1,0 @@
-projection;
-
-define behavior for ZC_Q2C_ARQ_MGR_APP alias ArqMgrApp
-{
-  use action Reprocess;
-  use action Cancel;
-}

@@ -4,6 +4,12 @@
 @ObjectModel.dataCategory: #VALUE_HELP
 @ObjectModel.representativeKey: 'Status'
 
+// -----------------------------------------------------------------------
+// FIX V5: era "define view entity" — corrigido para "define root view entity"
+// Em OData V4 RAP toda entidade exposta diretamente na Service Definition
+// deve ser root entity. Non-root causa falha silenciosa na ativação e o
+// serviço não aparece no Fiori Generator.
+// -----------------------------------------------------------------------
 define root view entity ZC_Q2C_STATUS_VH_APP
   as select distinct from ztbq2c_arq_mgr
 {

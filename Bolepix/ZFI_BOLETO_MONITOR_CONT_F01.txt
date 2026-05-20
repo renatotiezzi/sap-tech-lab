@@ -638,6 +638,20 @@ FORM f_imprimir_boletos .
 ENDFORM.
 
 *----------------------------------------------------------------------*
+* Preview boletos – show PDF in browser, no log / ALV update
+*----------------------------------------------------------------------*
+FORM f_previsualizar_boletos.
+  DATA lv_pdf_xstr TYPE xstring.
+
+  gv_mode = 'V'.
+
+  LOOP AT Gt_alv_AUX INTO DATA(ls_alv).
+    PERFORM f_gerar_pdf_boleto USING ls_alv CHANGING lv_pdf_xstr.
+  ENDLOOP.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
 * Send boletos by email
 *----------------------------------------------------------------------*
 FORM f_enviar_email.
@@ -839,6 +853,19 @@ FORM f_monta_form_data USING    ps_alv      TYPE GTY_alv
   ENDIF.
   IF lv_nosso_raw IS INITIAL.
     lv_nosso_raw = ls_bsid_form-anfbn.
+  ENDIF.
+
+  " Cenário 3 – primeiro print pelo Monitor: XREF3 vazio → gera FCHI
+  " (apenas no modo Print 'P'; Preview e Email não devem alterar dados)
+  IF lv_nosso_raw IS INITIAL AND gv_mode = 'P'.
+    PERFORM f_assign_fchi_and_update_xref3
+      USING    ps_alv-bukrs
+               ps_alv-hbkid
+               ps_alv-hktid
+               ps_alv-belnr
+               ps_alv-gjahr
+               ps_alv-buzei
+      CHANGING lv_nosso_raw.
   ENDIF.
 
   CLEAR: lv_nosso_dv, lv_nosso_calc.
@@ -1093,7 +1120,7 @@ FORM f_send_email_bcs USING ps_alv         TYPE GTY_alv
         lv_length       TYPE  i.
 
   cv_sent = abap_false.
-  lv_length = lv_size.
+  CLEAR lv_length.
   TRY.
       IF pv_pdf_xstring IS NOT INITIAL.
         CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
@@ -1116,7 +1143,7 @@ FORM f_send_email_bcs USING ps_alv         TYPE GTY_alv
         lo_document->add_attachment(
           i_attachment_type    = 'PDF'
           i_attachment_subject = |BOLETO_{ ps_alv-belnr }|
-          i_attachment_size    = lv_size
+          i_attachment_size    = lv_length
           i_att_content_hex    = lt_body_hex ).
       ENDIF.
 
@@ -1247,265 +1274,33 @@ FORM f_remove_acentos USING    pv_texto TYPE any
 ENDFORM.
 
 *----------------------------------------------------------------------*
-* 5. NEW FORM - Build EMV TLV field
-*----------------------------------------------------------------------*
-FORM f_emv_tlv USING    pv_tag   TYPE string
-                        pv_value TYPE string
-               CHANGING cv_tlv   TYPE string.
-
-  DATA lv_len   TYPE i.
-  DATA lv_len_2 TYPE n LENGTH 2.
-
-  lv_len = strlen( pv_value ).
-  lv_len_2 = lv_len.
-
-  CONCATENATE pv_tag lv_len_2 pv_value INTO cv_tlv.
-
-ENDFORM.
-
-*----------------------------------------------------------------------*
-* 6. NEW FORM - CRC16/CCITT-FALSE (Banco Central standard)
-*----------------------------------------------------------------------*
-FORM f_xor16 USING    pv_a       TYPE i
-                      pv_b       TYPE i
-             CHANGING cv_result  TYPE i.
-
-  DATA lv_a     TYPE i.
-  DATA lv_b     TYPE i.
-  DATA lv_pow   TYPE i.
-  DATA lv_bit_a TYPE i.
-  DATA lv_bit_b TYPE i.
-
-  lv_a = pv_a.
-  lv_b = pv_b.
-  lv_pow = 1.
-  cv_result = 0.
-
-  DO 16 TIMES.
-    lv_bit_a = lv_a MOD 2.
-    lv_bit_b = lv_b MOD 2.
-
-    IF lv_bit_a <> lv_bit_b.
-      cv_result = cv_result + lv_pow.
-    ENDIF.
-
-    lv_a = lv_a DIV 2.
-    lv_b = lv_b DIV 2.
-    lv_pow = lv_pow * 2.
-  ENDDO.
-
-ENDFORM.
-
-FORM f_nibble_to_hex USING    pv_nibble TYPE i
-                     CHANGING cv_char   TYPE c.
-
-  CASE pv_nibble.
-    WHEN 0.  cv_char = '0'.
-    WHEN 1.  cv_char = '1'.
-    WHEN 2.  cv_char = '2'.
-    WHEN 3.  cv_char = '3'.
-    WHEN 4.  cv_char = '4'.
-    WHEN 5.  cv_char = '5'.
-    WHEN 6.  cv_char = '6'.
-    WHEN 7.  cv_char = '7'.
-    WHEN 8.  cv_char = '8'.
-    WHEN 9.  cv_char = '9'.
-    WHEN 10. cv_char = 'A'.
-    WHEN 11. cv_char = 'B'.
-    WHEN 12. cv_char = 'C'.
-    WHEN 13. cv_char = 'D'.
-    WHEN 14. cv_char = 'E'.
-    WHEN OTHERS.
-      cv_char = 'F'.
-  ENDCASE.
-
-ENDFORM.
-
-FORM f_int_to_hex4 USING    pv_int TYPE i
-                   CHANGING cv_hex TYPE char4.
-
-  DATA lv_work TYPE i.
-  DATA lv_n1   TYPE i.
-  DATA lv_n2   TYPE i.
-  DATA lv_n3   TYPE i.
-  DATA lv_n4   TYPE i.
-  DATA lv_c1   TYPE c LENGTH 1.
-  DATA lv_c2   TYPE c LENGTH 1.
-  DATA lv_c3   TYPE c LENGTH 1.
-  DATA lv_c4   TYPE c LENGTH 1.
-
-  lv_work = pv_int.
-  IF lv_work < 0.
-    lv_work = 0.
-  ENDIF.
-
-  lv_n1 = lv_work DIV 4096.
-  lv_work = lv_work MOD 4096.
-
-  lv_n2 = lv_work DIV 256.
-  lv_work = lv_work MOD 256.
-
-  lv_n3 = lv_work DIV 16.
-  lv_n4 = lv_work MOD 16.
-
-  PERFORM f_nibble_to_hex USING lv_n1 CHANGING lv_c1.
-  PERFORM f_nibble_to_hex USING lv_n2 CHANGING lv_c2.
-  PERFORM f_nibble_to_hex USING lv_n3 CHANGING lv_c3.
-  PERFORM f_nibble_to_hex USING lv_n4 CHANGING lv_c4.
-
-  CONCATENATE lv_c1 lv_c2 lv_c3 lv_c4 INTO cv_hex.
-
-ENDFORM.
-
-FORM f_crc16_pix USING    pv_str TYPE string
-                 CHANGING cv_hex TYPE string.
-
-  DATA lv_xstr    TYPE xstring.
-  DATA lv_crc     TYPE i.
-  DATA lv_idx     TYPE i.
-  DATA lv_byte_x  TYPE x LENGTH 1.
-  DATA lv_byte_i  TYPE i.
-  DATA lv_work    TYPE i.
-  DATA lv_crc_hex TYPE c LENGTH 4.
-
-  lv_crc = 65535.
-  lv_xstr = cl_abap_codepage=>convert_to(
-    source   = pv_str
-    codepage = 'UTF-8' ).
-
-  lv_idx = 0.
-  WHILE lv_idx < xstrlen( lv_xstr ).
-
-    lv_byte_x = lv_xstr+lv_idx(1).
-    lv_byte_i = lv_byte_x.
-
-    lv_work = lv_byte_i * 256.
-    PERFORM f_xor16 USING lv_crc lv_work CHANGING lv_crc.
-    lv_crc = lv_crc MOD 65536.
-
-    DO 8 TIMES.
-      IF lv_crc >= 32768.
-        lv_crc = lv_crc * 2.
-        IF lv_crc >= 65536.
-          lv_crc = lv_crc - 65536.
-        ENDIF.
-        PERFORM f_xor16 USING lv_crc 4129 CHANGING lv_crc.
-      ELSE.
-        lv_crc = lv_crc * 2.
-        IF lv_crc >= 65536.
-          lv_crc = lv_crc - 65536.
-        ENDIF.
-      ENDIF.
-      lv_crc = lv_crc MOD 65536.
-    ENDDO.
-
-    lv_idx = lv_idx + 1.
-  ENDWHILE.
-
-  PERFORM f_int_to_hex4 USING lv_crc CHANGING lv_crc_hex.
-  cv_hex = lv_crc_hex.
-
-ENDFORM.
-
-*----------------------------------------------------------------------*
-* 7. NEW FORM - Generate PIX QR Code (XSTRING)
+* 5. Generate PIX QR Code using class ZCFI_BOLETO_BRCODE
+*    PIX key / name / city are read from TVARVC by the class.
+*    Maintain via STVARV: ZBOLETO_PIX_CHAVE / ZBOLETO_PIX_NOME / ZBOLETO_PIX_CIDADE
 *----------------------------------------------------------------------*
 FORM f_gerar_qrcode_pix USING    ps_alv       TYPE GTY_alv
                                  ps_form_data TYPE GTY_form_data
                         CHANGING cv_qrcode    TYPE xstring.
 
-  DATA lv_cnpj        TYPE string.
-  DATA lv_nome        TYPE string.
-  DATA lv_cidade      TYPE string.
-  DATA lv_nome_src    TYPE string.
-  DATA lv_cidade_src  TYPE string.
-  DATA lv_valor       TYPE string.
-  DATA lv_txid        TYPE string.
-  DATA lv_texto_cobr  TYPE string.
-  DATA lv_payload     TYPE string.
-  DATA lv_crc         TYPE string.
-
-  DATA lv_f_gui       TYPE string.
-  DATA lv_f_chave     TYPE string.
-  DATA lv_f_desc      TYPE string.
-  DATA lv_mai         TYPE string.
-  DATA lv_f_valor     TYPE string.
-  DATA lv_f_nome      TYPE string.
-  DATA lv_f_cidade    TYPE string.
-  DATA lv_f_txid      TYPE string.
-  DATA lv_f_add       TYPE string.
-
-  DATA lv_val_pack    TYPE p LENGTH 13 DECIMALS 2.
+  DATA lv_payload TYPE string.
+  DATA lv_txid    TYPE string.
 
   CLEAR cv_qrcode.
 
-  lv_cnpj = ps_form_data-cnpj.
-  REPLACE ALL OCCURRENCES OF REGEX '[^0-9]' IN lv_cnpj WITH ''.
-
-  lv_nome_src = ps_form_data-beneficiario.
-  PERFORM f_remove_acentos USING lv_nome_src CHANGING lv_nome.
-  IF strlen( lv_nome ) > 25.
-    lv_nome = lv_nome(25).
-  ENDIF.
-
-  lv_cidade_src = ps_form_data-cidade.
-  IF lv_cidade_src IS INITIAL.
-    lv_cidade_src = 'SAO PAULO'.
-  ENDIF.
-  PERFORM f_remove_acentos USING lv_cidade_src CHANGING lv_cidade.
-  IF strlen( lv_cidade ) > 15.
-    lv_cidade = lv_cidade(15).
-  ENDIF.
-
-  lv_val_pack = abs( ps_alv-dmbtr ).
-  lv_valor = |{ lv_val_pack DECIMALS = 2 }|.
-  CONDENSE lv_valor NO-GAPS.
-  REPLACE ALL OCCURRENCES OF ',' IN lv_valor WITH '.'.
-
-  lv_txid = |{ ps_form_data-carteira }{ ps_alv-xref3 }|.
+  " Build TXID: alphanumeric only, max 25 chars (PIX spec)
+  lv_txid = |{ ps_alv-belnr }{ ps_alv-buzei }|.
+  CONDENSE lv_txid NO-GAPS.
   REPLACE ALL OCCURRENCES OF REGEX '[^A-Za-z0-9]' IN lv_txid WITH ''.
-  IF strlen( lv_txid ) > 25.
-    lv_txid = lv_txid(25).
-  ENDIF.
-  IF lv_txid IS INITIAL.
-    lv_txid = 'TXIDSEMVALOR'.
-  ENDIF.
 
-  lv_texto_cobr = |{ ps_form_data-numero_documento } { ps_alv-bukrs }/{ ps_alv-belnr }/{ ps_alv-buzei }|.
-  CONDENSE lv_texto_cobr.
-  IF strlen( lv_texto_cobr ) > 72.
-    lv_texto_cobr = lv_texto_cobr(72).
-  ENDIF.
+  " Build the complete BR Code / EMV payload (CRC-16 included)
+  " Returns '' when TVARVC setup params are missing – skip QR silently.
+  lv_payload = zcfi_boleto_brcode=>build_brcode_payload(
+    iv_txid  = lv_txid
+    iv_valor = ps_alv-dmbtr ).
 
-  PERFORM f_emv_tlv USING '00' 'BR.GOV.BCB.PIX' CHANGING lv_f_gui.
-  PERFORM f_emv_tlv USING '01' lv_cnpj          CHANGING lv_f_chave.
-  PERFORM f_emv_tlv USING '02' lv_texto_cobr    CHANGING lv_f_desc.
-  DATA(lv_key) = |{ lv_f_gui && lv_f_chave && lv_f_desc }|.
-  PERFORM f_emv_tlv USING '26' lv_key CHANGING lv_mai.
+  CHECK lv_payload IS NOT INITIAL.
 
-  PERFORM f_emv_tlv USING '54' lv_valor  CHANGING lv_f_valor.
-  PERFORM f_emv_tlv USING '59' lv_nome   CHANGING lv_f_nome.
-  PERFORM f_emv_tlv USING '60' lv_cidade CHANGING lv_f_cidade.
-
-  PERFORM f_emv_tlv USING '05' lv_txid   CHANGING lv_f_txid.
-  PERFORM f_emv_tlv USING '62' lv_f_txid CHANGING lv_f_add.
-
-  CLEAR lv_payload.
-  CONCATENATE lv_payload '000201'   INTO lv_payload.
-  CONCATENATE lv_payload '010211'   INTO lv_payload.
-  CONCATENATE lv_payload lv_mai     INTO lv_payload.
-  CONCATENATE lv_payload '52040000' INTO lv_payload.
-  CONCATENATE lv_payload '5303986'  INTO lv_payload.
-  CONCATENATE lv_payload lv_f_valor INTO lv_payload.
-  CONCATENATE lv_payload '5802BR'   INTO lv_payload.
-  CONCATENATE lv_payload lv_f_nome  INTO lv_payload.
-  CONCATENATE lv_payload lv_f_cidade INTO lv_payload.
-  CONCATENATE lv_payload lv_f_add    INTO lv_payload.
-  CONCATENATE lv_payload '6304'      INTO lv_payload.
-
-  PERFORM f_crc16_pix USING lv_payload CHANGING lv_crc.
-  CONCATENATE lv_payload lv_crc INTO lv_payload.
-
+  " Render QR Code bitmap from the payload string
   TRY.
       cl_rstx_barcode_renderer=>qr_code(
         EXPORTING
@@ -1548,20 +1343,16 @@ FORM f_gerar_pdf_boleto USING    ps_alv      TYPE GTY_alv
 
       CLEAR ls_outputparams.
       IF gv_mode = 'E'.
+        " Email: capture PDF as binary xstring (no browser, no spool)
         ls_outputparams-getpdf   = abap_true.
         ls_outputparams-nodialog = abap_true.
-        ls_outputparams-preview  = abap_false.
         ls_outputparams-noprint  = abap_true.
-      ELSE.  " Print: send to spool (SP01)
-        ls_outputparams-preview   = abap_true.
-        ls_outputparams-nodialog  = abap_true.
-        ls_outputparams-device    = 'PRINTER'.
-        ls_outputparams-dest      = 'LOCL'.
-        ls_outputparams-reqimm    = abap_true.
-        ls_outputparams-reqnew    = abap_true.
-        ls_outputparams-reqfinal  = abap_true.
-        ls_outputparams-noprint   = space.
-        ls_outputparams-nopreview = space.
+      ELSE.
+        " Preview ('V') and Print ('P'): show PDF in browser, no spool
+        " The only difference between V and P is whether the caller logs it.
+        ls_outputparams-preview  = abap_true.
+        ls_outputparams-nodialog = abap_true.
+        ls_outputparams-noprint  = abap_true.
       ENDIF.
 
       CALL FUNCTION 'FP_JOB_OPEN'
@@ -1618,5 +1409,118 @@ FORM f_gerar_pdf_boleto USING    ps_alv      TYPE GTY_alv
         EXCEPTIONS
           OTHERS = 0.
   ENDTRY.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Cenário 3/4 – Atribuir número FCHI e atualizar BSEG-XREF3 via monitor
+* Cenário 3: XREF3 vazio, boleto gerado diretamente pelo monitor (sem F110)
+* Cenário 4 (reimpressão): XREF3 já preenchido → retorna sem alterar
+*----------------------------------------------------------------------*
+FORM f_assign_fchi_and_update_xref3
+  USING    iv_bukrs TYPE bukrs
+           iv_hbkid TYPE hbkid
+           iv_hktid TYPE hktid
+           iv_belnr TYPE belnr_d
+           iv_gjahr TYPE gjahr
+           iv_buzei TYPE buzei
+  CHANGING cv_xref3 TYPE bseg-xref3.
+
+  CONSTANTS: lc_fchi_obj TYPE inri-object VALUE 'FCHI'.
+  DATA: lv_nrrange TYPE inri-nrrangenr,
+        lv_number  TYPE char18,
+        lv_chect   TYPE payr-chect.
+
+  " Cenário 4: XREF3 já tem valor → reimpressão, não gera novo FCHI
+  IF cv_xref3 IS NOT INITIAL.
+    RETURN.
+  ENDIF.
+
+  lv_nrrange = '01'.
+
+  " Lock number range before requesting the next number
+  CALL FUNCTION 'NUMBER_RANGE_ENQUEUE'
+    EXPORTING
+      object              = lc_fchi_obj
+    EXCEPTIONS
+      foreign_lock        = 1
+      object_not_found    = 2
+      system_failure      = 3
+      OTHERS              = 4.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    RETURN.
+  ENDIF.
+
+  " Get next FCHI number
+  CALL FUNCTION 'NUMBER_GET_NEXT'
+    EXPORTING
+      nr_range_nr = lv_nrrange
+      object      = lc_fchi_obj
+      quantity    = '1'
+    IMPORTING
+      number      = lv_number
+    EXCEPTIONS
+      OTHERS      = 8.
+
+  CALL FUNCTION 'NUMBER_RANGE_DEQUEUE'
+    EXPORTING
+      object = lc_fchi_obj.
+
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    RETURN.
+  ENDIF.
+
+  lv_chect = lv_number.
+
+  " Persist XREF3 = FCHI number on the FI document
+  PERFORM f_call_fi_document_change
+    USING iv_bukrs iv_belnr iv_gjahr iv_buzei lv_chect.
+
+  IF sy-subrc = 0.
+    cv_xref3 = lv_chect.
+  ENDIF.
+
+ENDFORM.
+
+*----------------------------------------------------------------------*
+* Call FI_DOCUMENT_CHANGE to write FDNAME='XREF3' NEWVAL=iv_chect
+*----------------------------------------------------------------------*
+FORM f_call_fi_document_change
+  USING iv_bukrs TYPE bukrs
+        iv_belnr TYPE belnr_d
+        iv_gjahr TYPE gjahr
+        iv_buzei TYPE buzei
+        iv_chect TYPE payr-chect.
+
+  DATA lt_accchg LIKE accchg OCCURS 0 WITH HEADER LINE.
+
+  lt_accchg-fdname = 'XREF3'.
+  lt_accchg-newval = iv_chect.
+  APPEND lt_accchg.
+
+  CALL FUNCTION 'FI_DOCUMENT_CHANGE'
+    EXPORTING
+      i_buzei               = iv_buzei
+      i_bukrs               = iv_bukrs
+      i_belnr               = iv_belnr
+      i_gjahr               = iv_gjahr
+    TABLES
+      t_accchg              = lt_accchg
+    EXCEPTIONS
+      no_reference          = 1
+      no_document           = 2
+      many_documents        = 3
+      wrong_input           = 4
+      overwrite_creditcard  = 5
+      OTHERS                = 6.
+
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
 
 ENDFORM.

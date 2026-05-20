@@ -281,7 +281,6 @@ CLASS lcl_event_handler IMPLEMENTATION.
   METHOD on_user_command.
     DATA: lt_rows TYPE salv_t_row,
           lo_sel  TYPE REF TO cl_salv_selections.
-*          Gt_alv_AUX  TYPE TABLE OF GTY_alv.
 
     lo_sel = go_salv->get_selections( ).
     lt_rows = lo_sel->get_selected_rows( ).
@@ -291,6 +290,8 @@ CLASS lcl_event_handler IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Clear aux table before each action to avoid accumulation across clicks
+    REFRESH Gt_alv_AUX.
     LOOP AT lt_rows INTO DATA(ls_row).
       READ TABLE gt_alv INTO DATA(ls_alv) INDEX ls_row.
       IF sy-subrc = 0.
@@ -299,10 +300,15 @@ CLASS lcl_event_handler IMPLEMENTATION.
     ENDLOOP.
 
     CASE e_salv_function.
+      WHEN '&ZPREVIEW'.
+        " Preview: show boleto PDF in browser, no log update
+        PERFORM f_previsualizar_boletos.
       WHEN '&ZPRINT'.
+        " Print: show boleto PDF in browser + write processing log
         PERFORM f_imprimir_boletos.
         PERFORM f_atualiza_alv.
       WHEN '&EMAIL'.
+        " Email: generate PDF, send via BCS, write processing log
         PERFORM f_enviar_email.
         PERFORM f_atualiza_alv.
     ENDCASE.

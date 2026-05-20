@@ -1,0 +1,5 @@
+CLASS zbp_i_r2r_log_procpa DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_r2r_log_procpa.
+ENDCLASS.
+
+CLASS zbp_i_r2r_log_procpa IMPLEMENTATION.
+ENDCLASS.

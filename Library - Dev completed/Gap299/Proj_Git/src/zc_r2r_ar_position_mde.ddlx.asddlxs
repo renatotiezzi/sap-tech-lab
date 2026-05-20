@@ -1,0 +1,197 @@
+@Metadata.layer: #CORE
+@UI: {
+    headerInfo: {
+        typeName: 'Posição AR',
+        typeNamePlural: 'Posições AR',
+        title: { type: #STANDARD, value: 'AccountingDocument' }
+    }
+}
+//@Search.searchable: false
+annotate entity ZC_R2R_AR_POSITION with
+
+{
+
+  //@Consumption.valueHelpDefinition: [{ entity: { name: 'ZCDS_I_ITEMCAT_VH', element: 'ItemCategory' } }]
+  //@UI.selectionField: [{ position: 05 }]
+  // @Consumption.filter: {
+  //    selectionType: #RANGE,
+  //   multipleSelections: true,
+  //   mandatory: true        }
+
+  @UI.selectionField: [{ position: 05 }]
+  //@UI.lineItem: [{ position: 160 }]
+  @Consumption.valueHelpDefinition: [{  entity: { name: 'ZI_R2R_ITEMCAT_VH', element: 'ItemCategoryText' } }]
+  //@UI.hidden: true
+  @EndUserText.label: 'Tipo de item'
+  @UI.textArrangement: #TEXT_ONLY
+  @Consumption.filter: {  multipleSelections: true  }
+  ItemCategoryText;
+
+  @UI.selectionField: [{ position: 10 }]
+  @UI.lineItem: [{ position: 10 }]
+  CompanyCode;
+
+  @UI.selectionField: [{ position: 20 }]
+  @UI.lineItem: [{ position: 20 }]
+  @Consumption.valueHelpDefinition: [{ entity: { name: 'I_Customer_VH', element: 'Customer' } }]
+  Customer;
+
+  @UI.selectionField: [{ position: 30 }]
+  @UI.lineItem: [{ position: 30 }]
+  NetDueDate;
+
+  -- NOVO FILTRO DE GRUPO ECONÔMICO --
+  @UI.selectionField: [{ position: 35 }]
+  @UI.lineItem: [{ position: 35 }]
+  @EndUserText.label: 'Grupo Econômico'
+  CreditAccountGroup;
+
+
+  @UI.lineItem: [{ position: 40 }]
+
+  CustomerName;
+  @UI.lineItem: [{ position: 50 }]
+  @EndUserText.label: 'Data de emissão'
+  DocumentDate;
+  @UI.lineItem: [{ position: 60 }]
+  AccountingDocument;
+  @UI.lineItem: [{ position: 70 }]
+  OriginalAmount;
+
+  @UI.lineItem: [{ position: 80 }]
+  @EndUserText.label: 'Saldo residual'
+  ResidualAmount;
+  @UI.lineItem: [{ position: 90 }]
+  Currency;
+
+
+  @UI.lineItem: [{ position: 100, importance: #HIGH }]
+  @EndUserText.label: 'Dias de Atraso'
+  DaysOverdue;
+  @UI.lineItem: [{ position: 110 }]
+  ClearingDate;
+  @UI.lineItem: [{ position: 120 }]
+  AccDocTypeName;
+  @UI.lineItem: [{ position: 130 }]
+  FiscalYear;
+  @UI.lineItem: [{ position: 140 }]
+  DocumentItem;
+  @UI.lineItem: [{ position: 150 }]
+  @EndUserText.label: 'UF'
+  Region;
+
+  @UI.lineItem: [{ position: 155 }]
+  @EndUserText.label: 'Chave do País'
+  Country;
+
+  @UI.lineItem: [{ position: 170 }]
+  @EndUserText.label: 'Classe de risco'
+  CreditRiskClass;
+  @UI.lineItem: [{ position: 180 }]
+  @EndUserText.label: 'Descrição do Grupo Econômico'
+  CreditAccountGroupName;
+  @UI.lineItem: [{ position: 190 }]
+  @EndUserText.label: 'Descrição Classe de risco'
+  CreditRiskClassName;
+  @UI.lineItem: [{ position: 200 }]
+  @EndUserText.label: 'CNPJ'
+  CNPJ;
+  @UI.lineItem: [{ position: 210 }]
+  @EndUserText.label: 'CPF'
+  CPF;
+  @UI.lineItem: [{ position: 225 }]
+  DocumentReferenceID;
+  @UI.lineItem: [{ position: 230 }]
+  @EndUserText.label: 'Região de vendas'
+  SalesRegion;
+
+  @UI.lineItem: [{ position: 235 }]
+  @EndUserText.label: ' Descrição Região de vendas'
+  SalesRegionName;
+
+  @UI.lineItem: [{ position: 240 }]
+  @EndUserText.label: 'Escritório de vendas'
+  SalesOffice;
+
+  @UI.lineItem: [{ position: 245 }]
+  @EndUserText.label: 'Descrição Escritório de vendas'
+  SalesOfficeName;
+
+  @UI.lineItem: [{ position: 250 }]
+  @EndUserText.label: 'Equipe de vendas'
+  SalesTeam;
+
+  @UI.lineItem: [{ position: 255 }]
+  @EndUserText.label: 'Descrição Equipe de vendas'
+  SalesTeamName;
+
+  @UI.lineItem: [{ position: 260 }]
+  @EndUserText.label: 'Segmento de negócio'
+  AdditionalCustomerGroup2;
+
+  @UI.lineItem: [{ position: 265 }]
+  @EndUserText.label: 'Descrição Segmento de negócio'
+  AdditionalCustomerGroup2Name;
+
+  @UI.lineItem: [{ position: 270 }]
+  @EndUserText.label: 'Bandeira'
+  AdditionalCustomerGroup1;
+
+  @UI.lineItem: [{ position: 275 }]
+  @EndUserText.label: 'Descrição Bandeira'
+  AdditionalCustomerGroup1Name;
+
+  @UI.lineItem: [{ position: 280 }]
+  @EndUserText.label: 'Data do vencimento original'
+  OriginalDueDate;
+  @UI.lineItem: [{ position: 310 }]
+  DunningArea;
+  @UI.lineItem: [{ position: 320 }]
+  DunningAreaName;
+  @UI.lineItem: [{ position: 330 }]
+  PaymentBlock;
+  @UI.lineItem: [{ position: 340 }]
+  @EndUserText.label: 'Descrição Motivo bloq. pagto.'
+  PayBlockName;
+  @UI.lineItem: [{ position: 350 }]
+  BusinessPlace;
+  @UI.lineItem: [{ position: 360 }]
+  AccDocType;
+  @UI.lineItem: [{ position: 370 }]
+  DocumentItemText;
+  @UI.lineItem: [{ position: 380 }]
+  DebitCreditCode;
+  @UI.lineItem: [{ position: 390 }]
+  PaymentMethod;
+  @UI.lineItem: [{ position: 400 }]
+  ClearingJournalEntry;
+  @UI.lineItem: [{ position: 410 }]
+  @EndUserText.label: 'Lista de exceção'
+  InstKey;
+  @UI.lineItem: [{ position: 420 }]
+  @EndUserText.label: 'Descrição Lista de exceção'
+  DtExKeyName;
+  @UI.lineItem: [{ position: 430 }]
+  SpecialGLCode;
+  //@UI.lineItem: [{ position: 440 }]
+  //AccountingDocumentCategory;
+  @UI.lineItem: [{ position: 450 }]
+  ClearingJournalEntryFiscalYear;
+
+  // New Fields - Spec V2
+  @UI.lineItem: [{ position: 460 }]
+  reference3idbycreditaccountgro;
+
+  @UI.lineItem: [{ position: 470 }]
+  HOUSEBANK;
+
+  @UI.lineItem: [{ position: 480 }]
+  FinancialAccountType;
+
+  @UI.lineItem: [{ position: 490 }]
+  ANFBN;
+
+  @UI.lineItem: [{ position: 500 }]
+  ANFBJ;
+
+}

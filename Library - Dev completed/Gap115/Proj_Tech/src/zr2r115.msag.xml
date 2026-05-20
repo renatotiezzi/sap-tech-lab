@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZR2R115</ARBGB>
+    <MASTERLANG>E</MASTERLANG>
+    <STEXT>Gap 115</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZR2R115</ARBGB>
+     <MSGNR>000</MSGNR>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZR2R115</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Item não encontrado em I_OperationalAcctgDocItem ( &amp;1  &amp;2 &amp;3 )</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZR2R115</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Item processado com sucesso (Empresa &amp;1 Documento &amp;2 Exercício &amp;3)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZR2R115</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Erro ao gravar dados na tabela ZTR2R_LOG_PROCPA ( &amp;1  &amp;2 &amp;3 )</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZR2R115</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Parâmetro de configuração não encontrado na TVARV (&amp;1)</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>

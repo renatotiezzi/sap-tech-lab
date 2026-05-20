@@ -1,0 +1,4 @@
+@EndUserText.label: 'ZSD_R2R_LOG_PROCPA'
+define service ZSD_R2R_LOG_PROCPA {
+  expose ZI_R2R_LOG_PROCPA;
+}

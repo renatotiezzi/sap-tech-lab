@@ -1,0 +1,14 @@
+unmanaged implementation in class zbp_i_r2r_log_procpa unique;
+strict ( 2 );
+
+define behavior for ZI_R2R_LOG_PROCPA
+lock master
+authorization master ( instance )
+{
+
+  field ( readonly : update ) CompanyCode, AccountingDocument, FiscalYear;
+
+  action process
+    parameter ZAE_R2R_LOG_PROCPA_ACT
+    result [1] ZAE_R2R_LOG_PROCPA_ACT;
+}

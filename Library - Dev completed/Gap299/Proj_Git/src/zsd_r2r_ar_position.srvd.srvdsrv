@@ -1,0 +1,4 @@
+@EndUserText.label: 'SD for AR position'
+define service ZSD_R2R_AR_POSITION {
+  expose ZC_R2R_AR_POSITION as ArPosition;
+}

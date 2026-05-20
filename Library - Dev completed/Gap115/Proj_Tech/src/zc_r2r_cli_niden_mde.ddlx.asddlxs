@@ -1,0 +1,55 @@
+@Metadata.layer: #CORE
+@UI: {
+  headerInfo: {
+    typeName: 'Cliente não identificado',
+    typeNamePlural: 'Clientes não identificados',
+    title: { type: #STANDARD, value: 'BankStatement' }
+  }
+}
+annotate entity ZC_R2R_CLI_NIDEN with
+{
+  /* KEYS as filter */
+  @UI.selectionField: [{ position: 10 }]
+  @UI.lineItem: [{ position: 10 }]
+  BankStatementShortId;
+
+  @UI.selectionField: [{ position: 20 }]
+  @UI.lineItem: [{ position: 20 }]
+  BankStatement;
+
+  @UI.selectionField: [{ position: 30 }]
+  @UI.lineItem: [{ position: 30 }]
+  BankStatementItemDescription2;
+
+  /* Other fields */
+  @UI.selectionField: [{ position: 40 }]
+  @UI.lineItem: [{ position: 40 }]
+  @EndUserText.label: 'Data do extrato'
+  BankStatementDate;
+
+  @UI.lineItem: [{ position: 50 }]
+  @EndUserText.label: 'CNPJ/CPF'
+  BusinessPartnerName;
+
+  @UI.lineItem: [{ position: 60 }]
+  Name1;
+
+  @UI.lineItem: [{ position: 70 }]
+  HouseBank;
+
+  @UI.lineItem: [{ position: 80 }]
+  HouseBankAccount;
+
+  @UI.lineItem: [{ position: 90 }]
+  BankInternalId;
+
+  @UI.lineItem: [{ position: 100 }]
+  BankAccount;
+
+  @UI.selectionField: [{ position: 110 }]
+  @UI.lineItem: [{ position: 110 }]
+  Currency;
+
+  @UI.lineItem: [{ position: 120 }]
+  AmountInTransactionCurrency;
+}

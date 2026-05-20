@@ -1,0 +1,2 @@
+sap.ui.define(["sap/fe/core/AppComponent"],function(n){"use strict";return n.extend("ziconic.r2r.arposition.iconicr2rarposition.Component",{metadata:{manifest:"json"}})});                                                                                    
+//# sourceMappingURL=Component.js.map                                                                                                                                                                                                                          

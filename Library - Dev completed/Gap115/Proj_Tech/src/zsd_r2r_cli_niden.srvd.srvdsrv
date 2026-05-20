@@ -1,0 +1,4 @@
+@EndUserText.label: 'ZSD_R2R_CLI_NIDEN'
+define service ZSD_R2R_CLI_NIDEN {
+  expose ZC_R2R_CLI_NIDEN as CLI_NIDEN;
+}

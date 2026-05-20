@@ -1,0 +1,314 @@
+*&---------------------------------------------------------------------*
+*& Class: ZCL_FD5047_CERT_SVC
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Serviço de negócio para gestão de certificados de conformidade.
+*&   Backend da Parte 1 (Fiori Upload/Gestão).
+*&
+*& Responsabilidades:
+*&   - Validar inputs (formato PDF, obrigatoriedade, duplicidade)
+*&   - Coordenar upload/listagem/exclusão via ZCL_FD5047_DMS_API
+*&   - Gerar descrição automática do certificado
+*&
+*& Dependência:
+*&   ZCL_FD5047_DMS_API (objeto comum) deve estar ativo no sistema.
+*&---------------------------------------------------------------------*
+CLASS zcl_fd5047_cert_svc DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_cert_input,
+        matnr       TYPE matnr,
+        werks       TYPE werks_d,
+        lgort       TYPE lgort_d,
+        ref_date    TYPE dats,
+        pdf_content TYPE xstring,
+      END OF ty_cert_input,
+
+      BEGIN OF ty_cert_result,
+        doc_id      TYPE string,
+        description TYPE string,
+        success     TYPE abap_bool,
+        message     TYPE string,
+      END OF ty_cert_result,
+
+      BEGIN OF ty_cert_list_item,
+        doc_id      TYPE string,
+        matnr       TYPE matnr,
+        werks       TYPE werks_d,
+        lgort       TYPE lgort_d,
+        ref_date    TYPE dats,
+        description TYPE string,
+        doc_name    TYPE string,
+        created_at  TYPE string,
+      END OF ty_cert_list_item,
+      tt_cert_list TYPE STANDARD TABLE OF ty_cert_list_item WITH DEFAULT KEY.
+
+    "! Realiza o upload de um certificado PDF após validações.
+    "! @parameter is_input   | Dados do certificado (material, centro, depósito, data, PDF)
+    "! @parameter rs_result  | Resultado com doc_id, sucesso e mensagem
+    METHODS create_certificate
+      IMPORTING is_input       TYPE ty_cert_input
+      RETURNING VALUE(rs_result) TYPE ty_cert_result.
+
+    "! Lista certificados com filtros opcionais.
+    METHODS list_certificates
+      IMPORTING iv_matnr       TYPE matnr   OPTIONAL
+                iv_werks       TYPE werks_d OPTIONAL
+                iv_lgort       TYPE lgort_d OPTIONAL
+                iv_date_from   TYPE dats    OPTIONAL
+                iv_date_to     TYPE dats    OPTIONAL
+      RETURNING VALUE(rt_list) TYPE tt_cert_list.
+
+    "! Exclui um certificado pelo seu ID.
+    "! @parameter iv_doc_id | ID do documento no DMS
+    "! @parameter rv_success | abap_true se excluído com sucesso
+    "! @parameter rv_message | Mensagem de retorno
+    METHODS delete_certificate
+      IMPORTING iv_doc_id         TYPE string
+      RETURNING VALUE(rv_success) TYPE abap_bool
+      EXPORTING ev_message        TYPE string.
+
+    "! Gera a descrição padronizada do certificado.
+    "! Formato: {MATNR}-{WERKS}-{LGORT}-{YYYYMMDD}
+    METHODS build_description
+      IMPORTING iv_matnr          TYPE matnr
+                iv_werks          TYPE werks_d
+                iv_lgort          TYPE lgort_d
+                iv_ref_date       TYPE dats
+      RETURNING VALUE(rv_descr)   TYPE string.
+
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      c_pdf_magic_bytes  TYPE xstring VALUE '255044462D', "  %PDF- em hex
+      c_tvarvc_max_size  TYPE string  VALUE 'ZFD5047_MAX_PDF_SIZE_KB',
+      c_default_max_kb   TYPE i       VALUE 10240.
+
+    METHODS validate_input
+      IMPORTING is_input         TYPE ty_cert_input
+      RETURNING VALUE(rv_ok)     TYPE abap_bool
+      EXPORTING ev_message       TYPE string.
+
+    METHODS is_pdf
+      IMPORTING iv_content      TYPE xstring
+      RETURNING VALUE(rv_is_pdf) TYPE abap_bool.
+
+    METHODS get_max_size_kb
+      RETURNING VALUE(rv_kb) TYPE i.
+
+ENDCLASS.
+
+
+CLASS zcl_fd5047_cert_svc IMPLEMENTATION.
+
+*&---------------------------------------------------------------------*
+  METHOD build_description.
+*&---------------------------------------------------------------------*
+    DATA(lv_matnr) = condense( val = CONV string( iv_matnr ) ).
+    DATA(lv_werks) = condense( val = CONV string( iv_werks ) ).
+    DATA(lv_lgort) = condense( val = CONV string( iv_lgort ) ).
+    rv_descr = |{ lv_matnr }-{ lv_werks }-{ lv_lgort }-{ iv_ref_date }|.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD is_pdf.
+*&---------------------------------------------------------------------*
+*   Verifica os primeiros 4 bytes: %PDF (0x25 0x50 0x44 0x46)
+    IF xstrlen( iv_content ) < 4.
+      rv_is_pdf = abap_false.
+      RETURN.
+    ENDIF.
+
+    DATA(lv_header) = iv_content(4).
+    " %PDF = 25 50 44 46
+    rv_is_pdf = COND #(
+      WHEN lv_header = CONV xstring( '25504446' ) THEN abap_true
+      ELSE abap_false ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD get_max_size_kb.
+*&---------------------------------------------------------------------*
+    SELECT SINGLE low
+      FROM tvarvc
+      WHERE name = @c_tvarvc_max_size
+        AND type = 'P'
+      INTO @DATA(lv_val).
+
+    IF sy-subrc = 0 AND lv_val IS NOT INITIAL.
+      rv_kb = CONV i( lv_val ).
+    ELSE.
+      rv_kb = c_default_max_kb.
+    ENDIF.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD validate_input.
+*&---------------------------------------------------------------------*
+    rv_ok = abap_true.
+
+    " 1. Campos obrigatórios
+    IF is_input-matnr IS INITIAL
+    OR is_input-werks IS INITIAL
+    OR is_input-lgort IS INITIAL
+    OR is_input-ref_date IS INITIAL.
+      rv_ok      = abap_false.
+      ev_message = 'Todos os campos obrigatórios devem ser preenchidos (Material, Centro, Depósito, Data).'(001).
+      RETURN.
+    ENDIF.
+
+    " 2. Conteúdo PDF fornecido
+    IF is_input-pdf_content IS INITIAL.
+      rv_ok      = abap_false.
+      ev_message = 'Nenhum arquivo selecionado para upload.'(002).
+      RETURN.
+    ENDIF.
+
+    " 3. Validação de formato PDF (magic bytes)
+    IF is_pdf( is_input-pdf_content ) = abap_false.
+      rv_ok      = abap_false.
+      ev_message = 'Apenas arquivos PDF são aceitos. Selecione um arquivo válido.'(003).
+      RETURN.
+    ENDIF.
+
+    " 4. Tamanho máximo
+    DATA(lv_max_kb)   = get_max_size_kb( ).
+    DATA(lv_size_kb)  = xstrlen( is_input-pdf_content ) / 1024.
+    IF lv_size_kb > lv_max_kb.
+      rv_ok      = abap_false.
+      ev_message = |Tamanho do arquivo excede o limite de { lv_max_kb } KB.|.
+      RETURN.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD create_certificate.
+*&---------------------------------------------------------------------*
+    DATA lv_msg TYPE string.
+
+    " 1. Validar input
+    DATA(lv_valid) = validate_input( EXPORTING is_input   = is_input
+                                     IMPORTING ev_message = lv_msg ).
+    IF lv_valid = abap_false.
+      rs_result-success = abap_false.
+      rs_result-message = lv_msg.
+      RETURN.
+    ENDIF.
+
+    " 2. Verificar duplicidade
+    DATA lo_dms TYPE REF TO zcl_fd5047_dms_api.
+    CREATE OBJECT lo_dms.
+
+    TRY.
+        DATA(lv_exists) = lo_dms->certificate_exists(
+                            iv_matnr    = is_input-matnr
+                            iv_werks    = is_input-werks
+                            iv_lgort    = is_input-lgort
+                            iv_ref_date = is_input-ref_date ).
+
+        IF lv_exists = abap_true.
+          rs_result-success = abap_false.
+          rs_result-message = 'Já existe um certificado para esta combinação Material/Centro/Depósito/Data.'(004).
+          RETURN.
+        ENDIF.
+
+        " 3. Upload no DMS
+        DATA(lv_doc_id) = lo_dms->upload_certificate(
+                            iv_matnr       = is_input-matnr
+                            iv_werks       = is_input-werks
+                            iv_lgort       = is_input-lgort
+                            iv_ref_date    = is_input-ref_date
+                            iv_pdf_content = is_input-pdf_content ).
+
+        IF lv_doc_id IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-message = 'Erro ao realizar upload no DMS. Verifique o arquivo e tente novamente.'(005).
+          RETURN.
+        ENDIF.
+
+        " 4. Sucesso
+        rs_result-doc_id      = lv_doc_id.
+        rs_result-description = build_description( iv_matnr   = is_input-matnr
+                                                    iv_werks   = is_input-werks
+                                                    iv_lgort   = is_input-lgort
+                                                    iv_ref_date = is_input-ref_date ).
+        rs_result-success = abap_true.
+        rs_result-message = 'Certificado enviado com sucesso.'(006).
+
+      CATCH cx_dynamic_check INTO DATA(lx_ex).
+        rs_result-success = abap_false.
+        rs_result-message = |Erro ao realizar upload no DMS: { lx_ex->get_text( ) }|.
+    ENDTRY.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD list_certificates.
+*&---------------------------------------------------------------------*
+    DATA lo_dms TYPE REF TO zcl_fd5047_dms_api.
+    CREATE OBJECT lo_dms.
+
+    TRY.
+        DATA(lt_raw) = lo_dms->list_certificates(
+                         iv_matnr     = iv_matnr
+                         iv_werks     = iv_werks
+                         iv_lgort     = iv_lgort
+                         iv_date_from = iv_date_from
+                         iv_date_to   = iv_date_to ).
+
+        LOOP AT lt_raw INTO DATA(ls_raw).
+          DATA ls_item TYPE ty_cert_list_item.
+          ls_item-doc_id      = ls_raw-doc_id.
+          ls_item-matnr       = ls_raw-matnr.
+          ls_item-werks       = ls_raw-werks.
+          ls_item-lgort       = ls_raw-lgort.
+          ls_item-ref_date    = ls_raw-ref_date.
+          ls_item-doc_name    = ls_raw-doc_name.
+          ls_item-created_at  = ls_raw-created_at.
+          ls_item-description = build_description( iv_matnr    = ls_raw-matnr
+                                                    iv_werks    = ls_raw-werks
+                                                    iv_lgort    = ls_raw-lgort
+                                                    iv_ref_date = ls_raw-ref_date ).
+          INSERT ls_item INTO TABLE rt_list.
+        ENDLOOP.
+
+      CATCH cx_dynamic_check.
+        " Retornar lista vazia em caso de erro de acesso ao DMS
+    ENDTRY.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD delete_certificate.
+*&---------------------------------------------------------------------*
+    IF iv_doc_id IS INITIAL.
+      rv_success = abap_false.
+      ev_message = 'ID do documento não informado.'(007).
+      RETURN.
+    ENDIF.
+
+    DATA lo_dms TYPE REF TO zcl_fd5047_dms_api.
+    CREATE OBJECT lo_dms.
+
+    TRY.
+        lo_dms->delete_document( iv_doc_id = iv_doc_id ).
+        rv_success = abap_true.
+        ev_message = 'Certificado excluído com sucesso.'(008).
+
+      CATCH cx_dynamic_check INTO DATA(lx_ex).
+        rv_success = abap_false.
+        ev_message = |Erro ao excluir certificado: { lx_ex->get_text( ) }|.
+    ENDTRY.
+  ENDMETHOD.
+
+ENDCLASS.

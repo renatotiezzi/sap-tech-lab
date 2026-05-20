@@ -1,0 +1,369 @@
+*&---------------------------------------------------------------------*
+*& Class: ZCL_FD5047_CERT_PRINT
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Serviço de impressão de certificados de conformidade.
+*&   Parte 2 do FD 5047 – chamado pelo Kit de Impressão de Documentos (FD 6083).
+*&
+*& Fluxo:
+*&   1. Recebe SHNUMBER do Documento de Transporte (TD)
+*&   2. Busca remessas na tabela OIGSI (SHNUMBER → DOC_NUMBER)
+*&      ⚠️ Se OIGSI não existir no sistema, substituir por VTTK/VTTS
+*&         (ver TECHNICAL_DECISIONS.md para detalhes)
+*&   3. Para cada remessa: busca itens (MATNR/WERKS/LGORT) na tabela LIPS
+*&   4. Para cada item único: busca certificado mais recente no DMS
+*&   5. Gera SPOOL separado para cada certificado encontrado
+*&   6. Se qualquer item não tiver certificado → interrompe o processo
+*&
+*& Retorno para o chamador (FD 6083):
+*&   et_spools  → lista de SPOOLIDs gerados (um por certificado)
+*&   ev_success → abap_true se todos os itens têm certificado e spools gerados
+*&   ev_message → descrição do erro se ev_success = abap_false
+*&
+*& Dependência:
+*&   ZCL_FD5047_DMS_API (objeto comum) deve estar ativo no sistema.
+*&---------------------------------------------------------------------*
+CLASS zcl_fd5047_cert_print DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_spool_result,
+        rspoid    TYPE rspoid,
+        matnr     TYPE matnr,
+        werks     TYPE werks_d,
+        lgort     TYPE lgort_d,
+        vbeln     TYPE vbeln_vl,
+        doc_id    TYPE string,
+        success   TYPE abap_bool,
+        message   TYPE string,
+      END OF ty_spool_result,
+      tt_spool_result TYPE STANDARD TABLE OF ty_spool_result WITH DEFAULT KEY,
+
+      BEGIN OF ty_delivery_item,
+        vbeln TYPE vbeln_vl,
+        posnr TYPE posnr_vl,
+        matnr TYPE matnr,
+        werks TYPE werks_d,
+        lgort TYPE lgort_d,
+      END OF ty_delivery_item,
+      tt_delivery_items TYPE STANDARD TABLE OF ty_delivery_item WITH DEFAULT KEY.
+
+    "! Ponto de entrada principal – chamado pelo serviço FD 6083.
+    "! Processa todos os itens do TD, gera spools e retorna resultado.
+    "! @parameter iv_shnumber | Número do Documento de Transporte (TD)
+    "! @parameter et_spools   | SPOOLIDs gerados (um por certificado encontrado)
+    "! @parameter ev_success  | abap_true somente se todos os itens têm certificado
+    "! @parameter ev_message  | Mensagem de erro se ev_success = abap_false
+    METHODS print_for_transport_doc
+      IMPORTING iv_shnumber TYPE char20
+      EXPORTING et_spools   TYPE tt_spool_result
+                ev_success  TYPE abap_bool
+                ev_message  TYPE string.
+
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_oigsi_row,
+        shnumber   TYPE char20,
+        doc_number TYPE vbeln_vl,
+      END OF ty_oigsi_row,
+      tt_oigsi TYPE STANDARD TABLE OF ty_oigsi_row WITH DEFAULT KEY.
+
+    METHODS get_deliveries_by_shnumber
+      IMPORTING iv_shnumber      TYPE char20
+      RETURNING VALUE(rt_rows)   TYPE tt_oigsi
+      RAISING   cx_dynamic_check.
+
+    METHODS get_items_from_lips
+      IMPORTING it_deliveries    TYPE tt_oigsi
+      RETURNING VALUE(rt_items)  TYPE tt_delivery_items.
+
+    METHODS deduplicate_items
+      IMPORTING it_items          TYPE tt_delivery_items
+      RETURNING VALUE(rt_unique)  TYPE tt_delivery_items.
+
+    METHODS create_spool_from_pdf
+      IMPORTING iv_pdf_content TYPE xstring
+                iv_matnr       TYPE matnr
+                iv_werks       TYPE werks_d
+                iv_lgort       TYPE lgort_d
+      EXPORTING ev_rspoid      TYPE rspoid
+                ev_success     TYPE abap_bool
+                ev_message     TYPE string.
+
+ENDCLASS.
+
+
+CLASS zcl_fd5047_cert_print IMPLEMENTATION.
+
+*&---------------------------------------------------------------------*
+  METHOD print_for_transport_doc.
+*&---------------------------------------------------------------------*
+    CLEAR ev_success.
+    CLEAR ev_message.
+    CLEAR et_spools.
+
+    " --- Validação básica ---
+    IF iv_shnumber IS INITIAL.
+      ev_success = abap_false.
+      ev_message = 'SHNUMBER não informado.'(001).
+      RETURN.
+    ENDIF.
+
+    " --- 1. Buscar remessas do TD via OIGSI ---
+    DATA lt_deliveries TYPE tt_oigsi.
+    TRY.
+        lt_deliveries = get_deliveries_by_shnumber( iv_shnumber ).
+      CATCH cx_dynamic_check INTO DATA(lx_oigsi).
+        ev_success = abap_false.
+        ev_message = |Erro ao buscar remessas do TD { iv_shnumber }: { lx_oigsi->get_text( ) }|.
+        RETURN.
+    ENDTRY.
+
+    IF lt_deliveries IS INITIAL.
+      ev_success = abap_false.
+      ev_message = |Nenhuma remessa encontrada para o TD { iv_shnumber }.|.
+      RETURN.
+    ENDIF.
+
+    " --- 2. Buscar itens de entrega (MATNR/WERKS/LGORT) via LIPS ---
+    DATA(lt_items) = get_items_from_lips( lt_deliveries ).
+
+    IF lt_items IS INITIAL.
+      ev_success = abap_false.
+      ev_message = |Nenhum item de entrega encontrado para o TD { iv_shnumber }.|.
+      RETURN.
+    ENDIF.
+
+    " --- 3. Deduplicar por combinação MATNR+WERKS+LGORT ---
+    DATA(lt_unique) = deduplicate_items( lt_items ).
+
+    " --- 4. Para cada combinação: buscar certificado no DMS e gerar spool ---
+    DATA lo_dms TYPE REF TO zcl_fd5047_dms_api.
+    CREATE OBJECT lo_dms.
+
+    LOOP AT lt_unique INTO DATA(ls_item).
+      DATA ls_spool TYPE ty_spool_result.
+      ls_spool-matnr = ls_item-matnr.
+      ls_spool-werks = ls_item-werks.
+      ls_spool-lgort = ls_item-lgort.
+      ls_spool-vbeln = ls_item-vbeln.
+
+      " 4a. Buscar certificado mais recente no DMS
+      TRY.
+          DATA(lv_doc_id) = lo_dms->find_latest_certificate(
+                              iv_matnr = ls_item-matnr
+                              iv_werks = ls_item-werks
+                              iv_lgort = ls_item-lgort ).
+        CATCH cx_dynamic_check INTO DATA(lx_find).
+          ev_success = abap_false.
+          ev_message = |Erro ao buscar certificado no DMS para |
+                     & |{ ls_item-matnr }/{ ls_item-werks }/{ ls_item-lgort }: |
+                     & |{ lx_find->get_text( ) }|.
+          CLEAR et_spools.
+          RETURN.
+      ENDTRY.
+
+      " 4b. Certificado não encontrado → BLOQUEAR (regra da EF 2.1: DEVE interromper)
+      IF lv_doc_id IS INITIAL.
+        ev_success = abap_false.
+        ev_message = |Certificado não encontrado para Material { ls_item-matnr } / |
+                   & |Centro { ls_item-werks } / Depósito { ls_item-lgort }. |
+                   & |Impressão interrompida.|.
+        CLEAR et_spools.
+        RETURN.
+      ENDIF.
+
+      ls_spool-doc_id = lv_doc_id.
+
+      " 4c. Obter conteúdo binário do PDF
+      DATA lx_pdf TYPE xstring.
+      TRY.
+          lx_pdf = lo_dms->get_document_content( iv_doc_id = lv_doc_id ).
+        CATCH cx_dynamic_check INTO DATA(lx_get).
+          ev_success = abap_false.
+          ev_message = |Erro ao baixar PDF do DMS (objectId={ lv_doc_id }): { lx_get->get_text( ) }|.
+          CLEAR et_spools.
+          RETURN.
+      ENDTRY.
+
+      " 4d. Gerar spool a partir do PDF
+      DATA lv_rspoid TYPE rspoid.
+      DATA lv_sp_ok  TYPE abap_bool.
+      DATA lv_sp_msg TYPE string.
+
+      create_spool_from_pdf(
+        EXPORTING
+          iv_pdf_content = lx_pdf
+          iv_matnr       = ls_item-matnr
+          iv_werks       = ls_item-werks
+          iv_lgort       = ls_item-lgort
+        IMPORTING
+          ev_rspoid      = lv_rspoid
+          ev_success     = lv_sp_ok
+          ev_message     = lv_sp_msg ).
+
+      IF lv_sp_ok = abap_false.
+        ev_success = abap_false.
+        ev_message = |Falha na geração do spool para { ls_item-matnr }/{ ls_item-werks }/{ ls_item-lgort }: { lv_sp_msg }|.
+        CLEAR et_spools.
+        RETURN.
+      ENDIF.
+
+      ls_spool-rspoid  = lv_rspoid.
+      ls_spool-success = abap_true.
+      INSERT ls_spool INTO TABLE et_spools.
+    ENDLOOP.
+
+    ev_success = abap_true.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD get_deliveries_by_shnumber.
+*&---------------------------------------------------------------------*
+*   Busca as remessas (DOC_NUMBER) vinculadas ao Documento de Transporte.
+*
+*   ⚠️ VERIFICAR: a tabela OIGSI deve existir no sistema antes de ativar.
+*      Se não existir, substituir a query abaixo pela equivalente em VTTK/VTTS:
+*
+*      SELECT vttk~tknum AS shnumber, vtts~vbeln AS doc_number
+*        FROM vttk INNER JOIN vtts ON vttk~tknum = vtts~tknum
+*        WHERE vttk~tknum = @iv_shnumber
+*        INTO TABLE @rt_rows.
+*
+    SELECT shnumber,
+           doc_number
+      FROM oigsi
+      WHERE shnumber = @iv_shnumber
+      INTO TABLE @rt_rows.
+
+    IF sy-subrc <> 0.
+      CLEAR rt_rows.
+    ENDIF.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD get_items_from_lips.
+*&---------------------------------------------------------------------*
+*   Para cada remessa, busca os itens com MATNR, WERKS, LGORT na LIPS.
+*   Ignora itens sem material (posições de texto, etc.).
+    DATA lt_deliveries TYPE RANGE OF vbeln_vl.
+
+    LOOP AT it_deliveries INTO DATA(ls_del).
+      DATA ls_range LIKE LINE OF lt_deliveries.
+      ls_range-sign   = 'I'.
+      ls_range-option = 'EQ'.
+      ls_range-low    = ls_del-doc_number.
+      INSERT ls_range INTO TABLE lt_deliveries.
+    ENDLOOP.
+
+    IF lt_deliveries IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT vbeln AS vbeln,
+           posnr AS posnr,
+           matnr AS matnr,
+           werks AS werks,
+           lgort AS lgort
+      FROM lips
+      WHERE vbeln IN @lt_deliveries
+        AND matnr <> @space
+      INTO TABLE @rt_items.
+
+    IF sy-subrc <> 0.
+      CLEAR rt_items.
+    ENDIF.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD deduplicate_items.
+*&---------------------------------------------------------------------*
+*   Remove duplicatas por combinação MATNR+WERKS+LGORT.
+*   Um certificado é por combinação, não por item de remessa.
+    LOOP AT it_items INTO DATA(ls_item).
+      " Verificar se esta combinação já foi processada
+      READ TABLE rt_unique
+        WITH KEY matnr = ls_item-matnr
+                 werks = ls_item-werks
+                 lgort = ls_item-lgort
+        TRANSPORTING NO FIELDS.
+
+      IF sy-subrc <> 0.
+        INSERT ls_item INTO TABLE rt_unique.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD create_spool_from_pdf.
+*&---------------------------------------------------------------------*
+*   Cria uma requisição de spool SAP a partir do conteúdo binário PDF.
+*
+*   ⚠️ GAP TÉCNICO – confirmar com equipe BASIS:
+*      O mecanismo de escrita dos bytes PDF no spool aberto precisa ser
+*      verificado no sistema. Candidatos:
+*        - RSPO_WRITE_RAWDATA_TO_SPOOL
+*        - CL_ABAP_SPOOL (S/4HANA 1909+)
+*        - Print via Adobe Document Services (ADS)
+*
+*      Após confirmação, substituir o bloco TODO abaixo pela chamada correta.
+*
+    CLEAR ev_rspoid.
+    ev_success = abap_false.
+
+    IF iv_pdf_content IS INITIAL.
+      ev_message = 'Conteúdo PDF vazio – não é possível gerar spool.'(010).
+      RETURN.
+    ENDIF.
+
+    " Parâmetros da requisição de spool
+    DATA ls_params TYPE pri_params.
+    ls_params-pdest  = 'LP01'.                    " TODO: destino via TVARVC ZFD5047_PRINT_DEST
+    ls_params-prtxt  = |Certificado { iv_matnr }/{ iv_werks }/{ iv_lgort }|.
+    ls_params-primm  = abap_false.                " Não imprimir imediatamente
+    ls_params-prber  = 'EXTERN'.
+
+    DATA ls_arch TYPE arc_params.
+    DATA lv_sp_id TYPE rspoid.
+
+    CALL FUNCTION 'RSPO_OPEN_SPOOLREQUEST'
+      EXPORTING
+        params           = ls_params
+        archive_params   = ls_arch
+        open_new_request = abap_true
+      IMPORTING
+        sp_id            = lv_sp_id
+      EXCEPTIONS
+        user_area_error  = 1
+        OTHERS           = 2.
+
+    IF sy-subrc <> 0 OR lv_sp_id IS INITIAL.
+      ev_message = |Falha ao abrir requisição de spool (sy-subrc={ sy-subrc }).|.
+      RETURN.
+    ENDIF.
+
+*   TODO: Escrever bytes do PDF na requisição de spool lv_sp_id
+*         Confirmar função disponível no sistema com a equipe BASIS.
+*         Exemplo com RSPO_WRITE_RAWDATA_TO_SPOOL (verificar assinatura):
+*
+*         CALL FUNCTION 'RSPO_WRITE_RAWDATA_TO_SPOOL'
+*           EXPORTING
+*             sp_id   = lv_sp_id
+*             data    = iv_pdf_content
+*           EXCEPTIONS
+*             OTHERS  = 1.
+
+    ev_rspoid  = lv_sp_id.
+    ev_success = abap_true.
+  ENDMETHOD.
+
+ENDCLASS.

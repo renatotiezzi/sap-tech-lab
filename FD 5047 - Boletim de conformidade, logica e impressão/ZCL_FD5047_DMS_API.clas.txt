@@ -1,0 +1,575 @@
+*&---------------------------------------------------------------------*
+*& Class: ZCL_FD5047_DMS_API
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Helper comum para todas as operações REST com o SAP Document
+*&   Management Service (SDM) hospedado no BTP via CMIS Browser Binding.
+*&
+*& Pré-requisitos:
+*&   - Destino SM59: ZDMS5047_DEST (HTTP Connection to External Server)
+*&     Host: api-sdm-di.cfapps.br10.hana.ondemand.com
+*&     SSL ativo, OAuth2 ou Basic Auth configurado
+*&   - Repository ID confirmado: ZDMS_S4D_110
+*&
+*& Estrutura de pastas DMS adotada:
+*&   /root/Certificados/{MATNR}/{WERKS}/{LGORT}/
+*&   Nome do arquivo: {MATNR}_{WERKS}_{LGORT}_{YYYYMMDD}.pdf
+*&
+*& Busca de "mais recente":
+*&   Browse da pasta com orderBy=cmis:creationDate DESC, maxItems=1
+*&---------------------------------------------------------------------*
+CLASS zcl_fd5047_dms_api DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    CONSTANTS:
+      c_sm59_dest   TYPE rfcdest VALUE 'ZDMS5047_DEST',
+      c_repository  TYPE string  VALUE 'ZDMS_S4D_110',
+      c_root_folder TYPE string  VALUE 'Certificados'.
+
+    TYPES:
+      BEGIN OF ty_certificate,
+        doc_id     TYPE string,
+        matnr      TYPE matnr,
+        werks      TYPE werks_d,
+        lgort      TYPE lgort_d,
+        ref_date   TYPE dats,
+        doc_name   TYPE string,
+        created_at TYPE string,
+      END OF ty_certificate,
+      tt_certificates TYPE STANDARD TABLE OF ty_certificate WITH DEFAULT KEY.
+
+    "! Upload de certificado PDF no DMS para a combinação Material/Centro/Depósito/Data.
+    "! @parameter iv_matnr       | Código do material
+    "! @parameter iv_werks       | Centro
+    "! @parameter iv_lgort       | Depósito
+    "! @parameter iv_ref_date    | Data de referência (YYYYMMDD)
+    "! @parameter iv_pdf_content | Conteúdo binário do PDF
+    "! @parameter rv_doc_id      | ID do documento criado no DMS
+    METHODS upload_certificate
+      IMPORTING iv_matnr       TYPE matnr
+                iv_werks       TYPE werks_d
+                iv_lgort       TYPE lgort_d
+                iv_ref_date    TYPE dats
+                iv_pdf_content TYPE xstring
+      RETURNING VALUE(rv_doc_id) TYPE string
+      RAISING   cx_dynamic_check.
+
+    "! Busca o certificado mais recente para uma combinação Material/Centro/Depósito.
+    "! Retorna vazio se não encontrado.
+    "! @parameter iv_matnr | Código do material
+    "! @parameter iv_werks | Centro
+    "! @parameter iv_lgort | Depósito
+    "! @parameter rv_doc_id | ID do documento mais recente, ou space se ausente
+    METHODS find_latest_certificate
+      IMPORTING iv_matnr         TYPE matnr
+                iv_werks         TYPE werks_d
+                iv_lgort         TYPE lgort_d
+      RETURNING VALUE(rv_doc_id) TYPE string
+      RAISING   cx_dynamic_check.
+
+    "! Verifica se já existe um certificado para a chave composta (duplicidade).
+    METHODS certificate_exists
+      IMPORTING iv_matnr        TYPE matnr
+                iv_werks        TYPE werks_d
+                iv_lgort        TYPE lgort_d
+                iv_ref_date     TYPE dats
+      RETURNING VALUE(rv_found) TYPE abap_bool
+      RAISING   cx_dynamic_check.
+
+    "! Recupera o conteúdo binário (PDF) de um documento pelo seu ID.
+    METHODS get_document_content
+      IMPORTING iv_doc_id             TYPE string
+      RETURNING VALUE(rv_pdf_content) TYPE xstring
+      RAISING   cx_dynamic_check.
+
+    "! Exclui um documento do DMS pelo seu ID.
+    METHODS delete_document
+      IMPORTING iv_doc_id TYPE string
+      RAISING   cx_dynamic_check.
+
+    "! Retorna lista de documentos cujo nome contém data anterior ao cutoff.
+    "! Usado pelo job de limpeza (Parte 3).
+    METHODS find_documents_older_than
+      IMPORTING iv_cutoff_date    TYPE dats
+      RETURNING VALUE(rt_docs)    TYPE tt_certificates
+      RAISING   cx_dynamic_check.
+
+    "! Lista certificados por filtros (Parte 1 – consulta do Fiori app).
+    METHODS list_certificates
+      IMPORTING iv_matnr       TYPE matnr   OPTIONAL
+                iv_werks       TYPE werks_d OPTIONAL
+                iv_lgort       TYPE lgort_d OPTIONAL
+                iv_date_from   TYPE dats    OPTIONAL
+                iv_date_to     TYPE dats    OPTIONAL
+      RETURNING VALUE(rt_docs) TYPE tt_certificates
+      RAISING   cx_dynamic_check.
+
+  PRIVATE SECTION.
+
+    METHODS get_http_client
+      RETURNING VALUE(ro_client) TYPE REF TO if_http_client
+      RAISING   cx_dynamic_check.
+
+    METHODS build_doc_name
+      IMPORTING iv_matnr       TYPE matnr
+                iv_werks       TYPE werks_d
+                iv_lgort       TYPE lgort_d
+                iv_ref_date    TYPE dats
+      RETURNING VALUE(rv_name) TYPE string.
+
+    METHODS get_folder_path
+      IMPORTING iv_matnr       TYPE matnr
+                iv_werks       TYPE werks_d
+                iv_lgort       TYPE lgort_d
+      RETURNING VALUE(rv_path) TYPE string.
+
+    METHODS ensure_folder_exists
+      IMPORTING iv_folder_path TYPE string
+                io_client      TYPE REF TO if_http_client
+      RAISING   cx_dynamic_check.
+
+    METHODS parse_first_objectid
+      IMPORTING iv_json          TYPE string
+      RETURNING VALUE(rv_doc_id) TYPE string.
+
+    METHODS parse_objectid_list
+      IMPORTING iv_json       TYPE string
+      RETURNING VALUE(rt_ids) TYPE string_table.
+
+    METHODS http_get
+      IMPORTING iv_path             TYPE string
+                io_client           TYPE REF TO if_http_client
+      RETURNING VALUE(rv_response)  TYPE string
+      RAISING   cx_dynamic_check.
+
+    METHODS check_http_status
+      IMPORTING io_client TYPE REF TO if_http_client
+      RAISING   cx_dynamic_check.
+
+ENDCLASS.
+
+
+CLASS zcl_fd5047_dms_api IMPLEMENTATION.
+
+*&---------------------------------------------------------------------*
+  METHOD get_http_client.
+*&---------------------------------------------------------------------*
+    cl_http_client=>create_by_destination(
+      EXPORTING
+        destination              = c_sm59_dest
+      IMPORTING
+        client                   = ro_client
+      EXCEPTIONS
+        argument_not_found       = 1
+        destination_not_found    = 2
+        destination_no_authority = 3
+        plugin_not_active        = 4
+        internal_error           = 5
+        OTHERS                   = 6 ).
+
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION TYPE cx_dynamic_check
+        MESSAGE e001(00) WITH
+          'DMS: Destino SM59 ZDMS5047_DEST nao encontrado ou sem autoridade'(001).
+    ENDIF.
+
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD build_doc_name.
+*&---------------------------------------------------------------------*
+*   Formato: {MATNR}_{WERKS}_{LGORT}_{YYYYMMDD}.pdf
+    DATA(lv_matnr) = condense( val = CONV string( iv_matnr ) ).
+    DATA(lv_werks) = condense( val = CONV string( iv_werks ) ).
+    DATA(lv_lgort) = condense( val = CONV string( iv_lgort ) ).
+    rv_name = |{ lv_matnr }_{ lv_werks }_{ lv_lgort }_{ iv_ref_date }.pdf|.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD get_folder_path.
+*&---------------------------------------------------------------------*
+    DATA(lv_matnr) = condense( val = CONV string( iv_matnr ) ).
+    DATA(lv_werks) = condense( val = CONV string( iv_werks ) ).
+    DATA(lv_lgort) = condense( val = CONV string( iv_lgort ) ).
+    rv_path = |{ c_root_folder }/{ lv_matnr }/{ lv_werks }/{ lv_lgort }|.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD http_get.
+*&---------------------------------------------------------------------*
+    io_client->request->set_method( if_http_request=>co_request_method_get ).
+    io_client->request->set_header_field(
+      name  = '~request_uri'
+      value = |/browser/{ c_repository }/root/{ iv_path }| ).
+    io_client->request->set_header_field(
+      name  = 'Accept'
+      value = 'application/json' ).
+
+    io_client->send( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+    io_client->receive( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+    check_http_status( io_client ).
+
+    rv_response = io_client->response->get_cdata( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD check_http_status.
+*&---------------------------------------------------------------------*
+    DATA lv_status TYPE i.
+    DATA lv_reason TYPE string.
+    io_client->response->get_status( IMPORTING code = lv_status reason = lv_reason ).
+
+    IF lv_status >= 400.
+      RAISE EXCEPTION TYPE cx_dynamic_check
+        MESSAGE e001(00) WITH
+          |DMS HTTP Error: { lv_status } { lv_reason }|(002).
+    ENDIF.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD parse_first_objectid.
+*&---------------------------------------------------------------------*
+*   Extrai o primeiro "cmis:objectId" do JSON de resposta CMIS.
+*   CMIS retorna: { "succinctProperties": { "cmis:objectId": "xxx" } }
+*   ou em lista: { "objects": [ { "object": { "succinctProperties": { ... } } } ] }
+    DATA(lv_marker) = '"cmis:objectId"'.
+    DATA(lv_pos)    = find( val = iv_json sub = lv_marker ).
+
+    CHECK lv_pos >= 0.
+
+    DATA(lv_rest) = iv_json+lv_pos.
+    DATA(lv_sep)  = find( val = lv_rest sub = '":"' ).
+    CHECK lv_sep >= 0.
+
+    DATA(lv_after_sep) = lv_rest+lv_sep.
+    lv_after_sep = lv_after_sep+3.  " skip ":"
+    DATA(lv_end) = find( val = lv_after_sep sub = '"' ).
+    CHECK lv_end > 0.
+
+    rv_doc_id = lv_after_sep(lv_end).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD parse_objectid_list.
+*&---------------------------------------------------------------------*
+*   Extrai todos os "cmis:objectId" do JSON de resposta CMIS (lista).
+    DATA(lv_work)   = iv_json.
+    DATA(lv_marker) = '"cmis:objectId"'.
+    DATA(lv_pos)    = find( val = lv_work sub = lv_marker ).
+
+    WHILE lv_pos >= 0.
+      DATA(lv_rest) = lv_work+lv_pos.
+      DATA(lv_sep)  = find( val = lv_rest sub = '":"' ).
+      IF lv_sep >= 0.
+        DATA(lv_after) = lv_rest+lv_sep.
+        lv_after = lv_after+3.
+        DATA(lv_end) = find( val = lv_after sub = '"' ).
+        IF lv_end > 0.
+          DATA(lv_id) = lv_after(lv_end).
+          APPEND lv_id TO rt_ids.
+        ENDIF.
+      ENDIF.
+
+      " Avançar para próxima ocorrência
+      lv_work = lv_work+(lv_pos + strlen( lv_marker )).
+      lv_pos  = find( val = lv_work sub = lv_marker ).
+    ENDWHILE.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD ensure_folder_exists.
+*&---------------------------------------------------------------------*
+*   Cria os subdiretórios no DMS se ainda não existirem.
+*   Caminho esperado: Certificados/{MATNR}/{WERKS}/{LGORT}
+*   Usa CMIS createFolder action para cada nível.
+    DATA(lt_segments) = split_string_to_table(
+                          val = iv_folder_path
+                          sep = '/' ).           "TODO: usar string_split ou split inline
+
+    " Abordagem simplificada: tentar criar a pasta; ignorar erro se já existir (409 Conflict)
+    DATA(lv_url)  = |/browser/{ c_repository }/root|.
+    DATA(lv_body) = |cmisaction=createFolder&propertyId[0]=cmis:name|
+                  & |&propertyValue[0]={ iv_folder_path }|
+                  & |&propertyId[1]=cmis:objectTypeId&propertyValue[1]=cmis:folder|.
+
+    io_client->request->set_method( if_http_request=>co_request_method_post ).
+    io_client->request->set_header_field( name = '~request_uri' value = lv_url ).
+    io_client->request->set_content_type( 'application/x-www-form-urlencoded' ).
+    io_client->request->set_cdata( lv_body ).
+    io_client->send( EXCEPTIONS OTHERS = 1 ).
+    io_client->receive( EXCEPTIONS OTHERS = 2 ).
+    " 201 = criada, 409 = já existe → ambos aceitáveis aqui
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD upload_certificate.
+*&---------------------------------------------------------------------*
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    DATA(lv_folder) = get_folder_path( iv_matnr = iv_matnr
+                                        iv_werks = iv_werks
+                                        iv_lgort = iv_lgort ).
+    DATA(lv_name)   = build_doc_name(  iv_matnr   = iv_matnr
+                                        iv_werks   = iv_werks
+                                        iv_lgort   = iv_lgort
+                                        iv_ref_date = iv_ref_date ).
+
+    " Garante que a estrutura de pastas existe no DMS
+    ensure_folder_exists( iv_folder_path = lv_folder
+                          io_client      = lo_client ).
+
+    " Upload usando CMIS createDocument via multipart/form-data
+    DATA(lv_url)      = |/browser/{ c_repository }/root/{ lv_folder }|.
+    DATA(lv_boundary) = 'ZFD5047BOUND001'.
+
+    " Parte de texto: metadados CMIS
+    DATA(lv_text_part) =
+        |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="cmisaction"\r\n\r\n|
+      & |createDocument\r\n|
+      & |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="propertyId[0]"\r\n\r\nCMIS:name\r\n|
+      & |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="propertyValue[0]"\r\n\r\n|
+      & |{ lv_name }\r\n|
+      & |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="propertyId[1]"\r\n\r\ncmis:objectTypeId\r\n|
+      & |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="propertyValue[1]"\r\n\r\ncmis:document\r\n|
+      & |--{ lv_boundary }\r\n|
+      & |Content-Disposition: form-data; name="content"; filename="{ lv_name }"\r\n|
+      & |Content-Type: application/pdf\r\n\r\n|.
+
+    DATA(lv_closing)  = |\r\n--{ lv_boundary }--\r\n|.
+
+    " Combinar partes: texto + binário PDF + fechamento
+    DATA(lx_prefix)  = cl_abap_codepage=>convert_to( source = lv_text_part ).
+    DATA(lx_suffix)  = cl_abap_codepage=>convert_to( source = lv_closing ).
+    DATA(lx_body)    = lx_prefix && iv_pdf_content && lx_suffix.
+
+    lo_client->request->set_method( if_http_request=>co_request_method_post ).
+    lo_client->request->set_header_field( name = '~request_uri' value = lv_url ).
+    lo_client->request->set_header_field(
+      name  = 'Content-Type'
+      value = |multipart/form-data; boundary={ lv_boundary }| ).
+    lo_client->request->set_data( lx_body ).
+
+    lo_client->send( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+    lo_client->receive( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+    check_http_status( lo_client ).
+
+    DATA(lv_resp) = lo_client->response->get_cdata( ).
+    rv_doc_id = parse_first_objectid( lv_resp ).
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD find_latest_certificate.
+*&---------------------------------------------------------------------*
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    DATA(lv_folder) = get_folder_path( iv_matnr = iv_matnr
+                                        iv_werks = iv_werks
+                                        iv_lgort = iv_lgort ).
+
+    " Browse pasta ordenado por data de criação DESC → mais recente primeiro
+    DATA(lv_path) = |{ lv_folder }|
+                  & |?cmisselector=children&orderBy=cmis:creationDate+DESC&maxItems=1|.
+
+    TRY.
+        DATA(lv_resp) = http_get( iv_path = lv_path io_client = lo_client ).
+        rv_doc_id = parse_first_objectid( lv_resp ).
+      CATCH cx_dynamic_check.
+        " Pasta não encontrada ou sem documentos → retornar vazio
+        rv_doc_id = space.
+    ENDTRY.
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD certificate_exists.
+*&---------------------------------------------------------------------*
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    DATA(lv_folder) = get_folder_path( iv_matnr = iv_matnr
+                                        iv_werks = iv_werks
+                                        iv_lgort = iv_lgort ).
+    DATA(lv_name)   = build_doc_name(  iv_matnr   = iv_matnr
+                                        iv_werks   = iv_werks
+                                        iv_lgort   = iv_lgort
+                                        iv_ref_date = iv_ref_date ).
+
+    " Tenta obter o objeto pelo caminho exato (nome do arquivo)
+    DATA(lv_path) = |{ lv_folder }/{ lv_name }?cmisselector=object|.
+
+    TRY.
+        DATA(lv_resp) = http_get( iv_path = lv_path io_client = lo_client ).
+        DATA(lv_id)   = parse_first_objectid( lv_resp ).
+        rv_found = COND #( WHEN lv_id IS NOT INITIAL THEN abap_true ELSE abap_false ).
+      CATCH cx_dynamic_check.
+        rv_found = abap_false.
+    ENDTRY.
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD get_document_content.
+*&---------------------------------------------------------------------*
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    DATA(lv_path) = |?cmisselector=content&objectId={ iv_doc_id }|.
+
+    lo_client->request->set_method( if_http_request=>co_request_method_get ).
+    lo_client->request->set_header_field(
+      name  = '~request_uri'
+      value = |/browser/{ c_repository }/root/{ lv_path }| ).
+
+    lo_client->send( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+    lo_client->receive( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+    check_http_status( lo_client ).
+
+    rv_pdf_content = lo_client->response->get_data( ).
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD delete_document.
+*&---------------------------------------------------------------------*
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    DATA(lv_url)  = |/browser/{ c_repository }/root|.
+    DATA(lv_body) = |cmisaction=delete&objectId={ iv_doc_id }|.
+
+    lo_client->request->set_method( if_http_request=>co_request_method_post ).
+    lo_client->request->set_header_field( name = '~request_uri' value = lv_url ).
+    lo_client->request->set_content_type( 'application/x-www-form-urlencoded' ).
+    lo_client->request->set_cdata( lv_body ).
+
+    lo_client->send( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+    lo_client->receive( EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+    check_http_status( lo_client ).
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD find_documents_older_than.
+*&---------------------------------------------------------------------*
+*   Usa CMIS query para buscar documentos criados antes do cutoff.
+*   Retorna lista de doc_id para deleção posterior.
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    " Formatar data de cutoff no formato ISO 8601 para CMIS
+    DATA(lv_year)  = iv_cutoff_date(4).
+    DATA(lv_month) = iv_cutoff_date+4(2).
+    DATA(lv_day)   = iv_cutoff_date+6(2).
+    DATA(lv_iso)   = |{ lv_year }-{ lv_month }-{ lv_day }T00:00:00.000Z|.
+
+    " CMIS query: documentos na árvore de Certificados criados antes do cutoff
+    DATA(lv_query) = |SELECT cmis:objectId, cmis:name FROM cmis:document |
+                   & |WHERE cmis:creationDate < TIMESTAMP '{ lv_iso }' |
+                   & |AND IN_TREE('{ c_root_folder }')|.
+
+    DATA(lv_encoded) = cl_http_utility=>escape_url( lv_query ).
+    DATA(lv_path)    = |?cmisselector=query&q={ lv_encoded }&maxItems=1000|.
+
+    TRY.
+        DATA(lv_resp) = http_get( iv_path = lv_path io_client = lo_client ).
+        DATA(lt_ids)  = parse_objectid_list( lv_resp ).
+
+        LOOP AT lt_ids INTO DATA(lv_id).
+          DATA ls_cert TYPE ty_certificate.
+          ls_cert-doc_id = lv_id.
+          INSERT ls_cert INTO TABLE rt_docs.
+        ENDLOOP.
+      CATCH cx_dynamic_check.
+        " Retornar lista vazia em caso de erro de query CMIS
+    ENDTRY.
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD list_certificates.
+*&---------------------------------------------------------------------*
+*   Busca certificados no DMS com filtros opcionais.
+*   Quando MATNR+WERKS+LGORT fornecidos: browse da pasta específica.
+*   Quando apenas filtros parciais: query CMIS com LIKE no nome do documento.
+    DATA lo_client TYPE REF TO if_http_client.
+    lo_client = get_http_client( ).
+
+    TRY.
+        DATA lv_resp TYPE string.
+
+        IF iv_matnr IS NOT INITIAL AND iv_werks IS NOT INITIAL AND iv_lgort IS NOT INITIAL.
+          " Browse direto na pasta da combinação
+          DATA(lv_folder) = get_folder_path( iv_matnr = iv_matnr
+                                              iv_werks = iv_werks
+                                              iv_lgort = iv_lgort ).
+          DATA(lv_path) = |{ lv_folder }?cmisselector=children&orderBy=cmis:creationDate+DESC|.
+          lv_resp = http_get( iv_path = lv_path io_client = lo_client ).
+
+        ELSEIF iv_matnr IS NOT INITIAL.
+          " Browse pasta do material (todos os centros/depósitos)
+          DATA(lv_mat_folder) = |{ c_root_folder }/{ condense( val = CONV string( iv_matnr ) ) }|.
+          DATA(lv_path_mat)   = |{ lv_mat_folder }?cmisselector=descendants&depth=10|.
+          lv_resp = http_get( iv_path = lv_path_mat io_client = lo_client ).
+
+        ELSE.
+          " Busca geral via CMIS query
+          DATA lv_query TYPE string.
+          lv_query = |SELECT cmis:objectId, cmis:name, cmis:creationDate FROM cmis:document |
+                   & |WHERE IN_TREE('{ c_root_folder }') ORDER BY cmis:creationDate DESC|.
+          DATA(lv_enc)       = cl_http_utility=>escape_url( lv_query ).
+          DATA(lv_path_qry)  = |?cmisselector=query&q={ lv_enc }&maxItems=500|.
+          lv_resp = http_get( iv_path = lv_path_qry io_client = lo_client ).
+        ENDIF.
+
+        " Parsear IDs e popular resultado
+        DATA(lt_ids) = parse_objectid_list( lv_resp ).
+        LOOP AT lt_ids INTO DATA(lv_id).
+          DATA ls_cert TYPE ty_certificate.
+          ls_cert-doc_id = lv_id.
+          INSERT ls_cert INTO TABLE rt_docs.
+        ENDLOOP.
+
+      CATCH cx_dynamic_check.
+        " Retornar vazio em caso de erro
+    ENDTRY.
+
+    lo_client->close( ).
+  ENDMETHOD.
+
+ENDCLASS.

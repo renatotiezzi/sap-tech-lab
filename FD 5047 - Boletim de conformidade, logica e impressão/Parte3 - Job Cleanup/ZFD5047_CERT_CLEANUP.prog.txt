@@ -1,0 +1,163 @@
+*&---------------------------------------------------------------------*
+*& Program: ZFD5047_CERT_CLEANUP
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Job de manutenção do DMS: elimina certificados de conformidade com
+*&   mais de D dias (padrão D=15, configurável via TVARVC).
+*&   FD 5047 – Parte 3.
+*&
+*& Agendamento: 2x por mês, madrugada (recomendado: dias 1 e 15, 02:00h)
+*&
+*& Parâmetro TVARVC:
+*&   ZFD5047_CLEANUP_DAYS (tipo P, valor numérico de dias de retenção)
+*&   Se não existir → usa 15 dias como padrão.
+*&
+*& Modo Test (P_TEST):
+*&   Quando marcado: lista os documentos que seriam deletados, SEM deletar.
+*&---------------------------------------------------------------------*
+REPORT zfd5047_cert_cleanup.
+
+
+*&---------------------------------------------------------------------*
+*& Tela de seleção
+*&---------------------------------------------------------------------*
+PARAMETERS:
+  p_days TYPE i DEFAULT 0        OPTIONAL,      " Override do D-dias (0 = usar TVARVC)
+  p_test TYPE abap_bool DEFAULT abap_true.       " Modo test: somente listar, não deletar
+
+
+*&---------------------------------------------------------------------*
+*& Estruturas e tipos locais
+*&---------------------------------------------------------------------*
+TYPES:
+  BEGIN OF ty_result_row,
+    doc_id    TYPE string,
+    doc_name  TYPE string,
+    status    TYPE string,
+    message   TYPE string,
+  END OF ty_result_row.
+
+
+*&---------------------------------------------------------------------*
+*& START-OF-SELECTION
+*&---------------------------------------------------------------------*
+START-OF-SELECTION.
+
+  " 1. Determinar data de corte
+  DATA lv_days   TYPE i.
+  DATA lv_cutoff TYPE dats.
+
+  IF p_days > 0.
+    lv_days = p_days.
+  ELSE.
+    " Ler parâmetro da TVARVC
+    SELECT SINGLE low
+      FROM tvarvc
+      WHERE name = 'ZFD5047_CLEANUP_DAYS'
+        AND type = 'P'
+      INTO @DATA(lv_tvarvc_val).
+
+    IF sy-subrc = 0 AND lv_tvarvc_val IS NOT INITIAL.
+      lv_days = CONV i( lv_tvarvc_val ).
+    ELSE.
+      lv_days = 15.  " Default hard-coded
+    ENDIF.
+  ENDIF.
+
+  lv_cutoff = sy-datum - lv_days.
+
+  WRITE: / 'FD 5047 - Job de Limpeza DMS de Certificados'(001).
+  WRITE: / '================================================'(002).
+  WRITE: / 'Data de execução:'(003), sy-datum, sy-uzeit.
+  WRITE: / 'Parâmetro de retenção (dias):'(004), lv_days.
+  WRITE: / 'Data de corte (documentos anteriores a):'(005), lv_cutoff.
+
+  IF p_test = abap_true.
+    WRITE: / '*** MODO TEST: Nenhum documento será deletado ***'(006).
+  ENDIF.
+
+  ULINE.
+
+  " 2. Buscar documentos mais antigos que a data de corte no DMS
+  DATA lo_dms TYPE REF TO zcl_fd5047_dms_api.
+  CREATE OBJECT lo_dms.
+
+  DATA lt_old_docs TYPE zcl_fd5047_dms_api=>tt_certificates.
+
+  TRY.
+      lt_old_docs = lo_dms->find_documents_older_than( iv_cutoff_date = lv_cutoff ).
+    CATCH cx_dynamic_check INTO DATA(lx_find).
+      WRITE: / 'Erro ao consultar DMS:'(007), lx_find->get_text( ).
+      RETURN.
+  ENDTRY.
+
+  DATA(lv_found)   = lines( lt_old_docs ).
+  DATA(lv_deleted) = 0.
+  DATA(lv_errors)  = 0.
+
+  WRITE: / 'Documentos encontrados para limpeza:'(008), lv_found.
+  ULINE.
+
+  IF lt_old_docs IS INITIAL.
+    WRITE: / 'Nenhum documento a ser removido.'(009).
+    RETURN.
+  ENDIF.
+
+  " 3. Cabecalho da listagem
+  WRITE: /
+    'ID do Documento'(010) COLOR COL_HEADING,
+    'Nome'(011) COLOR COL_HEADING,
+    'Status'(012) COLOR COL_HEADING,
+    'Mensagem'(013) COLOR COL_HEADING.
+  ULINE.
+
+  " 4. Processar cada documento
+  DATA lt_results TYPE STANDARD TABLE OF ty_result_row WITH DEFAULT KEY.
+
+  LOOP AT lt_old_docs INTO DATA(ls_doc).
+    DATA ls_result TYPE ty_result_row.
+    ls_result-doc_id   = ls_doc-doc_id.
+    ls_result-doc_name = ls_doc-doc_name.
+
+    IF p_test = abap_true.
+      " Modo test: apenas registrar
+      ls_result-status  = 'CANDIDATO'(014).
+      ls_result-message = 'Não deletado – modo test ativo.'(015).
+    ELSE.
+      " Deletar no DMS
+      TRY.
+          lo_dms->delete_document( iv_doc_id = ls_doc-doc_id ).
+          ls_result-status  = 'DELETADO'(016).
+          ls_result-message = 'Removido com sucesso.'(017).
+          lv_deleted = lv_deleted + 1.
+
+        CATCH cx_dynamic_check INTO DATA(lx_del).
+          ls_result-status  = 'ERRO'(018).
+          ls_result-message = lx_del->get_text( ).
+          lv_errors = lv_errors + 1.
+      ENDTRY.
+    ENDIF.
+
+    INSERT ls_result INTO TABLE lt_results.
+
+    " Imprimir linha do resultado
+    WRITE: /
+      ls_result-doc_id(40)   COLOR COL_NORMAL,
+      ls_result-doc_name(50) COLOR COL_NORMAL,
+      ls_result-status(15)   COLOR COND #( WHEN ls_result-status = 'DELETADO'(016)  THEN COL_POSITIVE
+                                            WHEN ls_result-status = 'ERRO'(018)      THEN COL_NEGATIVE
+                                            ELSE                                           COL_NORMAL ),
+      ls_result-message      COLOR COL_NORMAL.
+  ENDLOOP.
+
+  " 5. Sumário final
+  ULINE.
+  WRITE: / 'SUMÁRIO:'(019).
+  WRITE: / '  Encontrados:'(020), lv_found.
+
+  IF p_test = abap_true.
+    WRITE: / '  (Modo Test – nenhum documento foi deletado)'(021).
+  ELSE.
+    WRITE: / '  Deletados com sucesso:'(022), lv_deleted.
+    WRITE: / '  Erros:'(023), lv_errors.
+  ENDIF.

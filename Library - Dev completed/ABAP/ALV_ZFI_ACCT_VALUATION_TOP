@@ -1,0 +1,36 @@
+************************************************************************
+*  Object Name      : ZFI_ACCT_VALUATION_TOP                           *
+*  Created by       : Renato Tiezzi (ZA80185)                          *
+*  Creation date    : 09/01/2025                                       *
+*  Requester        : Reinaldo Manfio (ZA50540)                        *
+*  RFC / CD         : 1407890/9401239                                  *
+*  TR Number        : L2DK917180                                       *
+*  Description      : Create new T-code for valuation process          *
+*======================================================================*
+*  Revision History                                                    *
+*  Revised by       : xxxxxx xxxxxxxxx                                 *
+*  Revision Date    : mm/dd/yyyy                                       *
+*  Requester        :                                                  *
+*  RFC / CD         :                                                  *
+*  Change tag       : S01K900001                                       *
+*  TR Number        : S01Kxxxxxx                                       *
+*  Description of Revision:                                            *
+*                                                                      *
+************************************************************************
+*&---------------------------------------------------------------------*
+*&  Include           ZFI_ACCT_VALUATION_TOP
+*&---------------------------------------------------------------------*
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-005.
+SELECTION-SCREEN PUSHBUTTON /1(20) p_log USER-COMMAND log.
+SELECTION-SCREEN SKIP 1.
+PARAMETERS: p_datef TYPE BEGDA  DEFAULT '20200101',
+            p_datet TYPE endda  DEFAULT '20250102'.
+SELECTION-SCREEN END OF BLOCK b2.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-004.
+PARAMETERS: p_plant TYPE t001w-werks.
+SELECTION-SCREEN END OF BLOCK b1.
+
+INITIALIZATION.
+  p_log = '@G9@' && TEXT-006."'Display Log'

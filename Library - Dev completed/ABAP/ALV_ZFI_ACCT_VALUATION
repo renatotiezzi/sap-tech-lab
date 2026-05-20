@@ -1,0 +1,41 @@
+************************************************************************
+*  Object Name      : ZFI_ACCT_VALUATION                               *
+*  Created by       : Renato Tiezzi (ZA80185)                          *
+*  Creation date    : 09/01/2025                                       *
+*  Requester        : Reinaldo Manfio (ZA50540)                        *
+*  RFC / CD         : 1407890/9401239                                  *
+*  TR Number        : L2DK917180                                       *
+*  Description      : Create new T-code for valuation process          *
+*======================================================================*
+*  Revision History                                                    *
+*  Revised by       : xxxxxx xxxxxxxxx                                 *
+*  Revision Date    : mm/dd/yyyy                                       *
+*  Requester        :                                                  *
+*  RFC / CD         :                                                  *
+*  Change tag       : S01K900001                                       *
+*  TR Number        : S01Kxxxxxx                                       *
+*  Description of Revision:                                            *
+*                                                                      *
+************************************************************************
+*&---------------------------------------------------------------------*
+*& Report ZFI_ACCT_VALUATION
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zfi_acct_valuation.
+
+INCLUDE zfi_acct_valuation_top IF FOUND.
+INCLUDE zfi_acct_valuation_cls IF FOUND.
+INCLUDE zfi_acct_valuation_pbo IF FOUND.
+INCLUDE zfi_acct_valuation_pai IF FOUND.
+
+AT SELECTION-SCREEN.
+  IF sy-ucomm = 'LOG'.
+    lcl_report=>show_log(
+      iv_datef = p_datef
+      iv_datet = p_datet
+    ).
+  ENDIF.
+
+START-OF-SELECTION.
+  lcl_report=>start_of_selection( iv_plant = p_plant ).

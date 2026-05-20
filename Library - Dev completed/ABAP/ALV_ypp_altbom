@@ -1,0 +1,1810 @@
+*&---------------------------------------------------------------------*
+*
+* The program was coped from the ABox system
+*
+***********************************************************************
+* Program Name      : YPP_ALTBOM
+* Author            : Stanislav Zobnin (ZA52597)
+* Date              : 03/01/2023
+* Requestor         : Kedar Kulkarni
+* Chg. Request No.  : AI4K930584
+* CD/RFC            : 1125810 / 3105844
+* Description       : Maintain Alternative BOM
+***********************************************************************
+*  Revised by       :
+*  Requester        :
+*  Revision Date    :
+*  Ch. Request No.  :
+*  Change Tag       :
+*  Task             :
+*  Description      :
+***********************************************************************
+
+REPORT ypp_altbom.
+
+CLASS lcl_report DEFINITION FINAL.
+  PUBLIC SECTION.
+    TYPES:
+      ty_c_1 TYPE c LENGTH 1.
+    TYPES:
+      BEGIN OF ty_s_data.
+        INCLUDE TYPE ypp_altbom.
+      TYPES:
+        maktx   TYPE string,
+        maktx1  TYPE string,
+        maktx2  TYPE string,
+        t_style TYPE lvc_t_styl,
+      END OF ty_s_data.
+    TYPES:
+      ty_t_data TYPE STANDARD TABLE OF ty_s_data WITH NON-UNIQUE SORTED KEY k1 COMPONENTS matnr  .
+
+    TYPES:
+      BEGIN OF ty_s_bom,
+        matnr TYPE mkal-matnr,
+        verid TYPE mkal-verid,
+        datuv TYPE t415a-datuv,
+        stlal TYPE mkal-stlal,
+      END   OF ty_s_bom.
+    TYPES:
+      BEGIN OF ty_s_ycmpdser,
+        matnr TYPE ycmpdser-matnr,
+        datuv TYPE ycmpdser-datuv,
+        ser   TYPE ycmpdser-ser,
+      END   OF ty_s_ycmpdser,
+      ty_t_ycmpdser TYPE STANDARD TABLE OF ty_s_ycmpdser.
+
+    TYPES:
+      BEGIN OF ty_s_dmaramarc,
+        mtart TYPE ydmaramarc-mtart,
+        matnr TYPE ydmaramarc-matnr ,
+        maktx TYPE ydmaramarc-maktx ,
+      END   OF ty_s_dmaramarc,
+      ty_t_dmaramarc TYPE SORTED TABLE OF ty_s_dmaramarc WITH NON-UNIQUE KEY mtart matnr.
+
+    CONSTANTS:
+      BEGIN OF gc_mtart,
+        cmpd TYPE ydmaramarc-mtart VALUE 'CMPD',
+        mix  TYPE ydmaramarc-mtart VALUE 'MIX',
+        trtw TYPE ydmaramarc-mtart VALUE 'TRTW',
+        trtf TYPE ydmaramarc-mtart VALUE 'TRTF',
+        bead TYPE ydmaramarc-mtart VALUE 'BEAD',
+      END   OF gc_mtart.
+
+    CLASS-DATA:
+      gt_cellstyle         TYPE lvc_t_styl,
+      gt_bom               TYPE STANDARD TABLE OF ty_s_bom,
+      gt_ycmpdser          TYPE ty_t_ycmpdser,
+
+      gv_ready_for_input   TYPE i,
+      gr_grid              TYPE REF TO cl_gui_alv_grid,
+      gt_data              TYPE ty_t_data,
+      gt_dmaramarc         TYPE ty_t_dmaramarc,
+
+      gv_not_saved         TYPE abap_bool,  "indicate if the changes have been saved
+      gv_check_before_save TYPE abap_bool, "Idicator of extended check
+
+      gt_mtart             TYPE RANGE OF mara-mtart,
+      gv_plant             TYPE ypp_altbom-werks,
+      gv_plant_description TYPE t001w-name1,
+      gv_folder            TYPE string.
+
+    CLASS-METHODS start_of_selection
+      IMPORTING
+        iv_plant           TYPE t001w-werks
+
+        iv_compound        TYPE ty_c_1
+        iv_mix             TYPE ty_c_1
+        iv_wire_treatment  TYPE ty_c_1
+        iv_fabric_tratment TYPE ty_c_1
+        iv_bead            TYPE ty_c_1
+        iv_maint           TYPE ty_c_1
+
+        iv_down            TYPE ty_c_1
+        iv_fpathd          TYPE string
+
+        iv_upl             TYPE ty_c_1
+        iv_fpathu          TYPE string
+        iv_delall          TYPE ty_c_1
+      .
+    CLASS-METHODS handle_data_changed
+                FOR EVENT data_changed OF cl_gui_alv_grid
+      IMPORTING er_data_changed e_onf4.
+    CLASS-METHODS handle_user_command
+                FOR EVENT user_command OF cl_gui_alv_grid
+      IMPORTING e_ucomm.
+
+    CLASS-METHODS handle_f4
+                FOR EVENT onf4 OF cl_gui_alv_grid
+      IMPORTING e_fieldname e_fieldvalue es_row_no er_event_data ##NEEDED.
+
+    CLASS-METHODS handle_toolbar
+                FOR EVENT toolbar OF cl_gui_alv_grid
+      IMPORTING e_object . "sender.
+
+    CLASS-METHODS pbo_200.
+
+    CLASS-METHODS pai_200.
+
+    CLASS-METHODS go_back.
+
+    CLASS-METHODS get_data
+      IMPORTING
+        iv_maint TYPE ty_c_1
+        iv_down  TYPE ty_c_1
+      .
+
+    CLASS-METHODS get_boms.
+
+    CLASS-METHODS save_data.
+
+    CLASS-METHODS download_excel_file
+      IMPORTING
+        iv_filename TYPE string
+      .
+    CLASS-METHODS upload_excel_file
+      IMPORTING
+        iv_filename   TYPE string
+        iv_delete_all TYPE abap_bool
+      .
+
+    CLASS-METHODS download_excel_document
+      IMPORTING
+        iv_filename TYPE string
+      CHANGING
+        ct_data     TYPE ty_t_data
+      .
+
+    CLASS-METHODS upload_excel_document
+      IMPORTING
+        iv_filename TYPE string
+      EXPORTING
+        ev_error    TYPE soi_ret_string
+      CHANGING
+        ct_data     TYPE ty_t_data
+      .
+
+
+    CLASS-METHODS get_monday
+      IMPORTING iv_date          TYPE d
+      RETURNING VALUE(rv_monday) TYPE d.
+
+    CLASS-METHODS prepare_fieldcat
+      IMPORTING
+        it_table         TYPE STANDARD TABLE
+        iv_empty_col_pos TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rt_fcat)   TYPE lvc_t_fcat.
+
+    CLASS-METHODS f4_filename_upload
+      IMPORTING
+        iv_def_filter TYPE string DEFAULT '*.xls*'
+      CHANGING
+        cv_fname      TYPE string.
+
+    CLASS-METHODS f4_filename_download
+      IMPORTING
+        iv_filename TYPE string
+      CHANGING
+        iv_folder   TYPE string
+        cv_fname    TYPE string.
+ENDCLASS.
+
+SELECTION-SCREEN BEGIN OF BLOCK  boxa WITH FRAME TITLE TEXT-b01.
+PARAMETERS p_plant TYPE t001w-werks OBLIGATORY MEMORY ID wrk.
+SELECTION-SCREEN SKIP 1.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS p_1comp AS CHECKBOX.
+SELECTION-SCREEN COMMENT 3(30) TEXT-001.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS p_2mix AS CHECKBOX.
+SELECTION-SCREEN COMMENT 3(30) TEXT-002.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS p_3w_t AS CHECKBOX.
+SELECTION-SCREEN COMMENT 3(30) TEXT-003.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS p_4f_t AS CHECKBOX.
+SELECTION-SCREEN COMMENT 3(30) TEXT-004.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS p_5bead AS CHECKBOX.
+SELECTION-SCREEN COMMENT 3(30) TEXT-005.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN END OF BLOCK boxa.
+SELECTION-SCREEN BEGIN OF BLOCK b_2 WITH FRAME TITLE TEXT-b02.
+PARAMETERS : p_maint RADIOBUTTON GROUP grp USER-COMMAND mnt DEFAULT 'X'.   "the option 'Maintain'
+SELECTION-SCREEN SKIP.
+
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS : p_down   RADIOBUTTON GROUP grp ##SEL_WRONG.                               "the option 'Download'
+SELECTION-SCREEN COMMENT 3(40) TEXT-c01.
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN BEGIN OF BLOCK b22 WITH FRAME.
+PARAMETERS : p_fpathd TYPE string LOWER CASE MODIF ID dfp.
+SELECTION-SCREEN END OF BLOCK b22.
+
+SELECTION-SCREEN SKIP.
+
+PARAMETERS : p_upl    RADIOBUTTON GROUP grp.                               "the option 'Upload'
+SELECTION-SCREEN BEGIN OF BLOCK b23 WITH FRAME.
+SELECTION-SCREEN : BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(15) TEXT-c04 FOR FIELD p_fpathu.
+PARAMETERS : p_fpathu TYPE string LOWER CASE MODIF ID ufp.
+SELECTION-SCREEN POSITION 69.
+PARAMETERS : p_delall AS CHECKBOX ##SEL_WRONG.
+SELECTION-SCREEN COMMENT 75(20) TEXT-c05 FOR FIELD p_delall.
+SELECTION-SCREEN: END OF LINE.
+SELECTION-SCREEN END OF BLOCK b23.
+
+
+SELECTION-SCREEN END OF BLOCK b_2.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_fpathu.
+  lcl_report=>f4_filename_upload( CHANGING cv_fname = p_fpathu ).
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_fpathd.
+  lcl_report=>f4_filename_download(
+                    EXPORTING
+                      iv_filename = |{ 'Alternative_BOM'(f01) }_{ condense( val = |{ p_plant ALPHA = OUT }| )
+                                    }_{ sy-datum }|
+                    CHANGING
+                      iv_folder   = lcl_report=>gv_folder
+                      cv_fname    = p_fpathd ).
+
+START-OF-SELECTION.
+  lcl_report=>start_of_selection(
+      iv_compound        = p_1comp
+      iv_mix             = p_2mix
+      iv_wire_treatment  = p_3w_t
+      iv_fabric_tratment = p_4f_t
+      iv_bead            = p_5bead
+      iv_delall          = p_delall
+      iv_down            = p_down
+      iv_fpathd          = p_fpathd
+      iv_fpathu          = p_fpathu
+      iv_maint           = p_maint
+      iv_plant           = p_plant
+      iv_upl             = p_upl
+  ).
+
+MODULE status_0200 OUTPUT.
+  lcl_report=>pbo_200( ).
+ENDMODULE.
+
+MODULE user_command_0200 INPUT.
+  lcl_report=>pai_200( ).
+ENDMODULE.
+
+CLASS lcl_report IMPLEMENTATION.
+  METHOD start_of_selection.
+    gv_plant = iv_plant.
+
+    IF iv_compound = abap_true.
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = gc_mtart-cmpd ) TO gt_mtart.
+    ENDIF.
+    IF iv_mix = abap_true.
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = gc_mtart-mix ) TO gt_mtart.
+    ENDIF.
+    IF iv_wire_treatment = abap_true.
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = gc_mtart-trtw ) TO gt_mtart.
+    ENDIF.
+    IF iv_fabric_tratment = abap_true.
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = gc_mtart-trtf ) TO gt_mtart.
+    ENDIF.
+    IF iv_bead = abap_true.
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = gc_mtart-bead ) TO gt_mtart.
+    ENDIF.
+    IF gt_mtart IS INITIAL.
+      MESSAGE '“Material Type” is not selected'(m23) TYPE 'S' DISPLAY LIKE 'E'.
+      RETURN.
+    ENDIF.
+    IF iv_down IS INITIAL.
+      CALL FUNCTION 'ENQUEUE_EYPP_ALTBOM'
+        EXPORTING
+          werks          = gv_plant
+        EXCEPTIONS
+          foreign_lock   = 1
+          system_failure = 2
+          OTHERS         = 3.
+      IF sy-subrc <> 0.
+        MESSAGE |{ 'Table YPP_ALTBOM is already locked by the'(m05) } { sy-msgv1 }| TYPE 'I'.
+      ELSE.
+        gv_ready_for_input = 1.
+      ENDIF.
+    ENDIF.
+    IF iv_upl IS NOT INITIAL AND iv_fpathu IS NOT INITIAL.
+      upload_excel_file(
+        EXPORTING
+          iv_filename = iv_fpathu
+          iv_delete_all = iv_delall
+      ).
+      RETURN.
+    ENDIF.
+
+    get_data(
+      EXPORTING
+        iv_maint = iv_maint
+        iv_down = iv_down
+    ).
+    IF gt_data IS INITIAL.
+      MESSAGE 'No data matching the selection criteria'(m03) TYPE 'I'.
+      RETURN.
+    ENDIF.
+
+    IF iv_down IS NOT INITIAL AND iv_fpathd IS NOT INITIAL.
+      download_excel_file(
+        EXPORTING
+          iv_filename = iv_fpathd
+      ).
+    ELSE.
+      SELECT SINGLE name1
+        FROM t001w
+        WHERE werks = @gv_plant
+        INTO @gv_plant_description.
+      IF sy-subrc <> 0.
+        CLEAR gv_plant_description.
+      ENDIF.
+      CALL SCREEN '0200'.
+    ENDIF.
+  ENDMETHOD.
+  METHOD pai_200.
+    CASE sy-ucomm.
+      WHEN 'BACK' OR 'CANCEL' OR 'EXIT'.
+        lcl_report=>go_back( ).
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD pbo_200.
+    DATA:
+      lt_exclude TYPE STANDARD TABLE OF sy-ucomm.
+    lt_exclude = VALUE #( ( 'SAVE' ) ).
+    SET PF-STATUS '0200' EXCLUDING lt_exclude.
+
+    SET TITLEBAR '0200'  WITH  gv_plant_description .
+
+    IF gr_grid IS BOUND.
+      gr_grid->check_changed_data( ).
+      gr_grid->refresh_table_display(  is_stable = VALUE #( row = 'X' col = 'X' ) ).
+      RETURN.
+    ENDIF.
+    "hide tool bar buttons
+
+    DATA(lt_fcat) = prepare_fieldcat( it_table = gt_data ).
+
+    DATA(lt_toolbar_exclud) = VALUE ui_functions(
+      ( cl_gui_alv_grid=>mc_fc_graph      )
+      ( cl_gui_alv_grid=>mc_fc_info       )
+      ( cl_gui_alv_grid=>mc_fc_refresh    )
+      ( cl_gui_alv_grid=>mc_fc_loc_copy )
+      ( cl_gui_alv_grid=>mc_fc_print_back )
+      ( cl_gui_alv_grid=>mc_fc_view_excel )
+      ( cl_gui_alv_grid=>mc_fc_info       )
+      ( cl_gui_alv_grid=>mc_fc_loc_paste )
+      ( cl_gui_alv_grid=>mc_fc_loc_insert_row )
+      ( cl_gui_alv_grid=>mc_fc_loc_paste_new_row )
+      ( cl_gui_alv_grid=>mc_fc_loc_append_row )
+      ( cl_gui_alv_grid=>mc_fc_loc_cut )
+      ( cl_gui_alv_grid=>mc_mb_sum )
+      ( cl_gui_alv_grid=>mc_fc_sum )
+      ( cl_gui_alv_grid=>mc_fc_average )
+      ( cl_gui_alv_grid=>mc_fc_minimum )
+      ( cl_gui_alv_grid=>mc_fc_maximum )
+      ( cl_gui_alv_grid=>mc_fc_count )
+    ).
+    gr_grid = NEW #(  i_parent = cl_gui_custom_container=>screen0 ).
+
+    gr_grid->register_f4_for_fields(
+       it_f4 = VALUE lvc_t_f4(
+                 register = abap_true
+                 chngeafter = abap_true
+                 ( fieldname = 'MATNR1' )
+                 ( fieldname = 'SER_N1' )
+                 ( fieldname = 'MATNR2' )
+                 ( fieldname = 'SER_N2' )
+                 ( fieldname = 'MONDAYDATE' )
+                 ( fieldname = 'MONDAYDATE_TO' )
+               )
+    ).
+
+    "Register ENTER to raise event DATA_CHANGED
+    gr_grid->register_edit_event( cl_gui_alv_grid=>mc_evt_enter ).
+    gr_grid->register_edit_event( cl_gui_alv_grid=>mc_evt_modified ).
+
+    gr_grid->set_table_for_first_display(
+      EXPORTING
+        is_layout = VALUE #(  stylefname = 'T_STYLE' )
+        i_save = 'A'
+        is_variant = VALUE #( report = sy-repid  )
+        it_toolbar_excluding = lt_toolbar_exclud
+      CHANGING
+        it_outtab       = gt_data
+        it_fieldcatalog = lt_fcat
+    ).
+
+    SET HANDLER
+       handle_data_changed
+       handle_user_command
+       handle_toolbar
+       handle_f4
+     FOR gr_grid.
+
+    gr_grid->set_ready_for_input( i_ready_for_input = gv_ready_for_input ).
+
+  ENDMETHOD. "pbo_100.
+
+  METHOD handle_user_command.
+    CASE e_ucomm.
+      WHEN 'SAVE'.
+        save_data( ).
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD handle_data_changed.
+    DATA:
+      lv_x_copy_row TYPE abap_bool,
+      lv_tabix      TYPE sy-tabix,
+      BEGIN OF ls_fieldname,
+        text1 TYPE string,
+        text2 TYPE string,
+      END OF ls_fieldname,
+      lv_matnr  TYPE ypp_altbom-matnr,
+      lv_altbom_row_id TYPE ypp_altbom-row_id,
+      lt_mod_cells TYPE lvc_t_modi.
+
+    FIELD-SYMBOLS:
+      <lt_data> TYPE ty_t_data.
+
+    "set the flag
+    IF   er_data_changed->mt_mod_cells     IS NOT INITIAL
+      OR er_data_changed->mt_inserted_rows IS NOT INITIAL
+      OR er_data_changed->mt_deleted_rows  IS NOT INITIAL.
+      gv_not_saved = abap_true.
+    ENDIF.
+    ASSIGN er_data_changed->mp_mod_rows->* TO <lt_data>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT <lt_data> ASSIGNING FIELD-SYMBOL(<ls_data>).
+      lv_tabix = sy-tabix.
+      IF <ls_data>-row_id IS INITIAL.
+        lv_altbom_row_id = 0.
+        LOOP AT gt_data ASSIGNING FIELD-SYMBOL(<ls_data_2>)
+                        USING KEY k1
+                        WHERE matnr = <ls_data>-matnr.
+          lv_altbom_row_id = nmax( val1 = lv_altbom_row_id val2 = <ls_data_2>-row_id ).
+        ENDLOOP.
+        <ls_data>-row_id = lv_altbom_row_id + 1.
+        CLEAR: <ls_data>-mondaydate.
+        <ls_data>-mondaydate_to = '99991231'.
+        IF <ls_data>-mtart <> gc_mtart-cmpd AND <ls_data>-t_style IS INITIAL.
+          <ls_data>-t_style = gt_cellstyle.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+    er_data_changed->free( ).
+    "er_data_changed->mt_mod_cells = ROW_ID SUB_ROW_ID FIELDNAME VALUE ERROR ...
+    LOOP AT er_data_changed->mt_mod_cells ASSIGNING FIELD-SYMBOL(<ls_mod>).
+      ASSIGN <lt_data>[ <ls_mod>-tabix ] TO <ls_data>.
+      IF sy-subrc <> 0.
+        UNASSIGN <ls_data>.
+      ENDIF.
+
+      AT NEW row_id.
+        lt_mod_cells = VALUE #( BASE lt_mod_cells
+          ( row_id = <ls_mod>-row_id fieldname = 'USERID' value = sy-uname )
+          ( row_id = <ls_mod>-row_id fieldname = 'MODIFIEDDATE' value = sy-datum )
+        ).
+        IF line_exists( er_data_changed->mt_inserted_rows[ row_id = <ls_mod>-row_id ] ). "#EC CI_STDSEQ
+          lv_x_copy_row = abap_true.
+        ELSE.
+          lv_x_copy_row = abap_false.
+        ENDIF.
+      ENDAT.
+      CHECK lv_x_copy_row = abap_false AND <ls_data> IS ASSIGNED.
+      IF <ls_mod>-fieldname = 'MATNR1' OR <ls_mod>-fieldname = 'MATNR2'.
+        CLEAR: ls_fieldname-text1,  lv_matnr.
+        IF <ls_mod>-value IS NOT INITIAL.
+          lv_matnr = to_upper( <ls_mod>-value ).
+          CALL FUNCTION 'CONVERSION_EXIT_MATN1_INPUT'
+            EXPORTING
+              input              =  lv_matnr
+            IMPORTING
+              output             =  lv_matnr
+            EXCEPTIONS
+              length_error       = 1
+              OTHERS             = 2 .
+          IF sy-subrc = 0.
+            ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = lv_matnr ] TO FIELD-SYMBOL(<ls_dmaramarc>).
+            IF sy-subrc = 0.
+              ls_fieldname-text1 = <ls_dmaramarc>-maktx .
+            ENDIF.
+          ENDIF.
+          IF sy-subrc <> 0.
+            er_data_changed->add_protocol_entry(
+              i_msgid     = 'YI'
+              i_msgno     = '000'
+              i_msgty     = 'E'
+              i_msgv1     = replace( val = replace( val = text-m29 sub = '&1' with = <ls_mod>-value ) sub = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| )
+              i_msgv2     = text-m30
+              i_fieldname = <ls_mod>-fieldname
+              i_row_id    = lv_tabix
+            ).
+          ENDIF.
+        ENDIF.
+        CASE <ls_mod>-fieldname.
+          WHEN 'MATNR1'.
+            "<ls_data>-maktx1 = ls_fieldname-text1.
+            "CLEAR: <ls_data>-percent_n1, <ls_data>-ser_n1.
+            lt_mod_cells = VALUE #( BASE lt_mod_cells
+              ( row_id = <ls_mod>-row_id fieldname = 'MAKTX1' value = ls_fieldname-text1 )
+              ( row_id = <ls_mod>-row_id fieldname = 'PERCENT_N1' value = 0 )
+              ( row_id = <ls_mod>-row_id fieldname = 'SER_N1' value = '' )
+            ).
+          WHEN 'MATNR2'.
+            "<ls_data>-maktx2 = ls_fieldname-text1.
+            "CLEAR: <ls_data>-percent_n2, <ls_data>-ser_n2.
+            lt_mod_cells = VALUE #( BASE lt_mod_cells
+              ( row_id = <ls_mod>-row_id fieldname = 'MAKTX2' value = ls_fieldname-text1 )
+              ( row_id = <ls_mod>-row_id fieldname = 'PERCENT_N2' value = 0 )
+              ( row_id = <ls_mod>-row_id fieldname = 'SER_N2' value = '' )
+            ).
+        ENDCASE.
+        CLEAR: ls_fieldname-text1, ls_fieldname-text2.
+      ENDIF.
+      IF    ( <ls_mod>-fieldname = 'MONDAYDATE' OR <ls_mod>-fieldname = 'MONDAYDATE_TO' )
+        AND <ls_data>-mondaydate IS NOT INITIAL AND  <ls_data>-mondaydate_to IS NOT INITIAL
+        AND ( <ls_data>-matnr1 IS NOT INITIAL OR <ls_data>-matnr2 IS NOT INITIAL ).
+        IF <ls_data>-mondaydate > <ls_data>-mondaydate_to.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = 'Please check the date'(m28)
+            i_fieldname = 'MONDAYDATE'
+            i_row_id    = lv_tabix
+          ).
+        ENDIF.
+      ENDIF.
+      IF <ls_mod>-fieldname(9) = 'PERCENT_N' AND ( <ls_data>-percent_n1 > 100 OR <ls_data>-percent_n2 > 100 ). "<ls_mod>-value > 100.
+        IF <ls_mod>-fieldname = 'PERCENT_N1' AND ls_fieldname-text1 IS INITIAL.
+          ls_fieldname-text1 = VALUE #( er_data_changed->mt_fieldcatalog[ fieldname = <ls_mod>-fieldname ]-coltext DEFAULT <ls_mod>-fieldname ). "#EC CI_STDSEQ
+        ELSEIF <ls_mod>-fieldname = 'PERCENT_N2' AND ls_fieldname-text2 IS INITIAL.
+          ls_fieldname-text2 = VALUE #( er_data_changed->mt_fieldcatalog[ fieldname = <ls_mod>-fieldname ]-coltext DEFAULT <ls_mod>-fieldname ). "#EC CI_STDSEQ
+        ENDIF.
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'The input value of'(m11)
+          i_msgv2     = SWITCH #(  <ls_mod>-fieldname  WHEN 'PERCENT_N1' THEN ls_fieldname-text1 WHEN  'PERCENT_N2' THEN ls_fieldname-text2  )
+          i_msgv3     = <ls_mod>-value
+          i_msgv4     = 'is greater than 100%'(m12)
+          i_fieldname = <ls_mod>-fieldname
+          i_row_id    = <ls_mod>-row_id
+        ).
+
+      ENDIF.
+    ENDLOOP.
+    IF lt_mod_cells IS NOT INITIAL.
+      LOOP AT lt_mod_cells ASSIGNING FIELD-SYMBOL(<ls_mode_cells>).
+        er_data_changed->modify_cell( i_row_id = <ls_mode_cells>-row_id i_fieldname = <ls_mode_cells>-fieldname i_value = <ls_mode_cells>-value ).
+      ENDLOOP.
+      CLEAR lt_mod_cells.
+    ENDIF.
+    er_data_changed->protocol_is_visible( IMPORTING visible = DATA(lv_visible) ).
+    IF er_data_changed->mt_protocol IS NOT INITIAL AND e_onf4 = 'A' AND lv_visible = 0.
+      er_data_changed->display_protocol( ).
+    ENDIF.
+    IF gv_check_before_save = abap_false.
+      RETURN.
+    ENDIF.
+    CLEAR: lv_matnr.
+    LOOP AT gt_data ASSIGNING <ls_data>.
+      lv_tabix = sy-tabix.
+
+      IF lv_matnr <> <ls_data>-matnr.
+        lv_matnr = <ls_data>-matnr.
+        CLEAR lv_altbom_row_id.
+      ENDIF.
+      <ls_data>-row_id = lv_altbom_row_id = lv_altbom_row_id + 1.
+
+      IF <ls_data>-matnr1 IS NOT INITIAL.
+        ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = lv_matnr ] TO <ls_dmaramarc>.
+        IF sy-subrc <> 0.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = replace( val = replace( val = text-m29 sub = '&1' with = <ls_mod>-value ) sub = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| )
+            i_msgv2     = text-m30
+            i_fieldname = 'MATNR1'
+            i_row_id    = lv_tabix
+          ).
+        ENDIF.
+      ENDIF.
+      IF <ls_data>-matnr2 IS NOT INITIAL.
+        ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = lv_matnr ] TO <ls_dmaramarc>.
+        IF sy-subrc <> 0.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = replace( val = replace( val = text-m29 sub = '&1' with = <ls_mod>-value ) sub = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| )
+            i_msgv2     = text-m30
+            i_fieldname = 'MATNR2'
+            i_row_id    = lv_tabix
+          ).
+        ENDIF.
+      ENDIF.
+
+      IF    ( <ls_data>-matnr1 IS NOT INITIAL OR <ls_data>-matnr2 IS NOT INITIAL )
+        AND ( <ls_data>-mondaydate IS INITIAL OR <ls_data>-mondaydate > <ls_data>-mondaydate_to ).
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'Monday''s Date should be greater'(m31)
+          i_msgv2     = 'than Valid till Date'(m32)
+          i_msgv3     = |{ <ls_data>-mondaydate DATE = USER }|
+          i_fieldname = 'MONDAYDATE'
+          i_row_id    = lv_tabix
+        ).
+      ENDIF.
+
+      IF <ls_data>-row_id > 1.
+        LOOP AT gt_data ASSIGNING <ls_data_2>
+                        USING KEY k1
+                        WHERE matnr = <ls_data>-matnr AND row_id <> <ls_data>-row_id.
+          CHECK ( <ls_data_2>-matnr1 IS NOT INITIAL OR <ls_data_2>-matnr2 IS NOT INITIAL )
+           AND <ls_data_2>-mondaydate IS NOT INITIAL AND <ls_data_2>-mondaydate_to IS NOT INITIAL.
+          IF ( <ls_data>-mondaydate_to < <ls_data_2>-mondaydate OR <ls_data_2>-mondaydate_to < <ls_data>-mondaydate ).
+            CONTINUE.
+          ENDIF.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = 'Please check the date'(m28)
+            i_fieldname = 'MONDAYDATE'
+            i_row_id    = lv_tabix
+          ).
+        ENDLOOP.
+      ENDIF.
+
+      IF   ( <ls_data>-percent_n1 IS NOT INITIAL OR <ls_data>-percent_n2 IS NOT INITIAL ) AND <ls_data>-percent_n1 + <ls_data>-percent_n2 <> 100
+        OR ( <ls_data>-matnr1 IS NOT INITIAL AND <ls_data>-percent_n1 IS INITIAL ).
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'Addition of % should be equal to 100'(m13)
+          i_fieldname = 'PERCENT_N1'
+          i_row_id    = lv_tabix
+        ).
+      ENDIF.
+      IF  <ls_data>-matnr2 IS NOT INITIAL AND <ls_data>-percent_n2 IS INITIAL.
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'Addition of % should be equal to 100'(m13)
+          i_fieldname = 'PERCENT_N2'
+          i_row_id    = lv_tabix
+        ).
+      ENDIF.
+
+      IF <ls_data>-matnr1 IS INITIAL AND ( <ls_data>-matnr2 IS NOT INITIAL OR <ls_data>-ser_n1 IS NOT INITIAL ).
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'Addition Material 1 is Empty'(m14)
+          i_fieldname = 'MATNR1'
+          i_row_id    = lv_tabix
+        ).
+      ENDIF.
+      IF <ls_data>-matnr2 IS INITIAL AND <ls_data>-ser_n2 IS NOT INITIAL.
+        er_data_changed->add_protocol_entry(
+          i_msgid     = 'YI'
+          i_msgno     = '000'
+          i_msgty     = 'E'
+          i_msgv1     = 'Addition Material 2 is Empty'(m15)
+          i_fieldname = 'MATNR2'
+          i_row_id    = lv_tabix
+        ).
+      ENDIF.
+      IF <ls_data>-mtart = gc_mtart-cmpd.
+        CLEAR sy-subrc.
+        IF <ls_data>-ser_n1 IS NOT INITIAL.
+          READ TABLE gt_bom TRANSPORTING NO FIELDS
+                            WITH KEY matnr = <ls_data>-matnr1
+                                     verid = <ls_data>-ser_n1
+                            BINARY SEARCH.
+        ENDIF.
+        IF    sy-subrc <> 0
+           OR <ls_data>-matnr1 IS NOT INITIAL AND <ls_data>-ser_n1 IS INITIAL.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = 'BOM is invalid'(m16)
+            i_fieldname = 'SER_N1'
+            i_row_id    = lv_tabix
+          ).
+        ENDIF.
+
+        CLEAR sy-subrc.
+        IF <ls_data>-ser_n2 IS NOT INITIAL.
+          READ TABLE gt_bom TRANSPORTING NO FIELDS
+                            WITH KEY matnr = <ls_data>-matnr2
+                                     verid = <ls_data>-ser_n2
+                            BINARY SEARCH.
+        ENDIF.
+        IF    sy-subrc <> 0
+           OR <ls_data>-matnr2 IS NOT INITIAL AND <ls_data>-ser_n2 IS INITIAL.
+          er_data_changed->add_protocol_entry(
+            i_msgid     = 'YI'
+            i_msgno     = '000'
+            i_msgty     = 'E'
+            i_msgv1     = 'BOM is invalid'(m16)
+            i_fieldname = 'SER_N2'
+            i_row_id    = lv_tabix
+          ).
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD handle_f4.
+    TYPES:
+      BEGIN OF lty_s_matnr,
+        matnr TYPE mara-matnr,
+        maktx TYPE makt-maktx,
+      END OF lty_s_matnr.
+    TYPES:
+      BEGIN OF lty_s_bom,
+        verid TYPE mkal-verid,
+      END   OF lty_s_bom.
+
+    DATA:
+      lt_matnr        TYPE STANDARD TABLE OF lty_s_matnr,
+      lt_bom          TYPE STANDARD TABLE OF lty_s_bom,
+      lv_retfield     TYPE  dfies-fieldname,
+      lv_matnr        TYPE mara-matnr,
+      lv_window_title TYPE ddtext,
+      lt_return       TYPE STANDARD TABLE OF ddshretval.
+
+    FIELD-SYMBOLS:
+      <lv_ed_date_begin> TYPE any,
+      <lv_ed_date_end>   TYPE any,
+      <lt_value_tab>     TYPE STANDARD TABLE,
+      <lt_f4>            TYPE lvc_t_modi.
+
+
+    ASSIGN gt_data[ es_row_no-row_id ] TO FIELD-SYMBOL(<ls_data>).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    ASSIGN er_event_data->m_data->* TO <lt_f4>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    er_event_data->m_event_handled = 'X'.
+    CASE e_fieldname.
+      WHEN 'MATNR1' OR 'MATNR2'.
+        lt_matnr = VALUE #(
+          FOR ls_dmaramarc IN gt_dmaramarc                         "#EC CI_STDSEQ
+          WHERE ( mtart = <ls_data>-mtart )
+         ( matnr = ls_dmaramarc-matnr maktx = ls_dmaramarc-maktx )
+        ).                                               "#EC CI_STDSEQ
+        ASSIGN lt_matnr TO <lt_value_tab>.
+        lv_window_title = TEXT-m01.
+        lv_retfield     = |MATNR|.
+      WHEN 'SER_N1' OR 'SER_N2'.
+        IF    <ls_data>-mtart <> gc_mtart-cmpd
+           OR e_fieldname = 'SER_N1' AND <ls_data>-matnr1 IS INITIAL
+           OR e_fieldname = 'SER_N2' AND <ls_data>-matnr2 IS INITIAL
+          .
+          er_event_data->m_event_handled = 'X'.
+          RETURN.
+        ENDIF.
+        lv_matnr = SWITCH #( e_fieldname
+                     WHEN 'SER_N1' THEN <ls_data>-matnr1
+                     WHEN 'SER_N2' THEN <ls_data>-matnr2
+                   ).
+        IF lv_matnr IS INITIAL.
+          RETURN.
+        ENDIF.
+        "Fill value tab for BOM
+        lt_bom = VALUE #(
+          FOR ls_bom IN gt_bom
+          WHERE ( matnr = lv_matnr )
+          ( verid = ls_bom-verid )
+        ).                                               "#EC CI_STDSEQ
+        IF lt_bom IS INITIAL.
+          RETURN.
+        ENDIF.
+        ASSIGN lt_bom TO <lt_value_tab>.
+        lv_window_title = 'BOM selection'(f02).
+        lv_retfield     = |VERID|.
+      WHEN 'MONDAYDATE' OR 'MONDAYDATE_TO'.
+        DATA(lv_select_monday) = sy-datum.
+        DATA(lv_current_monday) = get_monday( sy-datum ).
+        lv_current_monday = lv_current_monday + 7.
+        CALL FUNCTION 'F4_DATE'
+          EXPORTING
+            date_for_first_month = lv_current_monday
+          IMPORTING
+            select_date          = lv_select_monday
+          EXCEPTIONS
+            OTHERS               = 8.
+        IF sy-subrc = 0.
+          "lv_select_monday = get_monday( lv_select_monday ).
+          "IF lv_select_monday < lv_current_monday.
+          "  lv_select_monday = lv_current_monday.
+          "ENDIF.
+          ASSIGN ('(SAPLSCAC)G_ED_DATE_BEGIN') TO <lv_ed_date_begin>.
+          IF sy-subrc = 0.
+            ASSIGN ('(SAPLSCAC)G_ED_DATE_END') TO <lv_ed_date_end>.
+            IF sy-subrc = 0 AND <lv_ed_date_begin> IS NOT INITIAL AND <lv_ed_date_end> IS NOT INITIAL.
+              APPEND VALUE #( fieldname = e_fieldname row_id = es_row_no-row_id value = |{ lv_select_monday DATE = USER }| ) TO <lt_f4>.
+              gv_not_saved = abap_true.
+            ENDIF.
+          ENDIF.
+        ENDIF.
+        RETURN.
+      WHEN OTHERS.
+        CLEAR er_event_data->m_event_handled.
+        RETURN.
+    ENDCASE.
+
+    IF <lt_value_tab> IS ASSIGNED AND <lt_value_tab> IS NOT INITIAL.
+      CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+        EXPORTING
+          retfield        = lv_retfield
+          dynpprog        = sy-repid
+          dynpnr          = sy-dynnr
+          window_title    = lv_window_title
+          value_org       = 'S'
+          display         = ''
+        TABLES
+          return_tab      = lt_return
+          value_tab       = <lt_value_tab>
+        EXCEPTIONS
+          parameter_error = 1
+          no_values_found = 2
+          OTHERS          = 3.
+      IF sy-subrc <> 0 OR lt_return IS INITIAL.
+        RETURN.
+      ENDIF.
+      APPEND VALUE #( fieldname = e_fieldname row_id = es_row_no-row_id value = lt_return[ 1 ]-fieldval ) TO <lt_f4>.
+      gv_not_saved = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD handle_toolbar.
+    INSERT VALUE #( function  = 'SAVE' icon = icon_system_save text = 'Save'(g01) quickinfo = 'Save'(g01) ) INTO e_object->mt_toolbar INDEX 2.
+  ENDMETHOD.
+
+
+  METHOD prepare_fieldcat.
+    CONSTANTS:
+      lc_outputlen TYPE i VALUE 23
+    .
+    DATA:
+      BEGIN OF lv_description_pos,
+        maktx  TYPE lvc_s_fcat-col_pos,
+        maktx1 TYPE lvc_s_fcat-col_pos,
+        maktx2 TYPE lvc_s_fcat-col_pos,
+        mtart  TYPE lvc_s_fcat-col_pos,
+      END   OF lv_description_pos,
+      lv_pos       TYPE lvc_s_fcat-col_pos
+      .
+    rt_fcat = CORRESPONDING #( cl_salv_data_descr=>read_structdescr(
+     CAST cl_abap_structdescr(
+       CAST cl_abap_tabledescr( cl_abap_tabledescr=>describe_by_data( it_table ) )->get_table_line_type( )
+     ) )
+    ).
+
+    SELECT
+        l~fieldname,
+        coalesce( m~scrtext_l, t~ddtext ) AS text_l
+      FROM  dd03l  AS l
+        LEFT OUTER JOIN dd04t AS m ON m~rollname = l~rollname
+                                  AND m~ddlanguage = @sy-langu
+        LEFT OUTER JOIN dd03t AS  t ON t~tabname = l~tabname
+                                   AND t~fieldname  = l~fieldname
+                                   AND t~ddlanguage = @sy-langu
+        INTO TABLE @DATA(lt_fnames)
+        BYPASSING BUFFER
+      WHERE l~tabname = 'YPP_ALTBOM'
+      ORDER BY l~fieldname.
+    IF sy-subrc <> 0.
+      MESSAGE 'Table YPP_ALTBOM does not exist; check the name'(m04) TYPE 'E'.
+    ENDIF.
+
+    lv_pos = 0.
+    LOOP AT rt_fcat ASSIGNING FIELD-SYMBOL(<ls_fcat>).
+      IF iv_empty_col_pos = abap_true.
+        <ls_fcat>-row_pos = sy-tabix.
+      ENDIF.
+      <ls_fcat>-tabname = 1.
+      READ TABLE lt_fnames ASSIGNING FIELD-SYMBOL(<ls_fname>)
+                           WITH KEY fieldname = <ls_fcat>-fieldname
+                           BINARY SEARCH.
+      IF sy-subrc = 0.
+        <ls_fcat>-ref_field = <ls_fcat>-fieldname.
+        <ls_fcat>-ref_table = 'YPP_ALTBOM'.
+        <ls_fcat>-coltext    =
+        <ls_fcat>-scrtext_m  =
+        <ls_fcat>-seltext    = <ls_fname>-text_l.
+      ENDIF.
+      <ls_fcat>-col_opt = 'X'.
+      lv_pos = lv_pos + 1.
+      <ls_fcat>-col_pos = lv_pos.
+      CASE <ls_fcat>-fieldname.
+        WHEN 'WERKS' .
+          lv_description_pos-mtart = lv_pos = lv_pos + 1.
+        WHEN 'MTART' .
+          IF lv_description_pos-mtart > 0.
+            <ls_fcat>-col_pos = lv_description_pos-mtart.
+          ENDIF.
+          CLEAR <ls_fcat>-col_opt.
+          <ls_fcat>-outputlen = <ls_fcat>-outputlen + 1.
+        WHEN 'MATNR' .
+          lv_pos = lv_pos + 1.
+          lv_description_pos-maktx = lv_pos.
+        WHEN 'MATNR1' .
+          <ls_fcat>-f4availabl = 'X'.
+          <ls_fcat>-edit = 'X'.
+          lv_pos = lv_pos + 1.
+          lv_description_pos-maktx1 = lv_pos.
+        WHEN 'MATNR2' .
+          <ls_fcat>-f4availabl = 'X'.
+          <ls_fcat>-edit = 'X'.
+          lv_pos = lv_pos + 1.
+          lv_description_pos-maktx2 = lv_pos.
+        WHEN 'SER_N1' OR 'SER_N2'.
+          <ls_fcat>-f4availabl = 'X'.
+          <ls_fcat>-edit = 'X'.
+        WHEN 'PERCENT_N1' OR 'PERCENT_N2'.
+          <ls_fcat>-edit = 'X'.
+        WHEN 'COMMENTS'.
+          <ls_fcat>-edit = 'X'.
+          CLEAR <ls_fcat>-col_opt.
+          <ls_fcat>-outputlen = lc_outputlen.
+        WHEN 'MAKTX' .
+          CLEAR <ls_fcat>-col_opt.
+          <ls_fcat>-coltext = <ls_fcat>-scrtext_m = <ls_fcat>-seltext = TEXT-g02.
+          IF lv_description_pos-maktx > 0.
+            <ls_fcat>-col_pos = lv_description_pos-maktx.
+          ENDIF.
+          <ls_fcat>-outputlen = lc_outputlen.
+        WHEN 'MAKTX1' .
+          CLEAR <ls_fcat>-col_opt.
+          <ls_fcat>-coltext = <ls_fcat>-scrtext_m = <ls_fcat>-seltext = TEXT-g03.
+          IF lv_description_pos-maktx1 > 0.
+            <ls_fcat>-col_pos = lv_description_pos-maktx1.
+          ENDIF.
+          <ls_fcat>-outputlen = lc_outputlen.
+        WHEN 'MAKTX2' .
+          CLEAR <ls_fcat>-col_opt.
+          <ls_fcat>-coltext = <ls_fcat>-scrtext_m = <ls_fcat>-seltext = TEXT-g04.
+          IF lv_description_pos-maktx2 > 0.
+            <ls_fcat>-col_pos = lv_description_pos-maktx2.
+          ENDIF.
+          <ls_fcat>-outputlen = lc_outputlen.
+        WHEN 'MONDAYDATE' OR 'MONDAYDATE_TO'.
+          <ls_fcat>-f4availabl = 'X'.
+        WHEN 'MANDT' OR 'ROW_ID'.
+          <ls_fcat>-tech = 'X'.
+      ENDCASE.
+      IF iv_empty_col_pos = abap_true.
+        <ls_fcat>-col_pos = 0.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.                 "prepare_fieldcat
+
+  METHOD get_data.
+    CONSTANTS lc_monday_to TYPE d VALUE '99991231'.
+    DATA lv_monday TYPE ypp_altbom-mondaydate.
+    DATA lv_row_id TYPE ypp_altbom-row_id.
+
+    FIELD-SYMBOLS <ls_data_prev> LIKE LINE OF gt_data.
+
+    lv_monday = get_monday( sy-datum ) + 7 .
+
+    SELECT DISTINCT
+        plaf~plwrk AS werks,
+        plaf~matnr,
+        y~row_id,
+        y~ser_c,
+        y~matnr1,
+        y~ser_n1,
+        y~percent_n1,
+        y~matnr2,
+        y~ser_n2,
+        y~percent_n2,
+        coalesce( y~mondaydate, @lv_monday ) AS mondaydate,
+        y~comments,
+        y~userid,
+        y~modifieddate,
+        coalesce( y~mondaydate_to, @lc_monday_to ) AS mondaydate_to,
+        makt~maktx,
+        m1~maktx AS maktx1,
+        m2~maktx AS maktx2,
+        mara~mtart
+      FROM plaf
+        JOIN mara ON mara~matnr = plaf~matnr
+        LEFT JOIN makt ON makt~matnr = mara~matnr
+                      AND makt~spras = @sy-langu
+        LEFT JOIN ypp_altbom AS y ON  y~werks = plaf~plwrk
+                                  AND y~matnr = plaf~matnr
+        LEFT JOIN makt AS m1 ON m1~matnr = y~matnr1
+                            AND m1~spras = @sy-langu
+        LEFT JOIN makt AS m2 ON m2~matnr = y~matnr2
+                            AND m2~spras = @sy-langu
+    WHERE mara~mtart IN @gt_mtart
+      AND plaf~plwrk = @gv_plant
+      AND plaf~plscn = '001'
+    INTO CORRESPONDING FIELDS OF TABLE @gt_data ##TOO_MANY_ITAB_FIELDS.
+    IF sy-subrc <> 0.
+      CLEAR gt_data.
+    ENDIF.
+
+    SELECT
+        y2~werks,
+        y2~matnr,
+        y2~row_id,
+        y2~ser_c,
+        y2~matnr1,
+        y2~ser_n1,
+        y2~percent_n1,
+        y2~matnr2,
+        y2~ser_n2,
+        y2~percent_n2,
+        y2~mondaydate,
+        CASE WHEN y2~mondaydate_to = @space THEN @lc_monday_to ELSE y2~mondaydate_to END AS mondaydate_to,
+        y2~comments,
+        y2~userid,
+        y2~modifieddate,
+        makt~maktx,
+        m1~maktx AS maktx1,
+        m2~maktx AS maktx2,
+        mara~mtart
+      FROM ypp_altbom AS y2
+        LEFT JOIN mara ON mara~matnr = y2~matnr
+        LEFT JOIN makt ON makt~matnr = y2~matnr
+                      AND makt~spras = @sy-langu
+         LEFT JOIN makt AS m1 ON m1~matnr = y2~matnr1
+                            AND m1~spras = @sy-langu
+        LEFT JOIN makt AS m2 ON m2~matnr = y2~matnr2
+                            AND m2~spras = @sy-langu
+      WHERE y2~werks = @gv_plant
+        AND mara~mtart IN  @gt_mtart
+        AND (
+              NOT EXISTS ( SELECT 1 FROM plaf
+                           WHERE plaf~plwrk = y2~werks
+                             AND plaf~matnr = y2~matnr
+                             AND plaf~plscn = '001'
+                       )
+        )
+      APPENDING CORRESPONDING FIELDS OF TABLE @gt_data ##TOO_MANY_ITAB_FIELDS.
+
+    IF sy-subrc <> 0 AND gt_data IS INITIAL.
+      CLEAR gt_data.
+    ENDIF.
+
+    IF gt_data IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT DISTINCT mtart, matnr, maktx FROM ydmaramarc WHERE werks = @gv_plant AND mtart IN @gt_mtart INTO TABLE @gt_dmaramarc.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    get_boms( ).
+
+    IF iv_maint IS NOT INITIAL.
+      gt_cellstyle = VALUE lvc_t_styl( style = cl_gui_alv_grid=>mc_style_disabled
+                                       ( fieldname = 'SER_N1' )
+                                       ( fieldname = 'SER_N2' )
+                                      ).
+    ENDIF.
+    LOOP AT gt_data ASSIGNING FIELD-SYMBOL(<ls_data>).
+      IF <ls_data_prev> IS NOT ASSIGNED OR <ls_data_prev>-matnr <> <ls_data>-matnr.
+        ASSIGN <ls_data> TO <ls_data_prev>.
+        CLEAR lv_row_id.
+      ENDIF.
+      <ls_data>-row_id = lv_row_id = lv_row_id + 1.
+      IF <ls_data>-mtart <> gc_mtart-cmpd.
+        <ls_data>-t_style = gt_cellstyle.
+        CONTINUE.
+      ENDIF.
+      READ TABLE gt_ycmpdser ASSIGNING FIELD-SYMBOL(<ls_ycmpdser>)
+                        WITH KEY matnr = <ls_data>-matnr
+                        BINARY SEARCH.
+      IF sy-subrc = 0.
+        <ls_data>-ser_c = <ls_ycmpdser>-ser.
+        CONTINUE.
+      ENDIF.
+
+      READ TABLE gt_bom TRANSPORTING NO FIELDS
+                        WITH KEY matnr = <ls_data>-matnr
+                        BINARY SEARCH.
+      IF sy-subrc = 0.
+        LOOP AT gt_bom ASSIGNING FIELD-SYMBOL(<ls_bom>)
+                       FROM sy-tabix.
+          IF    <ls_bom>-matnr <> <ls_data>-matnr
+             OR <ls_bom>-datuv IS INITIAL.
+            EXIT.
+          ENDIF.
+          <ls_data>-ser_c = <ls_bom>-verid.
+          EXIT.
+        ENDLOOP.
+      ENDIF.
+    ENDLOOP.
+    IF iv_down IS NOT INITIAL.
+      CLEAR gt_bom.
+      CLEAR gt_ycmpdser.
+    ENDIF.
+    IF iv_maint IS NOT INITIAL.
+      CLEAR gt_ycmpdser.
+      SORT gt_bom BY matnr verid .
+    ENDIF.
+    SORT gt_data BY mtart matnr.
+  ENDMETHOD.
+
+  METHOD get_boms.
+    LOOP AT gt_dmaramarc ASSIGNING FIELD-SYMBOL(<ls_dmaramarc>)
+                    WHERE mtart = gc_mtart-cmpd.         "#EC CI_STDSEQ
+      READ TABLE gt_bom TRANSPORTING NO FIELDS
+                        WITH KEY matnr = <ls_dmaramarc>-matnr
+                        BINARY SEARCH.                   "#EC CI_STDSEQ
+      IF sy-subrc <> 0.
+        INSERT VALUE #( matnr = <ls_dmaramarc>-matnr ) INTO gt_bom INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+
+    IF gt_bom IS NOT INITIAL.
+      SELECT
+          matnr,
+          datuv,
+          ser
+        FROM ycmpdser
+        FOR ALL ENTRIES IN @gt_bom
+        WHERE werks = @gv_plant
+          AND matnr = @gt_bom-matnr
+        INTO TABLE @gt_ycmpdser
+      .
+      IF sy-subrc = 0.
+        SORT gt_ycmpdser  BY matnr datuv DESCENDING.
+      ENDIF.
+      SELECT DISTINCT
+         m~matnr,
+         m~verid,
+         a~datuv,
+         m~stlal
+       FROM mkal AS m
+         LEFT JOIN t415a AS a ON a~stlal = m~stlal     "#EC CI_BUFFJOIN
+                              AND a~matnr = m~matnr
+                              AND a~werks = m~werks
+                              AND a~stlan = '1'
+                              AND a~techv = ' '
+       FOR ALL ENTRIES IN @gt_bom
+       WHERE m~werks = @gv_plant
+         AND m~matnr = @gt_bom-matnr
+         AND m~serkz = 'X'
+         AND m~verid LIKE 'A%'
+       INTO TABLE @gt_bom.
+      IF sy-subrc = 0.
+        SORT gt_bom BY matnr datuv DESCENDING verid .
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD save_data.
+    DATA lv_valid TYPE char1.
+    DATA lv_row_id TYPE ypp_altbom-row_id.
+
+    FIELD-SYMBOLS <ls_data_prev> LIKE LINE OF gt_data.
+
+    SORT gt_data BY mtart matnr mondaydate.
+
+    gr_grid->refresh_table_display(  is_stable = VALUE #( row = 'X' col = 'X' ) ).
+
+    gv_check_before_save = abap_true.
+    gr_grid->if_cached_prop~set_prop( propname = 'GridModified' propvalue = '1' ).
+    cl_gui_cfw=>validate_all_caches( ).
+    gr_grid->check_changed_data( IMPORTING e_valid = lv_valid ).
+    gv_check_before_save = abap_false.
+
+    IF lv_valid IS INITIAL.
+      MESSAGE 'Check your entries using the error log'(m02) TYPE 'S'.
+      RETURN.
+    ENDIF.
+    IF gt_mtart IS INITIAL.
+      MESSAGE '“Material Type” is not selected'(m23) TYPE 'E'.
+      RETURN.
+    ENDIF.
+
+    DELETE FROM ypp_altbom WHERE werks = gv_plant AND mtart IN gt_mtart. "#EC CI_SUBRC
+
+    LOOP AT gt_data ASSIGNING FIELD-SYMBOL(<ls_data>)
+       WHERE
+       (
+         mtart = gc_mtart-cmpd
+         AND (    matnr1 IS NOT INITIAL AND ser_n1 IS NOT INITIAL AND percent_n1 IS NOT INITIAL
+               OR matnr2 IS NOT INITIAL AND ser_n2 IS NOT INITIAL AND percent_n2 IS NOT INITIAL
+             )
+       )
+       OR
+      (
+        mtart <> gc_mtart-cmpd
+        AND (    matnr1 IS NOT INITIAL AND percent_n1 IS NOT INITIAL
+              OR matnr2 IS NOT INITIAL AND percent_n2 IS NOT INITIAL
+            )
+       )
+      .                                                  "#EC CI_STDSEQ
+      IF <ls_data_prev> IS NOT ASSIGNED OR <ls_data_prev>-matnr <> <ls_data>-matnr.
+        ASSIGN <ls_data> TO <ls_data_prev>.
+        CLEAR lv_row_id.
+      ENDIF.
+      <ls_data>-row_id = lv_row_id = lv_row_id + 1.
+      IF <ls_data>-matnr IS NOT INITIAL.
+        INSERT INTO ypp_altbom VALUES @( CORRESPONDING #( <ls_data> ) ). "#EC CI_IMUD_NESTED
+        IF sy-subrc <> 0.
+          ROLLBACK WORK.                               "#EC CI_ROLLBACK
+          MESSAGE 'Cirtical error occurred while moving records to the database table YPP_ALTBOM'(m26) TYPE 'S' DISPLAY LIKE 'E'.
+          RETURN.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+    CLEAR gv_not_saved.
+    COMMIT WORK AND WAIT.
+
+    MESSAGE 'Data saved'(m25) TYPE 'S'.
+  ENDMETHOD.
+
+  METHOD download_excel_file.
+    download_excel_document(
+       EXPORTING
+         iv_filename = iv_filename
+       CHANGING
+         ct_data = gt_data
+     ).
+  ENDMETHOD.
+
+  METHOD upload_excel_file.
+    DATA lv_x_error TYPE abap_bool.
+    DATA lv_row_id TYPE ypp_altbom-row_id.
+
+    FIELD-SYMBOLS <ls_data_prev> LIKE LINE OF gt_data.
+
+    upload_excel_document(
+      EXPORTING
+        iv_filename = iv_filename
+      IMPORTING
+        ev_error = DATA(lv_error_upload)
+      CHANGING
+        ct_data = gt_data
+    ).
+    IF lv_error_upload IS NOT INITIAL.
+      WRITE: / lv_error_upload.
+      RETURN.
+    ENDIF.
+
+    DELETE gt_data WHERE mtart NOT IN gt_mtart
+     .                                                   "#EC CI_STDSEQ
+    IF gt_data IS INITIAL.
+      WRITE: / 'No data matching the selection criteria'(m03).
+      RETURN.
+    ENDIF.
+
+    SELECT DISTINCT mtart, matnr, maktx FROM ydmaramarc WHERE werks = @gv_plant AND mtart IN @gt_mtart INTO TABLE @gt_dmaramarc.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    get_boms( ).
+
+    LOOP AT gt_data ASSIGNING FIELD-SYMBOL(<ls_data>).
+      IF <ls_data>-matnr1 IS INITIAL AND <ls_data>-matnr2 IS INITIAL.
+        DELETE gt_data.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_data_prev> IS NOT ASSIGNED OR <ls_data_prev>-matnr <> <ls_data>-matnr.
+        ASSIGN <ls_data> TO <ls_data_prev>.
+        CLEAR lv_row_id.
+      ENDIF.
+      <ls_data>-row_id = lv_row_id = lv_row_id + 1.
+      IF <ls_data>-row_id > 1.
+        LOOP AT gt_data ASSIGNING FIELD-SYMBOL(<ls_data_2>)
+                        USING KEY k1
+                        WHERE matnr = <ls_data>-matnr AND row_id <> <ls_data>-row_id.
+          CHECK ( <ls_data_2>-matnr1 IS NOT INITIAL OR <ls_data_2>-matnr2 IS NOT INITIAL ).
+          IF ( <ls_data>-mondaydate_to < <ls_data_2>-mondaydate OR <ls_data_2>-mondaydate_to < <ls_data>-mondaydate ).
+            CONTINUE.
+          ENDIF.
+          WRITE: / |{ 'Please check the date'(m28) } { 'in the line'(m22) } { <ls_data_2>-maktx } |.
+          lv_x_error = abap_true.
+          EXIT.
+        ENDLOOP.
+      ENDIF.
+
+      IF <ls_data>-mondaydate > <ls_data>-mondaydate_to.
+        WRITE: / |{ 'Please check the date'(m28) } { 'in the line'(m22) } { <ls_data>-maktx } |.
+        lv_x_error = abap_true.
+      ENDIF.
+
+      IF <ls_data_prev> IS NOT ASSIGNED OR <ls_data_prev>-matnr <> <ls_data>-matnr.
+        ASSIGN <ls_data> TO <ls_data_prev>.
+        CLEAR lv_row_id.
+      ENDIF.
+
+      ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = <ls_data>-matnr ] TO FIELD-SYMBOL(<ls_dmaramarc>).
+      IF sy-subrc <> 0.
+        WRITE: / |{ replace( val = replace( val = text-m29 sub = '&1' with = |{ <ls_data>-matnr ALPHA = OUT }| ) sub = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| ) } { text-m30 }|.
+        lv_x_error = abap_true.
+      ENDIF.
+
+      IF <ls_data>-matnr1 IS NOT INITIAL.
+        ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = <ls_data>-matnr1 ] TO <ls_dmaramarc>.
+        IF sy-subrc <> 0.
+          WRITE: / |{ replace( val = replace( val = text-m29 off = '&1' with = |{ <ls_data>-matnr1 ALPHA = OUT }| ) off = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| ) } { text-m30 }|.
+          lv_x_error = abap_true.
+        ENDIF.
+      ENDIF.
+
+      IF <ls_data>-matnr2 IS NOT INITIAL.
+        ASSIGN gt_dmaramarc[ mtart = <ls_data>-mtart matnr = <ls_data>-matnr2 ] TO <ls_dmaramarc>.
+        IF sy-subrc <> 0.
+          WRITE: / |{ replace( val = replace( val = text-m29 off = '&1' with = |{ <ls_data>-matnr2 ALPHA = OUT }| ) off = '&2' with = |{ <ls_data>-mtart ALPHA = OUT }| ) } { text-m30 }|.
+          lv_x_error = abap_true.
+        ENDIF.
+      ENDIF.
+
+      IF   ( <ls_data>-percent_n1 IS NOT INITIAL OR <ls_data>-percent_n2 IS NOT INITIAL ) AND <ls_data>-percent_n1 + <ls_data>-percent_n2 <> 100
+        OR ( <ls_data>-matnr1 IS NOT INITIAL AND <ls_data>-percent_n1 IS INITIAL ).
+        WRITE |{ 'Addition of % should be equal to 100'(m13) } { 'in the line'(m22) } { <ls_data>-maktx } |.
+        lv_x_error = abap_true.
+      ENDIF.
+      IF  <ls_data>-matnr2 IS NOT INITIAL AND <ls_data>-percent_n2 IS INITIAL.
+        WRITE |{ 'Addition of % should be equal to 100'(m13) } { 'in the line'(m22) } { <ls_data>-maktx } |.
+        lv_x_error = abap_true.
+      ENDIF.
+
+      IF <ls_data>-matnr1 IS INITIAL AND ( <ls_data>-matnr2 IS NOT INITIAL OR <ls_data>-ser_n1 IS NOT INITIAL ).
+        WRITE |{ 'Addition Material 1 is Empty'(m14) } { 'in the line'(m22) } { <ls_data>-maktx } |.
+        lv_x_error = abap_true.
+      ENDIF.
+      IF <ls_data>-matnr2 IS INITIAL AND <ls_data>-ser_n2 IS NOT INITIAL.
+        WRITE |{ 'Addition Material 2 is Empty'(m15) } { 'in the line'(m22) } { <ls_data>-maktx } |.
+        lv_x_error = abap_true.
+      ENDIF.
+
+      IF <ls_data>-mtart = gc_mtart-cmpd.
+        READ TABLE gt_ycmpdser ASSIGNING FIELD-SYMBOL(<ls_ycmpdser>)
+                          WITH KEY matnr = <ls_data>-matnr
+                          BINARY SEARCH.
+        IF sy-subrc = 0.
+          IF <ls_data>-ser_c <> <ls_ycmpdser>-ser.
+            WRITE: / |{ 'Wrong “Current BOM” in the line'(m21) } { <ls_data>-maktx } |.
+            lv_x_error = abap_true.
+          ENDIF.
+        ELSE.
+          READ TABLE gt_bom TRANSPORTING NO FIELDS
+                            WITH KEY matnr = <ls_data>-matnr
+                            BINARY SEARCH.
+          IF sy-subrc = 0.
+            LOOP AT gt_bom ASSIGNING FIELD-SYMBOL(<ls_bom>)
+                           FROM sy-tabix.
+              IF    <ls_bom>-matnr <> <ls_data>-matnr
+                 OR <ls_bom>-datuv IS INITIAL.
+                EXIT.
+              ENDIF.
+              IF <ls_data>-ser_c <> <ls_bom>-verid.
+                WRITE: / |{ 'Wrong “Current BOM” in the line'(m21) } { <ls_data>-maktx } |.
+                lv_x_error = abap_true.
+              ENDIF.
+              EXIT.
+            ENDLOOP.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+    IF lv_x_error = abap_true.
+      RETURN.
+    ENDIF.
+    IF iv_delete_all IS NOT INITIAL.
+      DELETE FROM ypp_altbom.             "#EC CI_NOWHERE "#EC CI_SUBRC
+    ELSE.
+      DELETE FROM ypp_altbom WHERE werks = gv_plant
+                               AND mtart IN gt_mtart.     "#EC CI_SUBRC
+    ENDIF.
+    INSERT ypp_altbom FROM TABLE @( CORRESPONDING #( gt_data ) ).
+    IF sy-subrc <> 0.
+      ROLLBACK WORK.                                   "#EC CI_ROLLBACK
+      MESSAGE 'Cirtical error occurred while moving records to the database table YPP_ALTBOM'(m26) TYPE 'S' DISPLAY LIKE 'E'.
+      RETURN.
+    ENDIF.
+    WRITE : / |{ 'File'(m07) }|,
+            / |{ iv_filename }|,
+            / |{ 'has been uploaded'(m24) }|.
+
+  ENDMETHOD.
+
+  METHOD download_excel_document.
+    DATA :
+      lt_file        TYPE solix_tab,
+      lv_file_length TYPE i.
+
+    DATA(lt_fcat) = prepare_fieldcat( ct_data ).
+
+    zcl_dpp_excel_tools=>table_to_xlsx(
+      EXPORTING
+          it_data         = ct_data
+          it_fcat         = lt_fcat
+          iv_wrap         = 0
+          iv_header_fname = 'COLTEXT'
+          iv_tech_fname   = ''
+      IMPORTING
+          et_solix  = lt_file
+          ev_length = lv_file_length
+    ).
+
+
+    cl_gui_frontend_services=>gui_download(
+      EXPORTING
+        bin_filesize = lv_file_length
+        filename     = iv_filename
+        filetype     = 'BIN'
+      CHANGING
+        data_tab     = lt_file
+      EXCEPTIONS
+        OTHERS       = 1 ).
+
+    IF sy-subrc = 0.
+      WRITE : / |{ 'File'(m07) }|,
+              / |{ iv_filename }|,
+              / |{ 'has been downloaded'(m08) }|.
+    ELSE.
+      WRITE : / |{ 'File download error'(m09) }|.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD upload_excel_document.
+    DATA:
+      lt_upload      TYPE solix_tab,
+      lv_columns     TYPE i,
+      lt_content     TYPE soi_generic_table,
+      lv_top         TYPE i VALUE 1,    "top-left corner of table in sheet
+      lv_left        TYPE i VALUE 1,
+      lv_pack_size   TYPE i VALUE 128,
+      lv_rcode       TYPE soi_ret_string ##NEEDED,
+      lv_range       TYPE c LENGTH 128 VALUE 'BAUP_rng',    "#EC NOTEXT
+      lt_range_list  TYPE soi_range_list,
+      lv_empty_rows  TYPE i,            "stop processing by x empty rows
+      lv_lines_cnt   TYPE i,
+      iv_empty_lines TYPE i  VALUE 4
+      .
+    FIELD-SYMBOLS:
+      <ls_data> LIKE LINE OF ct_data
+    .
+    CLEAR ev_error.
+    DATA(lt_fcat) = prepare_fieldcat( it_table = ct_data iv_empty_col_pos = abap_true ).
+    SORT lt_fcat BY coltext.
+    lv_columns = lines( lt_fcat ).
+    LOOP AT lt_fcat TRANSPORTING NO FIELDS WHERE inttype = 'P' OR inttype = 'D' . "#EC CI_STDSEQ
+      zcl_dpp_excel_tools=>get_separators( IMPORTING es_sys_separators = DATA(ls_sys_sep) ).
+      EXIT.
+    ENDLOOP.
+
+    c_oi_container_control_creator=>get_container_control(
+      IMPORTING
+        control = DATA(lr_control)
+        error   = DATA(lr_error) ).
+    IF lr_error IS BOUND AND lr_error->has_failed = abap_true.
+      ev_error = lr_error->error_code.
+      RETURN.
+    ENDIF.
+    lr_control->init_control(
+      EXPORTING
+        r3_application_name      = 'ABA BAUP'               "#EC NOTEXT
+        inplace_enabled          = 'X'
+        inplace_scroll_documents = 'X'
+        parent                   = NEW cl_gui_custom_container( container_name = 'BAUP_CONTAINER' )
+      IMPORTING
+        error                    = lr_error
+     ).
+    IF lr_error IS BOUND AND lr_error->has_failed = abap_true.
+      ev_error = lr_error->error_code.
+      RETURN.
+    ENDIF.
+    lr_control->get_document_proxy(
+      EXPORTING
+        document_type  = 'EXCEL.SHEET' "'Excel.Sheet'                      "#EC NOTEXT
+      IMPORTING
+        document_proxy = DATA(lr_document)
+        error          = lr_error  ).
+    IF lr_error IS BOUND AND lr_error->has_failed = abap_true.
+      ev_error = lr_error->error_code.
+      RETURN.
+    ENDIF.
+    cl_gui_frontend_services=>gui_upload(
+      EXPORTING
+        filename = iv_filename
+        filetype = 'BIN'
+      IMPORTING
+        filelength = DATA(lv_length)
+      CHANGING
+        data_tab = lt_upload
+      EXCEPTIONS
+        OTHERS                  = 1
+     ) .
+    IF  sy-subrc <> 0 OR lv_length IS INITIAL.
+      ev_error = 'Open file error'(m19).
+      RETURN.
+    ENDIF.
+    lr_document->open_document_from_table(
+      EXPORTING
+        document_size  = lv_length
+        document_table = lt_upload
+        open_inplace   = abap_true
+        open_readonly  = abap_true
+      IMPORTING
+        error          = lr_error ).
+    IF lr_error IS BOUND AND lr_error->has_failed = abap_true.
+      ev_error = lr_error->error_code.
+      RETURN.
+    ENDIF.
+    lr_document->has_spreadsheet_interface( IMPORTING is_available = DATA(lv_flg) ).
+    IF lv_flg IS NOT INITIAL.
+      lr_document->get_spreadsheet_interface(
+        IMPORTING
+          sheet_interface = DATA(lr_spreadsheet)
+          error = lr_error ).
+      IF lr_error IS BOUND AND lr_error->has_failed = abap_true.
+        ev_error = lr_error->error_code.
+        RETURN.
+      ENDIF.
+    ENDIF.
+    IF lr_spreadsheet IS NOT BOUND.
+      ev_error = 'Open file error'(m19).
+      RETURN.
+    ENDIF.
+
+    DO.
+      "Get the next part of the grid to process
+      CLEAR: lt_content[].
+      lr_spreadsheet->set_selection(
+        EXPORTING
+          top     = lv_top
+          left    = lv_left
+          rows    = lv_pack_size
+          columns = lv_columns
+        IMPORTING
+          retcode = lv_rcode ).
+
+      lr_spreadsheet->insert_range(
+        EXPORTING
+          columns = lv_columns
+          rows    = lv_pack_size
+          name    = lv_range
+        IMPORTING
+          retcode = lv_rcode ).
+
+      lr_spreadsheet->get_ranges_names(
+        IMPORTING
+          ranges  = lt_range_list
+          retcode = lv_rcode ).
+
+      DELETE lt_range_list WHERE name <> lv_range.       "#EC CI_STDSEQ
+
+      lr_spreadsheet->get_ranges_data(
+        IMPORTING
+          contents = lt_content
+          retcode  = lv_rcode
+        CHANGING
+          ranges   = lt_range_list ).
+      "   Convert xls cells to itab
+      TRY.
+          "lt_content = ROW COLUMN VALUE
+          LOOP AT lt_content ASSIGNING FIELD-SYMBOL(<ls_cell>).
+            IF <ls_cell>-row = 1.
+              READ TABLE lt_fcat ASSIGNING FIELD-SYMBOL(<ls_fcat>) ##WARN_OK
+                                 WITH KEY coltext = <ls_cell>-value
+                                 BINARY SEARCH.
+              IF sy-subrc = 0.
+                <ls_fcat>-col_pos = <ls_cell>-column.
+              ENDIF.
+              CONTINUE.
+            ENDIF.
+            AT NEW row.
+              IF ct_data IS INITIAL.
+                SORT lt_fcat BY col_pos.               "#EC CI_SORTLOOP
+              ENDIF.
+              DATA(lv_empty_row) = abap_true.
+              IF <ls_data> IS NOT ASSIGNED OR lv_empty_rows = 0.
+                APPEND INITIAL LINE TO ct_data ASSIGNING <ls_data>.
+                ADD 1 TO lv_lines_cnt.
+                CLEAR lv_empty_rows.
+              ENDIF.
+            ENDAT.
+            IF lv_columns < <ls_cell>-column.
+              CONTINUE.
+            ENDIF.
+            READ TABLE lt_fcat ASSIGNING <ls_fcat>
+                               WITH KEY col_pos = <ls_cell>-column
+                               BINARY SEARCH.
+            IF sy-subrc = 0.
+              IF <ls_cell>-value IS NOT INITIAL.
+                lv_empty_row = abap_false.
+              ENDIF.
+
+              ASSIGN COMPONENT <ls_fcat>-row_pos OF STRUCTURE <ls_data> TO FIELD-SYMBOL(<lv_field>).
+              IF sy-subrc <> 0.
+                ASSERT sy-subrc = 0.
+              ENDIF.
+              CASE <ls_fcat>-inttype.
+                WHEN 'P'.
+                  IF ls_sys_sep-ds <> '.'.
+                    <ls_cell>-value = replace( val = <ls_cell>-value sub = ls_sys_sep-ds with = '.' ).
+                  ENDIF.
+                  IF ls_sys_sep-ss <> ''.
+                    <ls_cell>-value = replace( val = <ls_cell>-value sub = ls_sys_sep-ss with = '' ).
+                  ENDIF.
+                WHEN 'D'.
+                  IF <ls_cell>-value IS NOT INITIAL.
+                    DATA(lv_date) = zcl_dpp_excel_tools=>date_parse(
+                                           iv_date_sep      = ls_sys_sep-dats
+                                           iv_date_template = ls_sys_sep-date_style
+                                           iv_date          = CONV #( <ls_cell>-value ) ).
+                    <ls_cell>-value = lv_date. "Message:Do not modify table rows in tables with control level processing.
+                    "Answer:
+                    "AT END OF row_id.
+                    "ROW_ID SUB_ROW_ID FIELDNAME VALUE ERROR ...
+                  ENDIF.
+                WHEN OTHERS.
+              ENDCASE.
+              <lv_field> = <ls_cell>-value.
+              IF <ls_fcat>-convexit = 'ALPHA'.
+                <lv_field> = |{ <lv_field> ALPHA  = IN }|.
+              ENDIF.
+            ENDIF.
+            AT END OF row.
+              IF lv_empty_row = abap_true.
+                ADD 1 TO lv_empty_rows.
+                IF  lv_empty_rows > iv_empty_lines .
+                  EXIT.
+                ENDIF.
+              ELSE.
+                CLEAR: lv_empty_rows.
+              ENDIF.
+              <ls_data>-maktx = <ls_cell>-row.
+            ENDAT.
+          ENDLOOP.
+        CATCH cx_root INTO DATA(lr_root) ##CATCH_ALL.
+          ev_error = lr_root->get_longtext( ).
+          RETURN.
+      ENDTRY.
+
+      IF  lv_empty_rows > iv_empty_lines OR lt_content[] IS INITIAL.
+        EXIT.
+      ENDIF.
+      ADD lv_pack_size TO lv_top.
+    ENDDO.
+  ENDMETHOD.
+
+  METHOD get_monday.
+    DATA lv_day TYPE p.
+    lv_day = iv_date MOD 7.
+    IF lv_day > 1.
+      lv_day = lv_day - 1.
+    ELSE.
+      lv_day = lv_day + 6.
+    ENDIF.
+    rv_monday = iv_date - lv_day + 1.
+  ENDMETHOD.
+
+  METHOD f4_filename_upload.
+
+    DATA:
+      rc         TYPE i,
+      file_table TYPE filetable.
+    cl_gui_frontend_services=>file_open_dialog(
+      EXPORTING
+        default_extension = '.xls*'
+        initial_directory = cv_fname
+        file_filter       = iv_def_filter
+        multiselection    = abap_false
+      CHANGING
+        file_table = file_table
+        rc = rc                            "Return Code, Number of Files or -1 If Error Occurred
+      EXCEPTIONS
+       file_open_dialog_failed = 1
+       cntl_error              = 2
+       error_no_gui            = 3
+       not_supported_by_gui    = 4
+       OTHERS                  = 5
+    ).
+    IF sy-subrc <> 0 OR  rc <> 1.
+      RETURN.
+    ENDIF.
+
+    DATA(lv_fname) = VALUE #( file_table[ 1 ]-filename DEFAULT '' ).
+    IF cl_gui_frontend_services=>file_exist( CONV #( lv_fname ) ) = abap_false.
+      MESSAGE  |{ 'Invalid file name:'(m06) } { lv_fname }| TYPE 'I'.
+      RETURN.
+    ENDIF.
+    cv_fname = lv_fname.
+
+  ENDMETHOD.
+
+
+  METHOD f4_filename_download.
+    DATA : lv_sep TYPE char2.
+
+    cl_gui_frontend_services=>directory_browse(
+      CHANGING
+        selected_folder = iv_folder
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4
+    ).
+
+    IF sy-subrc <> 0.
+      MESSAGE ID     sy-msgid
+              TYPE   sy-msgty
+              NUMBER sy-msgno
+              WITH   sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ELSE.
+      cl_gui_frontend_services=>get_file_separator( CHANGING file_separator = lv_sep EXCEPTIONS OTHERS = 1 ).
+      IF sy-subrc <> 0.
+        MESSAGE 'System file separator not found'(m10) TYPE 'E'.
+      ENDIF.
+      cv_fname = |{ iv_folder }{ lv_sep }{ iv_filename }.xlsx|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD go_back.
+    DATA: lv_answer   TYPE char1.
+    IF gr_grid IS BOUND.                                  "edit mode
+      "check if the modifyed data has been saved
+      IF gv_not_saved IS NOT INITIAL.
+        CALL FUNCTION 'POPUP_TO_CONFIRM'
+          EXPORTING
+            titlebar       = 'Exit processing'(m17)
+            text_question  = 'Do you want to exit?'(m18)
+            default_button = 2
+          IMPORTING
+            answer         = lv_answer
+          EXCEPTIONS
+            text_not_found = 1
+            OTHERS         = 2.
+        IF sy-subrc <> 0 OR  lv_answer <> '1'.
+          RETURN.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+    LEAVE TO SCREEN 0.
+  ENDMETHOD.                 "go_back
+ENDCLASS.

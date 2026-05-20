@@ -1,0 +1,855 @@
+************************************************************************
+*  Object Name      : ZFI_ACCT_VALUATION_CLS                           *
+*  Created by       : Renato Tiezzi (ZA80185)                          *
+*  Creation date    : 09/01/2025                                       *
+*  Requester        : Reinaldo Manfio (ZA50540)                        *
+*  RFC / CD         : 1407890/9401239                                  *
+*  TR Number        : L2DK917180                                       *
+*  Description      : Create new T-code for valuation process          *
+*======================================================================*
+*  Revision History                                                    *
+*  Revised by       : xxxxxx xxxxxxxxx                                 *
+*  Revision Date    : mm/dd/yyyy                                       *
+*  Requester        :                                                  *
+*  RFC / CD         :                                                  *
+*  Change tag       : S01K900001                                       *
+*  TR Number        : S01Kxxxxxx                                       *
+*  Description of Revision:                                            *
+*                                                                      *
+************************************************************************
+*&---------------------------------------------------------------------*
+*&  Include           ZFI_ACCT_VALUATION_CLS
+*&---------------------------------------------------------------------*
+
+CLASS lcl_report DEFINITION FINAL.
+  PUBLIC SECTION.
+    " Tipos e constantes para o programa
+    TYPES:
+      BEGIN OF ty_s_data,
+        ktopl    TYPE t030h-ktopl,
+        hkont    TYPE t030h-hkont,
+        waers    TYPE t030h-waers,
+        curtp    TYPE t030h-curtp,
+        lkorr    TYPE t030h-lkorr,
+        lsrea    TYPE t030h-lsrea,
+        lhrea    TYPE t030h-lhrea,
+        lstra    TYPE t030h-lstra,
+        lhtra    TYPE t030h-lhtra,
+        lsbew    TYPE t030h-lsbew,
+        lhbew    TYPE t030h-lhbew,
+        lstrv    TYPE t030h-lstrv,
+        lhtrv    TYPE t030h-lhtrv,
+        editable TYPE abap_bool,
+      END OF ty_s_data,
+      ty_t_data TYPE STANDARD TABLE OF ty_s_data WITH NON-UNIQUE DEFAULT KEY.
+
+    CONSTANTS:
+      gc_chart_of_accts TYPE t030h-ktopl VALUE 'SAPC',
+      gc_currency_type  TYPE t030h-curtp VALUE '30'.
+
+    " Variáveis globais
+    CLASS-DATA:
+      gt_data      TYPE ty_t_data,
+      gr_alv_grid  TYPE REF TO cl_gui_alv_grid,
+      gv_not_saved TYPE abap_bool.
+
+    " Métodos públicos
+    CLASS-METHODS:
+      start_of_selection
+        IMPORTING iv_plant TYPE t001w-werks.
+    CLASS-METHODS prepare_fieldcat
+      RETURNING VALUE(rt_fieldcat) TYPE lvc_t_fcat.
+    CLASS-METHODS handle_data_changed
+                FOR EVENT data_changed OF cl_gui_alv_grid
+      IMPORTING er_data_changed.
+    CLASS-METHODS fetch_data.
+    CLASS-METHODS pbo_0200.
+    CLASS-METHODS pai_0200.
+    CLASS-METHODS bdc_create
+      IMPORTING
+        is_data TYPE ty_s_data.
+
+    CLASS-METHODS bdc_change
+      IMPORTING
+        is_data TYPE ty_s_data.
+
+    CLASS-METHODS bdc_delete
+      IMPORTING
+        is_data TYPE ty_s_data.
+
+    CLASS-METHODS show_log
+      IMPORTING
+        iv_datef TYPE datum
+        iv_datet TYPE datum.
+  PRIVATE SECTION.
+    " Métodos privados
+    CLASS-METHODS display_alv.
+ENDCLASS.
+
+CLASS lcl_report IMPLEMENTATION.
+  METHOD start_of_selection.
+    " Busca os dados
+    fetch_data( ).
+
+    " Chama a tela
+    CALL SCREEN 200.
+  ENDMETHOD.
+
+  METHOD prepare_fieldcat.
+    DATA lt_fieldcat TYPE lvc_t_fcat.
+
+    " Define os campos da ALV
+    APPEND VALUE #( fieldname = 'KTOPL'    ref_field = 'KTOPL'    ref_table = 'T030H' coltext = TEXT-032 edit = abap_false ) TO lt_fieldcat. " Chart of Accounts
+    APPEND VALUE #( fieldname = 'HKONT'    ref_field = 'HKONT'    ref_table = 'T030H' coltext = TEXT-033 edit = abap_false ) TO lt_fieldcat. " G/L Account
+    APPEND VALUE #( fieldname = 'WAERS'    ref_field = 'WAERS'    ref_table = 'T030H' coltext = TEXT-034 edit = abap_true  ) TO lt_fieldcat. " Currency
+    APPEND VALUE #( fieldname = 'CURTP'    ref_field = 'CURTP'    ref_table = 'T030H' coltext = TEXT-035 edit = abap_false ) TO lt_fieldcat. " Currency Type
+    APPEND VALUE #( fieldname = 'LKORR'    ref_field = 'LKORR'    ref_table = 'T030H' coltext = TEXT-036 edit = abap_true  ) TO lt_fieldcat. " Bal.sheet adj.
+    APPEND VALUE #( fieldname = 'LSREA'    ref_field = 'LSREA'    ref_table = 'T030H' coltext = TEXT-037 edit = abap_true  ) TO lt_fieldcat. " Real.ex.losses
+    APPEND VALUE #( fieldname = 'LHREA'    ref_field = 'LHREA'    ref_table = 'T030H' coltext = TEXT-038 edit = abap_true  ) TO lt_fieldcat. " Real.ex.gains
+    APPEND VALUE #( fieldname = 'LSTRA'    ref_field = 'LSTRA'    ref_table = 'T030H' coltext = TEXT-039 edit = abap_true  ) TO lt_fieldcat. " Transl.loss 1
+    APPEND VALUE #( fieldname = 'LHTRA'    ref_field = 'LHTRA'    ref_table = 'T030H' coltext = TEXT-040 edit = abap_true  ) TO lt_fieldcat. " Transl.gain 1
+    APPEND VALUE #( fieldname = 'LSBEW'    ref_field = 'LSBEW'    ref_table = 'T030H' coltext = TEXT-041 edit = abap_true  ) TO lt_fieldcat. " Val.loss 1
+    APPEND VALUE #( fieldname = 'LHBEW'    ref_field = 'LHBEW'    ref_table = 'T030H' coltext = TEXT-042 edit = abap_true  ) TO lt_fieldcat. " Val.gain 1
+    APPEND VALUE #( fieldname = 'LSTRV'    ref_field = 'LSTRV'    ref_table = 'T030H' coltext = TEXT-043 edit = abap_true  ) TO lt_fieldcat. " Bal.sheet adj.gain
+    APPEND VALUE #( fieldname = 'LHTRV'    ref_field = 'LHTRV'    ref_table = 'T030H' coltext = TEXT-044 edit = abap_true  ) TO lt_fieldcat. " Bal.sheet adj.loss
+
+    rt_fieldcat = lt_fieldcat.
+  ENDMETHOD.
+
+  METHOD display_alv.
+    DATA lt_fieldcat TYPE lvc_t_fcat.
+    DATA lt_toolbar_excl TYPE ui_functions.
+    lt_fieldcat = prepare_fieldcat( ).
+
+    SET PF-STATUS '0200'.
+
+    SET TITLEBAR '0200'.
+
+    " Inicializa ALV
+    IF gr_alv_grid IS INITIAL.
+      CREATE OBJECT gr_alv_grid
+        EXPORTING
+          i_parent = cl_gui_custom_container=>screen0.
+
+      SET HANDLER handle_data_changed FOR gr_alv_grid.
+    ENDIF.
+
+
+    lt_toolbar_excl = VALUE ui_functions(
+      ( cl_gui_alv_grid=>mc_fc_graph      )
+      ( cl_gui_alv_grid=>mc_fc_info       )
+      ( cl_gui_alv_grid=>mc_fc_refresh    )
+      ( cl_gui_alv_grid=>mc_fc_loc_copy )
+      ( cl_gui_alv_grid=>mc_fc_loc_copy_row )
+      ( cl_gui_alv_grid=>mc_fc_print_back )
+      ( cl_gui_alv_grid=>mc_fc_view_excel )
+      ( cl_gui_alv_grid=>mc_fc_info       )
+      ( cl_gui_alv_grid=>mc_fc_loc_paste )
+      ( cl_gui_alv_grid=>mc_fc_loc_paste_new_row )
+      ( cl_gui_alv_grid=>mc_fc_loc_delete_row )
+      ( cl_gui_alv_grid=>mc_fc_detail )
+      ( cl_gui_alv_grid=>mc_fc_check )
+      ( cl_gui_alv_grid=>mc_fc_loc_append_row )
+      ( cl_gui_alv_grid=>mc_fc_loc_cut )
+      ( cl_gui_alv_grid=>mc_mb_sum )
+      ( cl_gui_alv_grid=>mc_fc_sum )
+      ( cl_gui_alv_grid=>mc_fc_average )
+      ( cl_gui_alv_grid=>mc_fc_minimum )
+      ( cl_gui_alv_grid=>mc_fc_maximum )
+      ( cl_gui_alv_grid=>mc_fc_count )
+    ).
+
+    gr_alv_grid->register_edit_event( cl_gui_alv_grid=>mc_evt_modified ).
+    gr_alv_grid->register_edit_event( cl_gui_alv_grid=>mc_evt_enter ).
+
+    " Exibe os dados na ALV
+    gr_alv_grid->set_table_for_first_display(
+  EXPORTING
+    it_toolbar_excluding = lt_toolbar_excl
+      CHANGING
+        it_outtab        = gt_data
+        it_fieldcatalog  = lt_fieldcat ).
+  ENDMETHOD.
+
+  METHOD fetch_data.
+    SELECT *
+      FROM t030h
+      INTO TABLE @DATA(lt_t030h)
+      WHERE ktopl = @gc_chart_of_accts
+        AND curtp = @gc_currency_type
+      ORDER BY ktopl, hkont.
+
+    LOOP AT lt_t030h INTO DATA(ls_t030h).
+      APPEND VALUE #( ktopl = ls_t030h-ktopl
+                      hkont = ls_t030h-hkont
+                      waers = ls_t030h-waers
+                      curtp = ls_t030h-curtp
+                      lkorr = ls_t030h-lkorr
+                      lsrea = ls_t030h-lsrea
+                      lhrea = ls_t030h-lhrea
+                      lstra = ls_t030h-lstra
+                      lhtra = ls_t030h-lhtra
+                      lsbew = ls_t030h-lsbew
+                      lhbew = ls_t030h-lhbew
+                      lstrv = ls_t030h-lstrv
+                      lhtrv = ls_t030h-lhtrv
+                      editable = abap_true )
+        TO gt_data.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD handle_data_changed.
+    " Manipula mudanças na ALV
+    DATA: lv_tabix TYPE sy-tabix.
+    LOOP AT er_data_changed->mt_mod_cells ASSIGNING FIELD-SYMBOL(<ls_cell>).
+      READ TABLE gt_data INTO DATA(ls_data) INDEX <ls_cell>-row_id.
+      ASSIGN COMPONENT <ls_cell>-fieldname OF STRUCTURE ls_data TO FIELD-SYMBOL(<lv_field>).
+      IF sy-subrc = 0.
+        <lv_field> = <ls_cell>-value.
+        MODIFY gt_data FROM ls_data INDEX <ls_cell>-row_id.
+      ENDIF.
+    ENDLOOP.
+    gv_not_saved = abap_true.
+  ENDMETHOD.
+
+  METHOD pbo_0200.
+    IF gr_alv_grid IS NOT INITIAL.
+      gr_alv_grid->refresh_table_display( ).
+    ELSE.
+      display_alv( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD pai_0200.
+
+    DATA: lt_selrows TYPE lvc_t_roid,
+          ls_data    TYPE ty_s_data.
+
+    CASE sy-ucomm.
+      WHEN 'DELETE'.
+        gr_alv_grid->get_selected_rows(
+          IMPORTING et_row_no = lt_selrows ).
+
+        IF lt_selrows IS INITIAL.
+          MESSAGE TEXT-003 TYPE 'I'."'No rows selected'
+          RETURN.
+        ENDIF.
+
+        LOOP AT lt_selrows INTO DATA(ls_selrow).
+          READ TABLE gt_data INTO ls_data INDEX ls_selrow-row_id.
+          IF sy-subrc = 0.
+            bdc_delete( is_data = ls_data ).  " <--- Aqui chama BDC para DELETAR
+          ENDIF.
+        ENDLOOP.
+
+      WHEN 'UPDATE'.
+        gr_alv_grid->get_selected_rows(
+          IMPORTING et_row_no = lt_selrows ).
+
+        IF lt_selrows IS INITIAL.
+          MESSAGE TEXT-003 TYPE 'I'."'No rows selected'
+          RETURN.
+        ENDIF.
+
+        LOOP AT lt_selrows INTO ls_selrow.
+          READ TABLE gt_data INTO ls_data INDEX ls_selrow-row_id.
+          IF sy-subrc = 0.
+            bdc_change( is_data = ls_data ).  " <--- Aqui chama BDC para ALTERAR
+          ENDIF.
+        ENDLOOP.
+      WHEN 'SAVE' OR 'SAVE_2'.
+        gr_alv_grid->get_selected_rows(
+          IMPORTING et_row_no = lt_selrows ).
+
+        IF lt_selrows IS INITIAL.
+          MESSAGE TEXT-003 TYPE 'I'."'No rows selected'
+          RETURN.
+        ENDIF.
+
+        LOOP AT lt_selrows INTO ls_selrow.
+          READ TABLE gt_data INTO ls_data INDEX ls_selrow-row_id.
+          IF sy-subrc = 0.
+            bdc_create( is_data = ls_data ).  " <--- Aqui chama BDC para ALTERAR
+          ENDIF.
+        ENDLOOP.
+      WHEN 'BACK'.
+        LEAVE TO SCREEN 0.
+    ENDCASE.
+
+  ENDMETHOD.
+  "-------------------------------------------------------------
+  " BDC - PARA CRIAR
+  "-------------------------------------------------------------
+  METHOD bdc_create.
+    DATA: lt_bdcdata TYPE TABLE OF bdcdata,
+          ls_bdcdata TYPE bdcdata,
+          lv_msg     TYPE string,
+          lv_dismode TYPE c VALUE 'N'.  " 'N' = background mode (no screens)
+
+    "----------------------------------------------------------------------
+    " Step 1: Transaction OBA1 - First screen (SAPDFKB1 0120)
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '0120'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T030A-KTOSL(03)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=PICK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPDFKB1 1006
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '1006'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T004-KTOPL'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=ENTR'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'T004-KTOPL'.
+    ls_bdcdata-fval = is_data-ktopl.  " e.g. 'SAPC'
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0040
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-KTOPL'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=NEWL'.  " Create new line
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0041 - First time (fill fields after =NEWL)
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0041'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-LSTRV'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    " Populate the fields with data from is_data
+    ls_bdcdata-fnam = 'V_T030H-HKONT'.
+    ls_bdcdata-fval = is_data-hkont.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-CURTP'.
+    ls_bdcdata-fval = is_data-curtp.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSREA'.
+    ls_bdcdata-fval = is_data-lsrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHREA'.
+    ls_bdcdata-fval = is_data-lhrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSBEW'.
+    ls_bdcdata-fval = is_data-lsbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHBEW'.
+    ls_bdcdata-fval = is_data-lhbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LKORR'.
+    ls_bdcdata-fval = is_data-lkorr.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRA'.
+    ls_bdcdata-fval = is_data-lstra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRV'.
+    ls_bdcdata-fval = is_data-lhtrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRA'.
+    ls_bdcdata-fval = is_data-lhtra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRV'.
+    ls_bdcdata-fval = is_data-lstrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=SAVE'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0040 - Back
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-KTOPL'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=BACK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPDFKB1 0120 - Back
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '0120'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T030W-LTEXT(03)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=BACK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " Finally, call Transaction OBA1 with the BDC data
+    "----------------------------------------------------------------------
+    CALL TRANSACTION 'OBA1' USING lt_bdcdata MODE lv_dismode.
+
+    IF sy-subrc = 0.
+      lv_msg = TEXT-001."BDC - successful.
+    ELSE.
+      lv_msg = TEXT-002."'BDC - failed.'.
+    ENDIF.
+
+    MESSAGE lv_msg TYPE 'S'.
+
+  ENDMETHOD.
+
+  "-------------------------------------------------------------
+  " BDC - PARA ALTERAR
+  "-------------------------------------------------------------
+  METHOD bdc_change.
+    DATA: lt_bdcdata TYPE TABLE OF bdcdata,
+          ls_bdcdata TYPE bdcdata,
+          lv_msg     TYPE string,
+          lv_dismode TYPE c VALUE 'N'.  " BDC mode: 'N' (no screens), 'A' (all screens), etc.
+
+    " Passo 1: OBA1
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '0120'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T030A-KTOSL(03)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=PICK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "======================================================================
+    " SAPDFKB1    1006
+    "======================================================================
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '1006'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T004-KTOPL'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=ENTR'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'T004-KTOPL'.
+    ls_bdcdata-fval = 'SAPC'.  " Chart of Accounts
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "======================================================================
+    " SAPL0F11    0040
+    "======================================================================
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-HKONT(06)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=DETA'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "======================================================================
+    " SAPL0F11    0041  - Primeira vez
+    "======================================================================
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0041'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-LHREA'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=SAVE'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSREA'.
+    ls_bdcdata-fval = is_data-lsrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHREA'.
+    ls_bdcdata-fval = is_data-lhrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSBEW'.
+    ls_bdcdata-fval = is_data-lsbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHBEW'.
+    ls_bdcdata-fval = is_data-lhbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LKORR'.
+    ls_bdcdata-fval = is_data-lkorr.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRA'.
+    ls_bdcdata-fval = is_data-lstra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRV'.
+    ls_bdcdata-fval = is_data-lhtrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRA'.
+    ls_bdcdata-fval = is_data-lhtra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRV'.
+    ls_bdcdata-fval = is_data-lstrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "======================================================================
+    " Execução da transação OBA1 com a BDC montada
+    "======================================================================
+    CALL TRANSACTION 'OBA1' USING lt_bdcdata MODE lv_dismode.
+
+
+    IF sy-subrc = 0.
+      lv_msg = TEXT-001."BDC - successful.
+    ELSE.
+      lv_msg = TEXT-002."'BDC - failed.'.
+    ENDIF.
+    MESSAGE lv_msg TYPE 'S'.
+
+  ENDMETHOD.
+
+  "-------------------------------------------------------------
+  " BDC - PARA DELETAR
+  "-------------------------------------------------------------
+  METHOD bdc_delete.
+    DATA: lt_bdcdata TYPE TABLE OF bdcdata,
+          ls_bdcdata TYPE bdcdata,
+          lv_msg     TYPE string,
+          lv_dismode TYPE c VALUE 'N'.  " BDC mode: 'N' (no screens), 'A' (all screens), etc.
+
+
+    "----------------------------------------------------------------------
+    " Step 1: OBA1 - First screen (SAPDFKB1 0120)
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '0120'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T030A-KTOSL(03)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=PICK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPDFKB1 1006
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '1006'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T004-KTOPL'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=ENTR'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'T004-KTOPL'.
+    ls_bdcdata-fval = is_data-ktopl.  " Example of a variable for chart of accounts
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0040
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-HKONT(02)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=DETA'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'VIM_MARKED(02)'.
+    ls_bdcdata-fval = 'X'.  " Mark line 02 in the ALV (if needed)
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0041 - Deletion screen
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0041'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-LSREA'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=DELE'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    " Example fields: replace with your own variables
+    ls_bdcdata-fnam = 'V_T030H-LSREA'.
+    ls_bdcdata-fval = is_data-lsrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHREA'.
+    ls_bdcdata-fval = is_data-lhrea.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSBEW'.
+    ls_bdcdata-fval = is_data-lsbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHBEW'.
+    ls_bdcdata-fval = is_data-lhbew.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LKORR'.
+    ls_bdcdata-fval = is_data-lkorr.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRA'.
+    ls_bdcdata-fval = is_data-lstra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRV'.
+    ls_bdcdata-fval = is_data-lhtrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LHTRA'.
+    ls_bdcdata-fval = is_data-lhtra.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'V_T030H-LSTRV'.
+    ls_bdcdata-fval = is_data-lstrv.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0040 - Save
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-HKONT(02)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=SAVE'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPL0F11 0040 - Back
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPL0F11'.
+    ls_bdcdata-dynpro   = '0040'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'V_T030H-HKONT(02)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=BACK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " SAPDFKB1 0120 - Back
+    "----------------------------------------------------------------------
+    ls_bdcdata-program  = 'SAPDFKB1'.
+    ls_bdcdata-dynpro   = '0120'.
+    ls_bdcdata-dynbegin = 'X'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_CURSOR'.
+    ls_bdcdata-fval = 'T030W-LTEXT(03)'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=BACK'.
+    APPEND ls_bdcdata TO lt_bdcdata.
+    CLEAR ls_bdcdata.
+
+    "----------------------------------------------------------------------
+    " Transaction call: use variable for DISMODE
+    "----------------------------------------------------------------------
+    CALL TRANSACTION 'OBA1' USING lt_bdcdata MODE lv_dismode.
+
+    IF sy-subrc = 0.
+      lv_msg = TEXT-001."BDC - successful.
+    ELSE.
+      lv_msg = TEXT-002."'BDC - failed.'.
+    ENDIF.
+
+    MESSAGE lv_msg TYPE 'S'.
+  ENDMETHOD.
+
+  METHOD show_log.
+
+    SUBMIT rsvtprot
+      WITH cusobj   EQ 'V_T030H'
+      WITH dbeg     EQ iv_datef
+      WITH tbeg     EQ '000000'
+      WITH dend     EQ iv_datet
+      WITH tend     EQ '235959'
+      WITH objfirst EQ 'X'
+      WITH tabfirst EQ ''
+      WITH alv_grid = 'X'
+      AND RETURN.
+
+  ENDMETHOD.
+
+ENDCLASS.

@@ -1,0 +1,41 @@
+************************************************************************
+*  Object Name      : ZFI_ACCT_VALUATION_PBO                           *
+*  Created by       : Renato Tiezzi (ZA80185)                          *
+*  Creation date    : 09/01/2025                                       *
+*  Requester        : Reinaldo Manfio (ZA50540)                        *
+*  RFC / CD         : 1407890/9401239                                  *
+*  TR Number        : L2DK917180                                       *
+*  Description      : Create new T-code for valuation process          *
+*======================================================================*
+*  Revision History                                                    *
+*  Revised by       : xxxxxx xxxxxxxxx                                 *
+*  Revision Date    : mm/dd/yyyy                                       *
+*  Requester        :                                                  *
+*  RFC / CD         :                                                  *
+*  Change tag       : S01K900001                                       *
+*  TR Number        : S01Kxxxxxx                                       *
+*  Description of Revision:                                            *
+*                                                                      *
+************************************************************************
+*&---------------------------------------------------------------------*
+*&  Include           ZFI_ACCT_VALUATION_PBO
+*&---------------------------------------------------------------------*
+MODULE status_0200 OUTPUT.
+  lcl_report=>pbo_0200( ).
+ENDMODULE.
+
+************************************************************************
+*  Object Name      : ZFI_ACCT_VALUATION_PAI                           *
+*  Created by       : Renato Tiezzi (ZA80185)                          *
+*  Creation date    : 09/01/2025                                       *
+*  Requester        : Reinaldo Manfio (ZA50540)                        *
+*  RFC / CD         : 1407890/9401239                                  *
+*  TR Number        : L2DK917180                                       *
+*  Description      : Create new T-code for valuation process          *
+*======================================================================*
+*&---------------------------------------------------------------------*
+*&  Include           ZFI_ACCT_VALUATION_PAI
+*&---------------------------------------------------------------------*
+MODULE user_command_0200 INPUT.
+  lcl_report=>pai_0200( ).
+ENDMODULE.

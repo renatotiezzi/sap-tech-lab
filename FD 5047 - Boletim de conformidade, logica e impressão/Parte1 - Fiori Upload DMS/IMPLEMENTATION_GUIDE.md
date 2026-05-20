@@ -2,9 +2,8 @@
 
 ## Visão Geral
 
-O aplicativo Fiori é desenvolvido no **SAP Business Application Studio (BAS)** como um app Fiori Elements (List Report + Object Page) usando OData V4 com backend RAP ou como app customizado freestyle.
-
-Este guia cobre o backend ABAP (`ZCL_FD5047_CERT_SVC`) e a estrutura de serviço necessária.
+O aplicativo Fiori é um **Fiori Elements List Report** (OData V4) com backend **RAP (Managed, strict 2)**.  
+O PDF é enviado codificado em Base64 via OData action `UploadPdf`, que realiza upload no DMS cloud (SAP SDM/CMIS).
 
 ---
 
@@ -12,22 +11,60 @@ Este guia cobre o backend ABAP (`ZCL_FD5047_CERT_SVC`) e a estrutura de serviço
 
 | Objeto | Tipo | Descrição |
 |--------|------|-----------|
-| `ZCL_FD5047_CERT_SVC` | CLAS | Serviço de negócio: validações, upload, listagem, exclusão |
+| `ZTFD5047_CERT` | TABL | Tabela persistente: metadados dos certificados |
+| `ZFD5047_CERT_UPL_P` | DDLS (abstract) | Parâmetro da action UploadPdf (Description + PdfBase64) |
+| `ZI_FD5047_CERT` | DDLS | CDS Interface view (root entity) |
+| `ZI_FD5047_CERT` | BDEF | Behavior Definition interface (managed, strict 2) |
+| `ZBP_I_FD5047_CERT` | CLAS | Behavior Pool – global class (stub) |
+| `ZBP_I_FD5047_CERT` | CCIMP | Behavior Pool – local handler `lhc_cert` (lógica de negócio) |
+| `ZC_FD5047_CERT` | DDLS | CDS Projection view (Fiori App) |
+| `ZC_FD5047_CERT` | BDEF | Projection Behavior |
+| `ZC_FD5047_CERT_MDE` | DDLX | Metadata Extension (anotações Fiori UI) |
+| `ZSD_FD5047_CERT` | SRVD | Service Definition |
+| `ZSB_FD5047_CERT` | SRVB | Service Binding (OData V4 – UI) |
+| `ZCL_FD5047_CERT_SVC` | CLAS | Helper: validações e build_description |
+| `ZCL_FD5047_DMS_API` | CLAS | Helper: operações REST com o DMS (pasta raiz) |
 
-> `ZCL_FD5047_DMS_API` (pasta raiz) é a dependência de infraestrutura – deve estar ativa antes.
+---
+
+## Ordem de Ativação (RAP Stack — Fase 1)
+
+```
+1. ZTFD5047_CERT          → Criar tabela no SAP (SE11 / ADT)
+2. ZFD5047_CERT_UPL_P     → Criar abstract entity (DDLS)
+3. ZI_FD5047_CERT (DDLS)  → Criar interface CDS view
+4. ZI_FD5047_CERT (BDEF)  → Criar behavior definition interface
+5. ZBP_I_FD5047_CERT      → Criar behavior pool (global class + CCIMP)
+6. ZC_FD5047_CERT (DDLS)  → Criar projection CDS view
+7. ZC_FD5047_CERT (BDEF)  → Criar projection behavior
+8. ZC_FD5047_CERT_MDE     → Criar metadata extension
+9. ZSD_FD5047_CERT        → Criar service definition
+10. ZSB_FD5047_CERT       → Criar service binding → Publicar (Publish)
+```
+
+> Dependências comuns (`ZCL_FD5047_DMS_API`, `ZCL_FD5047_CERT_SVC`) devem estar ativas antes do passo 5.
+
+---
+
+## Fluxo OData da Action UploadPdf
+
+```
+Fiori (FileUploader) → encode PDF em base64 →
+  POST /Cert({UUID})/com.sap.gateway.srvd.zsb_fd5047_cert/UploadPdf
+  Body: { "PdfBase64": "<base64>", "Description": "..." }
+
+Backend:
+  1. lhc_cert~upload_pdf
+  2. Decode base64 → xstring  (cl_http_utility=>decode_x_base64)
+  3. Valida magic bytes %PDF
+  4. ZCL_FD5047_DMS_API→upload_certificate → objectId do DMS
+  5. MODIFY ENTITY: DmsDocId + PdfSize + Description
+  6. Retorna registro atualizado
+```
 
 ---
 
 ## Integração com Fiori (OData)
-
-**Opção recomendada**: Expor `ZCL_FD5047_CERT_SVC` via **ABAP RESTful Application Programming Model (RAP)**:
-
-1. Criar CDS View `ZI_FD5047_CERT` com dados dos certificados
-2. Criar Behavior Definition com ações: `upload`, `delete`
-3. Behavior pool chama `ZCL_FD5047_CERT_SVC`
-4. Service Binding OData V4 `ZSB_FD5047_CERT`
-
-**Alternativa**: Criar endpoint HTTP via `CL_REST_HTTP_HANDLER` para upload binário direto.
 
 ---
 

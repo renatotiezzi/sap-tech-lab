@@ -1,0 +1,31 @@
+@EndUserText.label: 'Certificados de Conformidade - App Fiori'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+define root view entity ZC_FD5047_CERT
+  provider contract transactional_query
+  as projection on ZI_FD5047_CERT
+
+{
+  key CertUuid,
+
+      @ObjectModel.text.element: [ 'Description' ]
+      Matnr,
+
+      Werks,
+      Lgort,
+
+      @Semantics.calendar.date: true
+      RefDate,
+
+      Description,
+      DmsDocId,
+
+      @Semantics.dataStoredInLibrary: false
+      PdfSize,
+
+      CreatedBy,
+
+      @Semantics.systemDateTime.createdAt: true
+      CreatedAt
+
+}

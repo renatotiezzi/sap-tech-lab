@@ -1,0 +1,27 @@
+*&---------------------------------------------------------------------*
+*& ATENÇÃO: Service Binding não pode ser representado em texto simples.
+*& As informações abaixo são a referência técnica para criação via ADT.
+*&---------------------------------------------------------------------*
+*
+* Objeto  : ZSB_FD5047_CERT
+* Tipo    : SRVB (Service Binding)
+* Pai     : ZSD_FD5047_CERT  (Service Definition)
+*
+* Configuração no ADT:
+*   - Abrir ZSD_FD5047_CERT
+*   - Botão direito → New → OData UI Service (V4)
+*   - Nome       : ZSB_FD5047_CERT
+*   - Descrição  : Gestão de Certificados de Conformidade - FD 5047
+*   - Binding type: OData V4 - UI
+*
+* Após criar e publicar (Publish):
+*   - URL de preview: /sap/opu/odata4/sap/zsb_fd5047_cert/srvd/sap/zsd_fd5047_cert/0001/
+*   - Adicionar tile no Fiori Launchpad:
+*       Target Mapping → External URL ou OData Service binding
+*       Semantic Object: ZFD5047Cert
+*       Action: display
+*       Default Intent Hash: #ZFD5047Cert-display
+*
+* OBS: Para List Report (Fiori Elements), o template recomendado no BAS é:
+*   SAP Fiori application → List Report Page → OData V4 → ZSB_FD5047_CERT → Cert
+*

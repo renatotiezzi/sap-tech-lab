@@ -1,0 +1,98 @@
+@Metadata.layer: #CORE
+@UI.headerInfo: {
+  typeName:       'Certificado de Conformidade',
+  typeNamePlural: 'Certificados de Conformidade',
+  title:          { type: #STANDARD, value: 'Description' },
+  description:    { type: #STANDARD, value: 'Matnr' }
+}
+annotate entity ZC_FD5047_CERT with
+{
+
+  /// ============================================================
+  ///  FACETS — Object Page (detalhe do certificado)
+  /// ============================================================
+  @UI.facet: [
+    {
+      id:       'GeneralData',
+      type:     #IDENTIFICATION_REFERENCE,
+      label:    'Dados do Certificado',
+      position: 10
+    }
+  ]
+
+  /// ============================================================
+  ///  CertUuid — Chave (oculta na UI, usada internamente)
+  /// ============================================================
+  @UI.hidden: true
+  CertUuid;
+
+  /// ============================================================
+  ///  Matnr — Material
+  /// ============================================================
+  @UI.lineItem:      [{ position: 10, importance: #HIGH, label: 'Material' }]
+  @UI.selectionField:[{ position: 10 }]
+  @UI.identification:[{ position: 10, label: 'Material' }]
+  Matnr;
+
+  /// ============================================================
+  ///  Werks — Centro
+  /// ============================================================
+  @UI.lineItem:      [{ position: 20, importance: #HIGH, label: 'Centro' }]
+  @UI.selectionField:[{ position: 20 }]
+  @UI.identification:[{ position: 20, label: 'Centro' }]
+  Werks;
+
+  /// ============================================================
+  ///  Lgort — Depósito
+  /// ============================================================
+  @UI.lineItem:      [{ position: 30, importance: #HIGH, label: 'Depósito' }]
+  @UI.selectionField:[{ position: 30 }]
+  @UI.identification:[{ position: 30, label: 'Depósito' }]
+  Lgort;
+
+  /// ============================================================
+  ///  RefDate — Data de referência
+  /// ============================================================
+  @UI.lineItem:      [{ position: 40, importance: #HIGH, label: 'Data de Referência' }]
+  @UI.selectionField:[{ position: 40 }]
+  @UI.identification:[{ position: 40, label: 'Data de Referência' }]
+  RefDate;
+
+  /// ============================================================
+  ///  Description — Descrição do certificado (auto-gerada)
+  /// ============================================================
+  @UI.lineItem:      [{ position: 50, importance: #HIGH, label: 'Descrição' }]
+  @UI.identification:[{ position: 50, label: 'Descrição' }]
+  Description;
+
+  /// ============================================================
+  ///  DmsDocId — ID do documento no DMS (link interno)
+  /// ============================================================
+  @UI.lineItem: [{
+    position:  60,
+    label:     'ID Documento DMS',
+    importance: #MEDIUM,
+    criticality: #( DmsDocId IS INITIAL ? #2 : #3 )
+  }]
+  @UI.identification:[{ position: 60, label: 'ID DMS' }]
+  DmsDocId;
+
+  /// ============================================================
+  ///  PdfSize — Tamanho do PDF (bytes)
+  /// ============================================================
+  @UI.lineItem:      [{ position: 70, label: 'Tamanho (bytes)', importance: #LOW }]
+  @UI.identification:[{ position: 70, label: 'Tamanho do PDF (bytes)' }]
+  PdfSize;
+
+  /// ============================================================
+  ///  CreatedBy / CreatedAt — Auditoria
+  /// ============================================================
+  @UI.lineItem:      [{ position: 80, label: 'Criado por', importance: #LOW }]
+  @UI.identification:[{ position: 80, label: 'Criado por' }]
+  CreatedBy;
+
+  @UI.lineItem:      [{ position: 90, label: 'Criado em', importance: #LOW }]
+  @UI.identification:[{ position: 90, label: 'Criado em' }]
+  CreatedAt;
+
+}

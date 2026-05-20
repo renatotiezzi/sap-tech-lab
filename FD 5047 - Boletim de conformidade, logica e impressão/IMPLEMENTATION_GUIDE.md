@@ -29,15 +29,32 @@ Testar: criar breakpoint no método `find_latest_certificate` e executar um GET 
 
 ---
 
-## Fase 2 – Parte 1: Serviço Backend Fiori
+## Fase 2 – Parte 1: RAP Stack (backend Fiori)
+
+Ativar nesta ordem exata:
 
 | Seq | Objeto | Tipo ADT | Arquivo fonte |
 |-----|--------|----------|---------------|
-| 2.1 | `ZCL_FD5047_CERT_SVC` | CLAS | `Parte1 - Fiori Upload DMS/ZCL_FD5047_CERT_SVC.clas.txt` |
+| 2.0 | `ZCL_FD5047_CERT_SVC` | CLAS | `Parte1 - Fiori Upload DMS/ZCL_FD5047_CERT_SVC.clas.txt` |
+| 2.1 | `ZTFD5047_CERT` | TABL | `Parte1 - Fiori Upload DMS/ZTFD5047_CERT.tabl.txt` |
+| 2.2 | `ZFD5047_CERT_UPL_P` | DDLS (abstract entity) | `Parte1 - Fiori Upload DMS/ZFD5047_CERT_UPL_P.ddls.txt` |
+| 2.3 | `ZI_FD5047_CERT` | DDLS (root view entity) | `Parte1 - Fiori Upload DMS/ZI_FD5047_CERT.ddls.txt` |
+| 2.4 | `ZI_FD5047_CERT` | BDEF (interface) | `Parte1 - Fiori Upload DMS/ZI_FD5047_CERT.bdef.txt` |
+| 2.5 | `ZBP_I_FD5047_CERT` | CLAS (behavior pool) | `Parte1 - Fiori Upload DMS/ZBP_I_FD5047_CERT.clas.txt` + `*.clas.locals_imp.txt` |
+| 2.6 | `ZC_FD5047_CERT` | DDLS (projection view) | `Parte1 - Fiori Upload DMS/ZC_FD5047_CERT.ddls.txt` |
+| 2.7 | `ZC_FD5047_CERT` | BDEF (projection) | `Parte1 - Fiori Upload DMS/ZC_FD5047_CERT.bdef.txt` |
+| 2.8 | `ZC_FD5047_CERT_MDE` | DDLX (metadata ext.) | `Parte1 - Fiori Upload DMS/ZC_FD5047_CERT_MDE.ddlx.txt` |
+| 2.9 | `ZSD_FD5047_CERT` | SRVD | `Parte1 - Fiori Upload DMS/ZSD_FD5047_CERT.srvd.txt` |
+| 2.10 | `ZSB_FD5047_CERT` | SRVB | Criar manualmente → Publish (ver `ZSB_FD5047_CERT.srvb.txt`) |
 
-> A UI Fiori (app HTML5) é desenvolvida separadamente no SAP Business Application Studio (BAS).  
-> Esta classe é o backend que a UI chama via OData/HTTP.  
-> Ver `Parte1 - Fiori Upload DMS/IMPLEMENTATION_GUIDE.md` para detalhes do app Fiori.
+> **Behavior Pool (passo 2.5):**  
+> No ADT, criar a classe `ZBP_I_FD5047_CERT` como "FOR BEHAVIOR OF ZI_FD5047_CERT".  
+> Copiar conteúdo de `ZBP_I_FD5047_CERT.clas.txt` para a include CPUB.  
+> Copiar conteúdo de `ZBP_I_FD5047_CERT.clas.locals_imp.txt` para a include CCIMP (Local Types).
+>
+> **Service Binding (passo 2.10):**  
+> Abrir `ZSD_FD5047_CERT` → New → OData V4 - UI → Nome: `ZSB_FD5047_CERT` → Publish.  
+> Ver `Parte1 - Fiori Upload DMS/IMPLEMENTATION_GUIDE.md` para configuração do app Fiori no BAS.
 
 ---
 
@@ -81,12 +98,16 @@ Testar: criar breakpoint no método `find_latest_certificate` e executar um GET 
 - [ ] SM59 → testar conexão `ZDMS5047_DEST` → RC 200
 - [ ] Executar `ZCL_FD5047_DMS_API→find_latest_certificate` em SE24 com MATNR/WERKS/LGORT existentes
 
-### Fase 2 – Parte 1 (Upload)
-- [ ] Upload de PDF via método `create_certificate` com dados válidos → doc_id retornado
-- [ ] Upload com arquivo não-PDF → exceção `cx_fd5047_invalid_format` disparada
-- [ ] Upload duplicado (mesmo MATNR+WERKS+LGORT+DATA) → exceção `cx_fd5047_duplicate`
-- [ ] Listagem com filtros → retorna apenas documentos do critério
-- [ ] Exclusão → documento removido do DMS
+### Fase 2 – Parte 1 (RAP + Upload)
+- [ ] Ativar ZTFD5047_CERT no SE11 → DB Table criada sem erros
+- [ ] Ativar todos os objetos CDS (sem syntax errors)
+- [ ] Publicar ZSB_FD5047_CERT → URL OData acessível no browser do ADT
+- [ ] Criar registro via OData POST → UUID gerado, CreatedBy/CreatedAt preenchidos
+- [ ] Chamar action UploadPdf com base64 válido → DmsDocId preenchido no registro
+- [ ] Chamar UploadPdf com conteúdo não-PDF → erro "Apenas arquivos PDF são aceitos"
+- [ ] Chamar UploadPdf novamente no mesmo registro → erro "já possui PDF"
+- [ ] Tentar criar registro duplicado (mesmo MATNR+WERKS+LGORT+DATE) → erro de validação
+- [ ] DELETE do registro → remove da tabela ZTFD5047_CERT
 
 ### Fase 3 – Parte 2 (Impressão)
 - [ ] Chamar `print_for_transport_doc` com SHNUMBER válido (com remessa e certificado) → spool gerado

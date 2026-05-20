@@ -1,0 +1,62 @@
+managed implementation in class zbp_i_fd5047_cert unique;
+strict ( 2 );
+
+/// -----------------------------------------------------------------------
+/// Behavior Definition: ZI_FD5047_CERT
+/// Gerenciamento de certificados de conformidade - FD 5047 Parte 1
+///
+/// Fluxo de uso:
+///   1. CREATE → cria o registro de metadados (sem PDF ainda)
+///   2. Ação UploadPdf → valida + envia PDF ao DMS + atualiza DmsDocId
+///   3. DELETE → remove somente a linha da tabela (DMS limpo pelo job Parte 3)
+///
+/// Regra de duplicidade: validada em validate_no_duplicate_key (on save, create)
+/// -----------------------------------------------------------------------
+define behavior for ZI_FD5047_CERT alias Cert
+  persistent table ztfd5047_cert
+  lock master
+  authorization master ( global )
+  etag master CreatedAt
+
+{
+  // --- Operações CRUD ---
+  create;
+  delete;
+
+  // --- Ação de upload do PDF para o DMS ---
+  // Recebe base64 PDF + descrição opcional
+  // Retorna o próprio registro atualizado com DmsDocId e PdfSize
+  action UploadPdf parameter ZFD5047_CERT_UPL_P result [1] $self;
+
+  // --- Determinação: preencher campos de administração (CreatedBy / CreatedAt) ---
+  determination set_admin_fields on save { create; }
+
+  // --- Validação: impedir duplicidade por MATNR + WERKS + LGORT + REF_DATE ---
+  validation validate_no_duplicate_key on save { create; }
+
+  // --- Controle de campos ---
+  // UUID gerado pelo framework (numbering: managed)
+  field ( numbering : managed, readonly ) CertUuid;
+
+  // Campos preenchidos apenas pelo sistema ou pela ação UploadPdf
+  field ( readonly ) DmsDocId, PdfSize, CreatedBy, CreatedAt;
+
+  // Campos obrigatórios na criação e imutáveis após o create
+  field ( mandatory : create, readonly : update ) Matnr, Werks, Lgort, RefDate;
+
+  // --- Mapeamento para a tabela persistente ---
+  mapping for ztfd5047_cert corresponding
+  {
+    CertUuid    = cert_uuid;
+    Matnr       = matnr;
+    Werks       = werks;
+    Lgort       = lgort;
+    RefDate     = ref_date;
+    Description = description;
+    DmsDocId    = dms_doc_id;
+    PdfSize     = pdf_size;
+    CreatedBy   = created_by;
+    CreatedAt   = created_at;
+  }
+
+}

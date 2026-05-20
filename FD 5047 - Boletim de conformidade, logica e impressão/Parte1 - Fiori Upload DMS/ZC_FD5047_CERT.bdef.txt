@@ -1,0 +1,16 @@
+projection;
+strict ( 2 );
+
+/// -----------------------------------------------------------------------
+/// Projection Behavior: ZC_FD5047_CERT
+/// Expõe operações para o serviço OData V4 / Fiori App.
+/// -----------------------------------------------------------------------
+define behavior for ZC_FD5047_CERT alias Cert
+{
+  use create;
+  use delete;
+
+  // Expõe a ação de upload do PDF
+  use action UploadPdf;
+
+}

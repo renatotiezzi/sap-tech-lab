@@ -1,0 +1,272 @@
+*&---------------------------------------------------------------------*
+*& Behavior Pool: ZBP_I_FD5047_CERT — Local Types (CCIMP)
+*&---------------------------------------------------------------------*
+*& Contém o handler lhc_cert com toda a lógica de negócio:
+*&   - set_admin_fields  : determination → preenche CreatedBy / CreatedAt
+*&   - validate_no_duplicate_key : validation → impede duplicidade
+*&   - upload_pdf        : action → valida PDF, envia ao DMS, atualiza campos
+*&---------------------------------------------------------------------*
+
+CLASS lhc_cert DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    "! Determination: preenche CreatedBy e CreatedAt no CREATE.
+    METHODS set_admin_fields
+      FOR DETERMINE ON SAVE
+      IMPORTING keys FOR Cert~set_admin_fields.
+
+    "! Validation: impede criação duplicada (mesma combinação MATNR+WERKS+LGORT+RefDate).
+    METHODS validate_no_duplicate_key
+      FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Cert~validate_no_duplicate_key.
+
+    "! Action: recebe base64 PDF, valida, envia ao DMS e atualiza DmsDocId / PdfSize.
+    METHODS upload_pdf
+      FOR MODIFY
+      IMPORTING keys FOR ACTION Cert~UploadPdf RESULT result.
+
+ENDCLASS.
+
+
+CLASS lhc_cert IMPLEMENTATION.
+
+*&---------------------------------------------------------------------*
+  METHOD set_admin_fields.
+*&---------------------------------------------------------------------*
+    READ ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+      ENTITY Cert
+        FIELDS ( CertUuid )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_certs).
+
+    DATA(lv_ts)   = cl_abap_context_info=>get_system_date_time( ).
+    DATA(lv_user) = cl_abap_context_info=>get_user_alias( ).
+
+    MODIFY ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+      ENTITY Cert
+        UPDATE FIELDS ( CreatedBy CreatedAt )
+        WITH VALUE #( FOR ls_cert IN lt_certs (
+          %tky      = ls_cert-%tky
+          CreatedBy = lv_user
+          CreatedAt = lv_ts
+        ) ).
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD validate_no_duplicate_key.
+*&---------------------------------------------------------------------*
+    READ ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+      ENTITY Cert
+        FIELDS ( Matnr Werks Lgort RefDate )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_certs).
+
+    LOOP AT lt_certs INTO DATA(ls_cert).
+      " Verificar se já existe registro com a mesma combinação na tabela
+      SELECT COUNT(*)
+        FROM ztfd5047_cert
+        WHERE matnr    = @ls_cert-Matnr
+          AND werks    = @ls_cert-Werks
+          AND lgort    = @ls_cert-Lgort
+          AND ref_date = @ls_cert-RefDate
+          AND cert_uuid <> @ls_cert-CertUuid   " excluir o próprio registro (update)
+        INTO @DATA(lv_count).
+
+      IF lv_count > 0.
+        APPEND VALUE #(
+          %tky        = ls_cert-%tky
+          %state_area = 'DUPLICATE'
+          %msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Já existe certificado para Material { ls_cert-Matnr } / | &&
+                       |Centro { ls_cert-Werks } / Depósito { ls_cert-Lgort } / | &&
+                       |Data { ls_cert-RefDate }.|
+          )
+        ) TO reported-cert.
+
+        APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+*&---------------------------------------------------------------------*
+  METHOD upload_pdf.
+*&---------------------------------------------------------------------*
+*   Fluxo:
+*     1. Ler dados do certificado (MATNR/WERKS/LGORT/RefDate/DmsDocId)
+*     2. Verificar se PDF já foi enviado (idempotência)
+*     3. Decodificar base64 → xstring
+*     4. Validar formato PDF (magic bytes %PDF)
+*     5. Validar duplicidade no DMS (ZCL_FD5047_CERT_SVC)
+*     6. Fazer upload via ZCL_FD5047_DMS_API
+*     7. Atualizar DmsDocId + PdfSize + Description no registro
+*     8. Retornar registro atualizado no result
+
+    READ ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+      ENTITY Cert
+        FIELDS ( Matnr Werks Lgort RefDate Description DmsDocId )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_certs).
+
+    LOOP AT lt_certs INTO DATA(ls_cert).
+
+      READ TABLE keys INTO DATA(ls_key)
+        WITH KEY %tky = ls_cert-%tky.
+
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      " --- 2. Idempotência: já tem PDF no DMS? ---
+      IF ls_cert-DmsDocId IS NOT INITIAL.
+        APPEND VALUE #(
+          %tky        = ls_cert-%tky
+          %state_area = 'ALREADY_UPLOADED'
+          %msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-warning
+            text     = 'Este certificado já possui um PDF vinculado no DMS.'
+          )
+        ) TO reported-cert.
+        APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+        CONTINUE.
+      ENDIF.
+
+      " --- 3. Decodificar base64 ---
+      DATA lx_pdf TYPE xstring.
+      DATA(lv_b64) = ls_key-%param-PdfBase64.
+
+      IF lv_b64 IS INITIAL.
+        APPEND VALUE #(
+          %tky        = ls_cert-%tky
+          %state_area = 'NO_CONTENT'
+          %msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = 'Nenhum conteúdo PDF foi fornecido (PdfBase64 vazio).'
+          )
+        ) TO reported-cert.
+        APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+        CONTINUE.
+      ENDIF.
+
+      lx_pdf = cl_http_utility=>decode_x_base64( lv_b64 ).
+
+      " --- 4. Validar magic bytes %PDF (25 50 44 46) ---
+      IF xstrlen( lx_pdf ) < 4 OR lx_pdf(4) <> CONV xstring( '25504446' ).
+        APPEND VALUE #(
+          %tky        = ls_cert-%tky
+          %state_area = 'INVALID_FORMAT'
+          %msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = 'Apenas arquivos PDF são aceitos. Verifique o conteúdo enviado.'
+          )
+        ) TO reported-cert.
+        APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+        CONTINUE.
+      ENDIF.
+
+      " --- 5. Upload no DMS ---
+      DATA lo_dms  TYPE REF TO zcl_fd5047_dms_api.
+      DATA lv_desc TYPE string.
+      CREATE OBJECT lo_dms.
+
+      " Descrição: parâmetro da ação ou gerar automaticamente
+      IF ls_key-%param-Description IS NOT INITIAL.
+        lv_desc = ls_key-%param-Description.
+      ELSE.
+        DATA lo_svc TYPE REF TO zcl_fd5047_cert_svc.
+        CREATE OBJECT lo_svc.
+        lv_desc = lo_svc->build_description(
+                    iv_matnr    = ls_cert-Matnr
+                    iv_werks    = ls_cert-Werks
+                    iv_lgort    = ls_cert-Lgort
+                    iv_ref_date = ls_cert-RefDate ).
+      ENDIF.
+
+      DATA lv_doc_id TYPE string.
+      TRY.
+          lv_doc_id = lo_dms->upload_certificate(
+                        iv_matnr       = ls_cert-Matnr
+                        iv_werks       = ls_cert-Werks
+                        iv_lgort       = ls_cert-Lgort
+                        iv_ref_date    = ls_cert-RefDate
+                        iv_pdf_content = lx_pdf ).
+
+        CATCH cx_dynamic_check INTO DATA(lx_ex).
+          APPEND VALUE #(
+            %tky        = ls_cert-%tky
+            %state_area = 'DMS_ERROR'
+            %msg        = new_message_with_text(
+              severity = if_abap_behv_message=>severity-error
+              text     = |Erro no upload para o DMS: { lx_ex->get_text( ) }|
+            )
+          ) TO reported-cert.
+          APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+          CONTINUE.
+      ENDTRY.
+
+      IF lv_doc_id IS INITIAL.
+        APPEND VALUE #(
+          %tky        = ls_cert-%tky
+          %state_area = 'DMS_EMPTY_ID'
+          %msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = 'Upload realizado, mas o DMS não retornou o ID do documento.'
+          )
+        ) TO reported-cert.
+        APPEND VALUE #( %tky = ls_cert-%tky ) TO failed-cert.
+        CONTINUE.
+      ENDIF.
+
+      " --- 7. Atualizar campos do registro ---
+      MODIFY ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+        ENTITY Cert
+          UPDATE FIELDS ( DmsDocId PdfSize Description )
+          WITH VALUE #( (
+            %tky        = ls_cert-%tky
+            DmsDocId    = lv_doc_id
+            PdfSize     = xstrlen( lx_pdf )
+            Description = lv_desc
+          ) ).
+
+      " --- 8. Retornar registro atualizado ---
+      APPEND VALUE #( %tky = ls_cert-%tky ) TO result.
+
+    ENDLOOP.
+
+    " Ler estado final dos registros para popular result
+    READ ENTITIES OF zi_fd5047_cert IN LOCAL MODE
+      ENTITY Cert
+        ALL FIELDS
+        WITH VALUE #( FOR r IN result ( %tky = r-%tky ) )
+      RESULT DATA(lt_updated).
+
+    result = CORRESPONDING #( lt_updated MAPPING %tky = %tky ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+
+*&---------------------------------------------------------------------*
+*& Classe de salvamento adicional (não usada – gerenciado pelo framework)
+*&---------------------------------------------------------------------*
+CLASS lsc_fd5047_cert DEFINITION INHERITING FROM cl_abap_behavior_saver.
+  PROTECTED SECTION.
+    METHODS save_modified   REDEFINITION.
+    METHODS cleanup_finalize REDEFINITION.
+ENDCLASS.
+
+CLASS lsc_fd5047_cert IMPLEMENTATION.
+
+  METHOD save_modified.
+    " Não há lógica adicional de save.
+    " A deleção de documentos no DMS é gerenciada pelo job ZFD5047_CERT_CLEANUP (Parte 3).
+  ENDMETHOD.
+
+  METHOD cleanup_finalize.
+  ENDMETHOD.
+
+ENDCLASS.

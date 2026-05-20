@@ -1,0 +1,13 @@
+@EndUserText.label: 'Parâmetro de Upload do Certificado PDF'
+define abstract entity ZFD5047_CERT_UPL_P {
+
+  "! Descrição do certificado.
+  "! Quando em branco, é gerada automaticamente: {MATNR}-{WERKS}-{LGORT}-{YYYYMMDD}
+  Description : abap.char(100);
+
+  "! Conteúdo do arquivo PDF codificado em Base64.
+  "! Usar: cl_http_utility=>encode_x_base64( xstring ) no cliente.
+  "! No backend: cl_http_utility=>decode_x_base64( PdfBase64 ) → xstring.
+  PdfBase64   : abap.sstring;
+
+}

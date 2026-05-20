@@ -1,0 +1,25 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Certificados de Conformidade - Interface View'
+define root view entity ZI_FD5047_CERT
+  as select from ztfd5047_cert
+
+{
+      ///  --- Chave ---
+  key cert_uuid    as CertUuid,
+
+      /// --- Identificação do certificado ---
+      matnr        as Matnr,
+      werks        as Werks,
+      lgort        as Lgort,
+      ref_date     as RefDate,
+      description  as Description,
+
+      /// --- Dados do DMS ---
+      dms_doc_id   as DmsDocId,
+      pdf_size     as PdfSize,
+
+      /// --- Campos de administração ---
+      created_by   as CreatedBy,
+      created_at   as CreatedAt
+
+}

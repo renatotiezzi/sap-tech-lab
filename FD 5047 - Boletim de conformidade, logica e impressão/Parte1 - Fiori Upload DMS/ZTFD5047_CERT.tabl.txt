@@ -1,0 +1,35 @@
+@EndUserText.label : 'Certificados de Conformidade - FD 5047'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table ztfd5047_cert {
+
+  key client      : abap.clnt not null;
+
+  @AbapCatalog.foreignKey.screenCheck : false
+  key cert_uuid   : sysuuid_c32 not null;
+
+  @AbapCatalog.foreignKey.keyType : #TEXT_KEY
+  @AbapCatalog.foreignKey.screenCheck : false
+  matnr           : matnr;
+
+  @AbapCatalog.foreignKey.keyType : #TEXT_KEY
+  @AbapCatalog.foreignKey.screenCheck : false
+  werks           : werks_d;
+
+  lgort           : lgort_d;
+
+  ref_date        : abap.dats;
+
+  description     : abap.char(100);
+
+  dms_doc_id      : abap.char(256);
+
+  pdf_size        : abap.int4;
+
+  created_by      : abp_creation_user;
+
+  created_at      : abp_creation_tstmpl;
+
+}

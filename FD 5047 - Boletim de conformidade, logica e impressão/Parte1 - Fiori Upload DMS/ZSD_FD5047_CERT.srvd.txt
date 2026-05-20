@@ -1,0 +1,4 @@
+@EndUserText.label: 'Certificados de Conformidade - Serviço OData V4'
+define service ZSD_FD5047_CERT {
+  expose ZC_FD5047_CERT as Cert;
+}

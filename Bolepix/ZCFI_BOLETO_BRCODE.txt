@@ -1,0 +1,338 @@
+*&---------------------------------------------------------------------*
+*& Class ZCFI_BOLETO_BRCODE - BR Code (EMV) Payload Generator
+*&---------------------------------------------------------------------*
+*& Generates the QR Code text payload per BACEN BR Code spec v2.0.1
+*& (Circular BCB nº 3.682/2013  |  EMV QRCPS-MPM Mode Presenter)
+*&
+*& ── SETUP (TVARVC – configure via STVARV transaction) ───────────────
+*&   ZBOLETO_PIX_CHAVE  → PIX key  (CNPJ, UUID, email or phone)
+*&   ZBOLETO_PIX_NOME   → Beneficiary name  (max 25 chars – uppercase)
+*&   ZBOLETO_PIX_CIDADE → Beneficiary city  (max 15 chars – uppercase)
+*&
+*& ── PROCESS (runtime, per boleto) ──────────────────────────────────
+*&   iv_txid  → Reference label (belnr + buzei → alphanumeric, max 25)
+*&   iv_valor → Amount in BRL   (optional; omit = open-value QR)
+*&
+*& ── USAGE in f_monta_form_data ─────────────────────────────────────
+*&   cs_form_data-barcode =
+*&     zcfi_boleto_brcode=>build_brcode_payload(
+*&       iv_txid  = |{ is_alv-belnr }{ is_alv-buzei }|
+*&       iv_valor = is_alv-dmbtr ).
+*&
+*& ── CRC ─────────────────────────────────────────────────────────────
+*&   CRC-16-CCITT  |  poly = 0x1021  |  init = 0xFFFF  |  no reflect
+*&   Test vector (spec §2.2 example): expected CRC = AD38
+*&
+*& ── FIRST-TIME-RIGHT CHECKLIST ─────────────────────────────────────
+*&   [ ] STVARV: ZBOLETO_PIX_CHAVE  = <CNPJ or UUID or email>
+*&   [ ] STVARV: ZBOLETO_PIX_NOME   = <COMPANY NAME> (max 25, no accents)
+*&   [ ] STVARV: ZBOLETO_PIX_CIDADE = <CITY>          (max 15, no accents)
+*&   [ ] Adobe Form (XDP): add QR Code field bound to $.barcode
+*&   [ ] Test barcode payload with a PIX QR reader
+*&---------------------------------------------------------------------*
+CLASS zcfi_boleto_brcode DEFINITION
+  PUBLIC FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    "-- TVARVC parameter keys (TYPE = 'P' in TVARVC) ------------------
+    CONSTANTS gc_tvarvc_chave  TYPE tvarvc-name VALUE 'ZBOLETO_PIX_CHAVE'.
+    CONSTANTS gc_tvarvc_nome   TYPE tvarvc-name VALUE 'ZBOLETO_PIX_NOME'.
+    CONSTANTS gc_tvarvc_cidade TYPE tvarvc-name VALUE 'ZBOLETO_PIX_CIDADE'.
+
+    "-- BR Code EMV field max lengths (spec §2.1 table) ---------------
+    CONSTANTS gc_max_nome      TYPE i VALUE 25.
+    CONSTANTS gc_max_cidade    TYPE i VALUE 15.
+    CONSTANTS gc_max_txid      TYPE i VALUE 25.
+
+    "-- MAIN -----------------------------------------------------------
+    "-- Builds the complete BR Code payload string (body + CRC16).
+    "-- Returns '' (empty) when mandatory TVARVC params are missing;
+    "-- the caller must handle empty → skip QR on form / log error.
+    CLASS-METHODS build_brcode_payload
+      IMPORTING
+        iv_txid           TYPE clike
+        iv_valor          TYPE bseg-dmbtr OPTIONAL
+      RETURNING
+        VALUE(rv_payload) TYPE string.
+
+    "-- CRC-16-CCITT (poly=0x1021, init=0xFFFF, no reflection) --------
+    "-- Input : full payload string ending with '6304'
+    "-- Output: 4-char uppercase hex  e.g. 'AD38'
+    CLASS-METHODS calc_crc16
+      IMPORTING
+        iv_text        TYPE string
+      RETURNING
+        VALUE(rv_crc4) TYPE c LENGTH 4.
+
+    "-- EMV TLV encoder -----------------------------------------------
+    "-- Output: <ID(2 chars)><LEN(2 decimal digits)><VALUE>
+    "-- Example: tlv('00','01') → '000201'
+    CLASS-METHODS tlv
+      IMPORTING
+        iv_id          TYPE clike
+        iv_value       TYPE string
+      RETURNING
+        VALUE(rv_tlv)  TYPE string.
+
+    "-- TVARVC reader -------------------------------------------------
+    "-- Reads a TYPE='P' parameter; returns '' if not found.
+    CLASS-METHODS read_tvarvc
+      IMPORTING
+        iv_name         TYPE tvarvc-name
+      RETURNING
+        VALUE(rv_value) TYPE string.
+
+ENDCLASS.
+
+
+CLASS zcfi_boleto_brcode IMPLEMENTATION.
+
+*----------------------------------------------------------------------*
+* build_brcode_payload
+*----------------------------------------------------------------------*
+  METHOD build_brcode_payload.
+
+    DATA: lv_chave     TYPE string,
+          lv_nome      TYPE string,
+          lv_cidade    TYPE string,
+          lv_txid      TYPE string,
+          lv_valor_str TYPE string,
+          lv_intgr     TYPE i,
+          lv_cents     TYPE i,
+          lv_merchant  TYPE string,
+          lv_addl      TYPE string,
+          lv_body      TYPE string.
+
+    CLEAR rv_payload.
+
+    "-- 1. Load setup from TVARVC -------------------------------------
+    lv_chave  = read_tvarvc( gc_tvarvc_chave ).
+    lv_nome   = read_tvarvc( gc_tvarvc_nome ).
+    lv_cidade = read_tvarvc( gc_tvarvc_cidade ).
+
+    "-- 2. Guard – all three setup params are mandatory ---------------
+    IF lv_chave IS INITIAL OR lv_nome IS INITIAL OR lv_cidade IS INITIAL.
+      " → Maintain missing params via STVARV (see class header)
+      RETURN.
+    ENDIF.
+
+    "-- 3. Normalize process params -----------------------------------
+
+    " TXID: alphanumeric only, max 25 chars (PIX spec requirement).
+    " Non-alphanumeric chars (spaces, dashes, dots) are stripped.
+    lv_txid = iv_txid.
+    CONDENSE lv_txid NO-GAPS.
+    REPLACE ALL OCCURRENCES OF REGEX '[^A-Za-z0-9]' IN lv_txid WITH ''.
+    IF strlen( lv_txid ) > gc_max_txid.
+      lv_txid = lv_txid(25).                    " truncate to 25
+    ENDIF.
+    IF lv_txid IS INITIAL.
+      lv_txid = '***'.                           " open / anonymous TXID
+    ENDIF.
+
+    " Truncate setup params to EMV max lengths (user responsible for
+    " uppercase / no-accent content in TVARVC).
+    IF strlen( lv_nome ) > gc_max_nome.
+      lv_nome = lv_nome(25).
+    ENDIF.
+    IF strlen( lv_cidade ) > gc_max_cidade.
+      lv_cidade = lv_cidade(15).
+    ENDIF.
+
+    " Amount: build locale-independent decimal string with period (.)
+    " The string template |{ iv_valor DECIMALS = 2 }| may use comma
+    " depending on user settings; we compute parts explicitly.
+    IF iv_valor IS SUPPLIED AND iv_valor > 0.
+      lv_intgr     = abs( iv_valor ).                    " integer part
+      lv_cents     = ( abs( iv_valor ) - lv_intgr ) * 100. " cents (0-99)
+      lv_valor_str = |{ lv_intgr }.{ lv_cents WIDTH = 2 PAD = '0' }|.
+    ENDIF.
+
+    "-- 4. Build EMV payload body (IDs 00 → 62) -----------------------
+
+    " ID 00 – Payload Format Indicator (mandatory, always '01')
+    lv_body = lv_body && tlv( iv_id = '00' iv_value = '01' ).
+
+    " ID 01 – Point of Initiation Method: '12' = single-use QR
+    lv_body = lv_body && tlv( iv_id = '01' iv_value = '12' ).
+
+    " ID 26 – Merchant Account Information  (PIX arrangement)
+    "         sub 00: GUI = 'BR.GOV.BCB.PIX'  (case-insensitive per spec)
+    "         sub 01: PIX key
+    lv_merchant = tlv( iv_id = '00' iv_value = 'BR.GOV.BCB.PIX' ).
+    lv_merchant = lv_merchant && tlv( iv_id = '01' iv_value = lv_chave ).
+    lv_body     = lv_body && tlv( iv_id = '26' iv_value = lv_merchant ).
+
+    " ID 52 – Merchant Category Code (0000 = not informed)
+    lv_body = lv_body && tlv( iv_id = '52' iv_value = '0000' ).
+
+    " ID 53 – Transaction Currency: 986 = BRL (ISO 4217)
+    lv_body = lv_body && tlv( iv_id = '53' iv_value = '986' ).
+
+    " ID 54 – Transaction Amount (optional; omit → open-value QR)
+    IF lv_valor_str IS NOT INITIAL.
+      lv_body = lv_body && tlv( iv_id = '54' iv_value = lv_valor_str ).
+    ENDIF.
+
+    " ID 58 – Country Code: 'BR' (ISO 3166-1 alpha-2)
+    lv_body = lv_body && tlv( iv_id = '58' iv_value = 'BR' ).
+
+    " ID 59 – Merchant Name (beneficiary)
+    lv_body = lv_body && tlv( iv_id = '59' iv_value = lv_nome ).
+
+    " ID 60 – Merchant City
+    lv_body = lv_body && tlv( iv_id = '60' iv_value = lv_cidade ).
+
+    " ID 62 – Additional Data Field Template
+    "         sub 05: Reference Label (boleto transaction ID)
+    lv_addl = tlv( iv_id = '05' iv_value = lv_txid ).
+    lv_body = lv_body && tlv( iv_id = '62' iv_value = lv_addl ).
+
+    "-- 5. Append '6304' then compute CRC over the full string --------
+    " Per spec footnote 10: CRC input includes the '6304' tag itself.
+    lv_body    = lv_body && '6304'.
+    rv_payload = lv_body && calc_crc16( lv_body ).
+
+  ENDMETHOD.
+
+
+*----------------------------------------------------------------------*
+* calc_crc16
+* Algorithm : CRC-16-CCITT
+* Polynomial: 0x1021  (= 4129 decimal)
+* Init value: 0xFFFF  (= 65535 decimal)
+* Reflection: none (MSB-first, straight)
+*
+* Test vector from spec §2.2:
+*   Input (payload ending with '6304', 270 chars total)
+*   Expected result: 'AD38'
+*----------------------------------------------------------------------*
+  METHOD calc_crc16.
+
+    DATA: lv_xstr TYPE xstring,
+          lv_crc  TYPE i,
+          lv_byte TYPE x LENGTH 1,
+          lv_bval TYPE i,
+          lv_len  TYPE i,
+          lv_hex2 TYPE x LENGTH 2.
+
+    CLEAR rv_crc4.
+
+    " Convert input to UTF-8 bytes.
+    " BR Code payload is ASCII-safe; this handles any edge-case chars.
+    TRY.
+        lv_xstr = cl_abap_codepage=>convert_to(
+                    source   = iv_text
+                    codepage = 'UTF-8' ).
+      CATCH cx_root.
+        rv_crc4 = '0000'.
+        RETURN.
+    ENDTRY.
+
+    lv_crc = 65535.                               " init = 0xFFFF
+    lv_len = xstrlen( lv_xstr ).
+
+    DO lv_len TIMES.
+
+      " Get next byte value (0..255)
+      lv_byte = lv_xstr+( sy-index - 1 )(1).
+      lv_bval = lv_byte.
+
+      " XOR byte into high byte of CRC:  crc ^= (byte << 8)
+      lv_crc = lv_crc BIT-XOR ( lv_bval * 256 ).
+
+      " Process 8 bits, MSB first
+      DO 8 TIMES.
+        IF ( lv_crc BIT-AND 32768 ) <> 0.         " bit 15 set (0x8000)
+          lv_crc = ( lv_crc * 2 ) BIT-XOR 4129.  " (crc << 1) ^ poly
+        ELSE.
+          lv_crc = lv_crc * 2.                    "  crc << 1
+        ENDIF.
+        lv_crc = lv_crc BIT-AND 65535.            " keep only 16 bits
+      ENDDO.
+
+    ENDDO.
+
+    " Format as 4-char uppercase hex string
+    " lv_crc is 0..65535 → TYPE X LENGTH 2 takes the low 2 bytes
+    lv_hex2  = lv_crc.
+    rv_crc4  = |{ lv_hex2 }|.                     " X(2) → 'XXXX' hex
+
+  ENDMETHOD.
+
+
+*----------------------------------------------------------------------*
+* tlv
+* EMV TLV (Type-Length-Value) field encoder
+* Output format: <ID(2 chars)><LEN(2 decimal digits zero-padded)><VALUE>
+* Examples:
+*   tlv('00','01')          → '000201'
+*   tlv('59','EMPRESA SA')  → '591009454D50524553412053412'
+*   (length = 9 chars       →  59 09 454D50524553412053412     )
+*----------------------------------------------------------------------*
+  METHOD tlv.
+    DATA lv_len TYPE i.
+    lv_len = strlen( iv_value ).
+    rv_tlv = |{ iv_id }{ lv_len WIDTH = 2 PAD = '0' }{ iv_value }|.
+  ENDMETHOD.
+
+
+*----------------------------------------------------------------------*
+* read_tvarvc
+* Reads a parameter (TYPE = 'P') from TVARVC (client-specific).
+* Maintain values via transaction STVARV.
+* Returns '' when the entry does not exist.
+*----------------------------------------------------------------------*
+  METHOD read_tvarvc.
+    CLEAR rv_value.
+    SELECT SINGLE low
+      FROM tvarvc
+      INTO rv_value
+     WHERE name = iv_name
+       AND type = 'P'.
+    IF sy-subrc = 0.
+      CONDENSE rv_value.
+    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.
+
+
+*&---------------------------------------------------------------------*
+*& ── HOW TO INTEGRATE INTO ZFI_BOLETO_MONITOR_CONT_F01 ─────────────*
+*&---------------------------------------------------------------------*
+*& In FORM f_monta_form_data, AFTER cs_form_data-valor_documento
+*& is populated, add the following block:
+*&
+*&  "-- BR Code (QR Code Bolepix) ------------------------------------
+*&  DATA(lv_brcode_txid) = |{ is_alv-belnr }{ is_alv-buzei }|.
+*&
+*&  cs_form_data-barcode =
+*&    zcfi_boleto_brcode=>build_brcode_payload(
+*&      iv_txid  = lv_brcode_txid
+*&      iv_valor = is_alv-dmbtr ).
+*&
+*&  IF cs_form_data-barcode IS INITIAL.
+*&    " TVARVC params missing – log warning
+*&    PERFORM f_gravar_log
+*&      USING is_alv gc_proc_print 'W'
+*&            'BR Code skipped: TVARVC ZBOLETO_PIX_* not maintained'.
+*&  ENDIF.
+*&  "-- End BR Code --------------------------------------------------
+*&
+*& ── TVARVC ENTRIES TO CREATE IN STVARV ─────────────────────────────
+*&
+*&  Name                 Type  Low (value)
+*&  ─────────────────────────────────────────────────────────────────
+*&  ZBOLETO_PIX_CHAVE    P     <PIX key>     e.g.: 12345678000199
+*&  ZBOLETO_PIX_NOME     P     <COMPANY>     e.g.: CONTINENTAL SA
+*&  ZBOLETO_PIX_CIDADE   P     <CITY>        e.g.: SAO PAULO
+*&
+*& ── ADOBE FORM (ZFILY_BOLETO_COBRANCA.XDP) ─────────────────────────
+*&  Add a "Barcode" field with:
+*&    • Barcode Type : QR Code
+*&    • Data Binding : $.barcode   (maps to ty_form_data-barcode)
+*&    • Error Correction: M (15%)
+*&    • Version: Auto
+*&---------------------------------------------------------------------*

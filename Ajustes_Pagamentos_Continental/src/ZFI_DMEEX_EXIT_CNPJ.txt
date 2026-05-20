@@ -1,0 +1,91 @@
+*&---------------------------------------------------------------------*
+*& Function Module: ZFI_DMEEX_EXIT_CNPJ
+*& Grupo de Funções: ZFIPAY  (criar grupo se não existir)
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Exit de campo para o nó 03.1 "Identification Number" da árvore
+*&   DMEEX Z_BR_FEBRABAN_CNAB400 (FEBRABAN CNAB400).
+*&
+*&   Retorna o CNPJ numérico da empresa pagadora (14 dígitos, sem
+*&   pontuação), para ser gravado no campo de identificação do
+*&   beneficiário no arquivo de remessa.
+*&
+*& Configuração:
+*&   DMEEX → Z_BR_FEBRABAN_CNAB400 → nó 03.1 Identification Number
+*&   → aba Origem → campo "Função exit:" → ZFI_DMEEX_EXIT_CNPJ
+*&
+*& Como criar:
+*&   SE37 → FM DMEE_EXIT_TEMPLATE_ABA → copiar para ZFI_DMEEX_EXIT_CNPJ
+*&   A interface abaixo já é a interface real do template DMEE_EXIT_TEMPLATE_ABA.
+*&
+*& Referência de interface:
+*&   I_ITEM é genérico (TYPE ANY). Para pagamentos (tree type PAYM),
+*&   fazer cast para DMEE_PAYM_IF_TYPE para acessar FPAYH, FPAYHX, FPAYP.
+*&   Retornar o valor numérico em N_VALUE ou texto em C_VALUE conforme
+*&   o tipo do nó configurado na árvore DMEEX.
+*&
+*& NOTA OSS: 373145 (DMEE: enhanced interface for exit module)
+*&---------------------------------------------------------------------*
+
+FUNCTION ZFI_DMEEX_EXIT_CNPJ.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     VALUE(I_TREE_TYPE) TYPE  DMEE_TREETYPE_ABA
+*"     VALUE(I_TREE_ID)   TYPE  DMEE_TREEID_ABA
+*"     VALUE(I_ITEM)
+*"     VALUE(I_PARAM)
+*"     VALUE(I_UPARAM)
+*"  EXPORTING
+*"     REFERENCE(O_VALUE)
+*"     REFERENCE(C_VALUE)
+*"     REFERENCE(N_VALUE)
+*"     REFERENCE(P_VALUE)
+*"  TABLES
+*"      I_TAB
+*"----------------------------------------------------------------------
+
+  DATA: ls_item   TYPE dmee_paym_if_type,
+        lv_cgc    TYPE char18,
+        lv_str    TYPE string,
+        lv_cnpj14 TYPE char14.
+
+*--- Cast do parâmetro genérico I_ITEM para estrutura de pagamento ---*
+*   dmee_paym_if_type contém sub-estruturas: fpayh, fpayhx, fpayp, fpaypx
+  ls_item = i_item.
+
+*--- Obter CNPJ da empresa pagadora pelo código da empresa (ZBUKR) ---*
+  CALL FUNCTION 'J_1BREAD_CGC_COMPANY'
+    EXPORTING
+      i_bukrs = ls_item-fpayh-zbukr
+    IMPORTING
+      e_cgc   = lv_cgc
+    EXCEPTIONS
+      OTHERS  = 1.
+
+  IF sy-subrc <> 0 OR lv_cgc IS INITIAL.
+    RETURN.  " nó ficará vazio — não lançar exceção para não interromper F110
+  ENDIF.
+
+*--- Remover pontuação — manter apenas dígitos numéricos ------------*
+*   J_1BREAD_CGC_COMPANY pode retornar formatos como:
+*     12.345.678/0001-90  (CNPJ com pontuação)
+*     12345678000190      (CNPJ sem pontuação)
+*   O CNAB400 requer exatamente 14 dígitos numéricos.
+
+  lv_str = lv_cgc.
+  REPLACE ALL OCCURRENCES OF PCRE '[^0-9]' IN lv_str WITH ''.
+
+  lv_cnpj14 = lv_str.
+
+*--- Validar tamanho: CNPJ deve ter exatamente 14 dígitos -----------*
+  IF strlen( lv_cnpj14 ) <> 14.
+    RETURN.
+  ENDIF.
+
+*--- O nó 03.1 é numérico (N) → popular N_VALUE --------------------- *
+*   Se o nó estiver configurado como C (Character) → usar C_VALUE.
+*   Verificar o tipo do nó na árvore DMEEX antes de ativar.
+  n_value = lv_cnpj14.
+
+ENDFUNCTION.

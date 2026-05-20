@@ -1,0 +1,245 @@
+*&---------------------------------------------------------------------*
+*& Include: ZFI_XREF3_UPD
+*&---------------------------------------------------------------------*
+*& Objetivo:
+*&   Contém os FORMs responsáveis por popular BSEG-XREF3 com o número
+*&   FCHI (PAYR-CHECT) usando a API FI_DOCUMENT_CHANGE.
+*&
+*& Uso:
+*&   Incluir em ZRFFOBR_A e ZRFFOD__V via diretiva INCLUDE ZFI_XREF3_UPD.
+*&
+*& Para adicionar o include no programa Z copiado:
+*&   SE38 → ZRFFOBR_A → ao final dos includes existentes adicionar:
+*&   INCLUDE ZFI_XREF3_UPD.
+*&
+*& Ponto de chamada nos programas Z:
+*&   Buscar por NUMBER_GET_NEXT com objeto FCHI ou pelo campo CHECT.
+*&   Após a linha que atribui PAYR-CHECT, inserir:
+*&
+*&     PERFORM f_update_xref3_from_payr USING payr.
+*&
+*&---------------------------------------------------------------------*
+*& Cenários cobertos:
+*&
+*&   Cenário 1 — Primeira execução F110:
+*&     XREF3 vazio → atualiza com PAYR-CHECT via FI_DOCUMENT_CHANGE
+*&
+*&   Cenário 2 — Re-execução F110 (instrução ao banco):
+*&     XREF3 já populado → FORM encerra sem alteração (RETURN)
+*&
+*&   Cenário 3 — Impressão pelo Monitor de Boletos (sem F110):
+*&     Chamar f_assign_fchi_and_update_xref3 passando os dados do item.
+*&     Se XREF3 vazio → gera número FCHI → atualiza XREF3
+*&
+*&   Cenário 4 — Reimpressão pelo Monitor:
+*&     XREF3 já populado → não faz nada (mesmo FORM do Cenário 3)
+*&---------------------------------------------------------------------*
+
+
+*&---------------------------------------------------------------------*
+*& FORM f_update_xref3_from_payr
+*&---------------------------------------------------------------------*
+*& Chamado durante F110 print run (ZRFFOBR_A / ZRFFOD__V), após a
+*& atribuição de PAYR-CHECT pelo intervalo FCHI.
+*&
+*& Lógica:
+*&   1. Busca no BSEG o documento contábil que tem ANFBN = PAYR-VBLNR
+*&   2. Se XREF3 já está populado → encerra (cenário 2 / reimpressão)
+*&   3. Se XREF3 vazio → chama FI_DOCUMENT_CHANGE com CHECT (cenário 1)
+*&---------------------------------------------------------------------*
+FORM f_update_xref3_from_payr USING is_payr TYPE payr.
+
+  DATA: lv_belnr  TYPE belnr_d,
+        lv_buzei  TYPE buzei.
+
+*--- 1. Localizar documento contábil vinculado ao item PAYR ----------*
+*   PAYR-VBLNR = número da fatura (BSEG-ANFBN = ref. ao doc. original)
+*   Buscar documento de pagamento onde ANFBN aponta para essa fatura.
+*   Condição xref3 = space garante idempotência (cenários 2 e 4).
+
+  SELECT SINGLE belnr buzei
+    INTO (lv_belnr, lv_buzei)
+    FROM bseg
+   WHERE bukrs = is_payr-zbukr
+     AND gjahr = is_payr-gjahr
+     AND anfbn = is_payr-vblnr
+     AND xref3 = space.
+
+  IF sy-subrc <> 0.
+*   XREF3 já populado para este documento, ou doc não encontrado.
+*   Cenário 2 (re-execução F110) e cenário 4 (reimpressão) encerram aqui.
+    RETURN.
+  ENDIF.
+
+*--- 2. Chamar FI_DOCUMENT_CHANGE para popular XREF3 ----------------*
+  PERFORM f_call_fi_document_change
+    USING is_payr-zbukr
+          lv_belnr
+          is_payr-gjahr
+          lv_buzei
+          is_payr-chect.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*& FORM f_assign_fchi_and_update_xref3
+*&---------------------------------------------------------------------*
+*& Chamado pelo Monitor de Boletos (Cenário 3 / 4).
+*&
+*& Recebe os dados do item contábil. Se XREF3 vazio (cenário 3):
+*&   - Obtém próximo número do intervalo FCHI (ENQUEUE → GET → DEQUEUE)
+*&   - Popula BSEG-XREF3 via FI_DOCUMENT_CHANGE
+*& Se XREF3 populado (cenário 4): não faz nada.
+*&
+*& Parâmetros:
+*&   iv_bukrs  — empresa
+*&   iv_hbkid  — banco da casa (house bank)
+*&   iv_hktid  — ID da conta bancária
+*&   iv_belnr  — número do documento contábil
+*&   iv_gjahr  — exercício
+*&   iv_buzei  — posição do item no documento
+*&   cv_xref3  — campo XREF3 (CHANGING): retorna o valor atribuído
+*&
+*& Como obter iv_hbkid / iv_hktid no chamador (Monitor):
+*&   Ler BSEG-HBKID e BSEG-HKTID do item de pagamento que está
+*&   sendo impresso — esses campos estão disponíveis no ALV do monitor.
+*&
+*& Como obter o NR_RANGE_NR correto para FCHI:
+*&   Transação FCHI → selecionar bukrs + hbkid + hktid → o intervalo
+*&   configurado (ex: '01') é o valor a usar em iv_nrrange abaixo.
+*&   Se múltiplos intervalos existirem, ler T042C-CHECT para confirmar.
+*&---------------------------------------------------------------------*
+FORM f_assign_fchi_and_update_xref3
+  USING    iv_bukrs TYPE bukrs
+           iv_hbkid TYPE hbkid
+           iv_hktid TYPE hktid
+           iv_belnr TYPE belnr_d
+           iv_gjahr TYPE gjahr
+           iv_buzei TYPE buzei
+  CHANGING cv_xref3 TYPE bseg-xref3.
+
+  CONSTANTS: lc_fchi_obj TYPE inri-object VALUE 'FCHI'.
+
+  DATA: lv_nrrange TYPE inri-nrrangenr,
+        lv_number  TYPE char18,
+        lv_chect   TYPE payr-chect.
+
+*--- Cenário 4: XREF3 já populado — reimpressão, sem ação ----------*
+  IF cv_xref3 IS NOT INITIAL.
+    RETURN.
+  ENDIF.
+
+*--- Determinar o NR_RANGE_NR configurado para esta conta bancária --*
+*   Padrão: '01'. Verificar via FCHI → selecionar bukrs + hbkid + hktid
+*   se existirem múltiplos intervalos configurados para este banco/conta.
+  lv_nrrange = '01'.
+
+*--- Cenário 3: ENQUEUE → GET_NEXT → DEQUEUE (padrão seguro) --------*
+  CALL FUNCTION 'NUMBER_RANGE_ENQUEUE'
+    EXPORTING
+      object           = lc_fchi_obj
+    EXCEPTIONS
+      foreign_lock     = 1
+      object_not_found = 2
+      system_failure   = 3
+      OTHERS           = 4.
+
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    RETURN.
+  ENDIF.
+
+  CALL FUNCTION 'NUMBER_GET_NEXT'
+    EXPORTING
+      nr_range_nr             = lv_nrrange
+      object                  = lc_fchi_obj
+      quantity                = '1'
+    IMPORTING
+      number                  = lv_number
+    EXCEPTIONS
+      interval_not_found      = 1
+      number_range_not_intern = 2
+      object_not_found        = 3
+      quantity_is_0           = 4
+      quantity_is_not_1       = 5
+      interval_overflow       = 6
+      buffer_overflow         = 7
+      OTHERS                  = 8.
+
+  CALL FUNCTION 'NUMBER_RANGE_DEQUEUE'
+    EXPORTING
+      object = lc_fchi_obj.
+
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    RETURN.
+  ENDIF.
+
+  lv_chect = lv_number.
+
+*--- Atualizar XREF3 via FI_DOCUMENT_CHANGE -------------------------*
+  PERFORM f_call_fi_document_change
+    USING iv_bukrs
+          iv_belnr
+          iv_gjahr
+          iv_buzei
+          lv_chect.
+
+  IF sy-subrc = 0.
+    cv_xref3 = lv_chect.
+  ENDIF.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*& FORM f_call_fi_document_change
+*&---------------------------------------------------------------------*
+*& Atualiza BSEG-XREF3 com o número do boleto (CHECT).
+*&
+*& Interface real de FI_DOCUMENT_CHANGE (confirmada em SE37):
+*&   I_BUKRS / I_BELNR / I_GJAHR — chave do documento
+*&   I_BUZEI   — posição do item
+*&   T_ACCCHG  — tabela ACCCHG: FDNAME=campo, NEWVAL=novo valor
+*&
+*& BSEGC é tabela de payment card (não tem XREF3) — não usar I_BSEGC.
+*& ACCCHG confirmado em leanx.eu: campos FDNAME / OLDVAL / NEWVAL.
+*&---------------------------------------------------------------------*
+FORM f_call_fi_document_change
+  USING iv_bukrs TYPE bukrs
+        iv_belnr TYPE belnr_d
+        iv_gjahr TYPE gjahr
+        iv_buzei TYPE buzei
+        iv_chect TYPE payr-chect.
+
+  DATA lt_accchg LIKE accchg OCCURS 0 WITH HEADER LINE.
+
+  lt_accchg-fdname = 'XREF3'.
+  lt_accchg-newval = iv_chect.
+  APPEND lt_accchg.
+
+  CALL FUNCTION 'FI_DOCUMENT_CHANGE'
+    EXPORTING
+      i_buzei              = iv_buzei
+      i_bukrs              = iv_bukrs
+      i_belnr              = iv_belnr
+      i_gjahr              = iv_gjahr
+    TABLES
+      t_accchg             = lt_accchg
+    EXCEPTIONS
+      no_reference         = 1
+      no_document          = 2
+      many_documents       = 3
+      wrong_input          = 4
+      overwrite_creditcard = 5
+      OTHERS               = 6.
+
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+ENDFORM.

@@ -10,6 +10,18 @@
 *  - Cada reprocessamento gera INSERT de nova linha em ZTBQ2C_LOG_MGR
 *  - ARQ possui campo ULTIMO_ERRO (STRING) — exibido no cockpit (atualizado a cada erro)
 *  - INSERT no LOG é feito via ABAP SQL direto (LOG é read-only no RAP)
+*
+* V4 - Erro CPI:
+*  - Chamada CPI movida para ZFM_Q2C_CPI_CALL_ASYNC (RFC-enabled)
+*  - Handler dispara FM via STARTING NEW TASK → retorna imediatamente
+*  - Lock RAP é liberado ANTES da chamada HTTP ao CPI
+*  - Resolve HTTP 423 causado pelo lock ativo durante callback do CPI
+*
+* V7 - Fix Async Reprocess:
+*  - V6 havia removido o STARTING NEW TASK e voltado chamada síncrona (regressão)
+*  - Restaurado padrão assíncrono do V4 (CALL FUNCTION STARTING NEW TASK)
+*  - Adicionado bloqueio de status PROCESSADO (objetivo original do V6)
+*  - Bloqueios: CANCELADO e PROCESSADO → reprocessamento não permitido
 *----------------------------------------------------------------------*
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
@@ -56,11 +68,9 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       RESULT DATA(entities)
       FAILED DATA(read_failed).
 
-    DATA(cpi_caller) = NEW zcl_q2c_cpi_caller( ).
-
     LOOP AT entities INTO DATA(entity).
 
-      " 2. Validar: apenas status ERRO é elegível para reprocessamento
+      " 2a. Validar: não reprocessar CANCELADO
       IF entity-Status = 'CANCELADO'.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
@@ -73,6 +83,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
+      " 2b. Validar: não reprocessar PROCESSADO
       IF entity-Status = 'PROCESSADO'.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
@@ -85,13 +96,16 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " 3. Incrementar tentativas (status permanece inalterado até conclusão)
+      " 3. Incrementar tentativas + marcar EM_PROCESSAMENTO
+      "    Status atualizado aqui para feedback imediato ao usuário no Fiori.
+      "    ZFM_Q2C_CPI_CALL_ASYNC atualizará para PROCESSADO ou ERRO ao concluir.
       MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
         ENTITY arqmgr
-          UPDATE FIELDS ( Tentativas Datum Uzeit Ernam )
+          UPDATE FIELDS ( Tentativas Status Datum Uzeit Ernam )
           WITH VALUE #( (
             %key       = entity-%key
             Tentativas = entity-Tentativas + 1
+            Status     = 'EM_PROCESSAMENTO'
             Datum      = sy-datum
             Uzeit      = sy-uzeit
             Ernam      = sy-uname
@@ -107,64 +121,25 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
         mensagem = 'Reprocessamento iniciado'
       ).
 
-      TRY.
-          " 5. Buscar dados direto da tabela — CORRESPONDING não mapeia CamelCase → snake_case
-          "    (ex: TipoDoc ≠ tipo_doc, UltimoErro ≠ ultimo_erro → campos ficam em branco).
-          SELECT SINGLE * FROM ztbq2c_arq_mgr
-            WHERE pedido   = @entity-Pedido
-            AND   bandeira = @entity-Bandeira
-            INTO @DATA(ls_arq).
+      " 5. Disparar chamada CPI em nova work process (assíncrono).
+      "    STARTING NEW TASK retorna IMEDIATAMENTE — o lock RAP é liberado
+      "    antes de qualquer chamada HTTP ao CPI, eliminando o HTTP 423.
+      "    ZFM_Q2C_CPI_CALL_ASYNC é responsável por:
+      "      - Chamar ZCL_Q2C_CPI_CALLER->call_cpi_reprocess
+      "      - Atualizar Status / UltimoErro em ZTBQ2C_ARQ_MGR via SQL direto
+      "      - Inserir linha de resultado em ZTBQ2C_LOG_MGR
+      "      - COMMIT WORK
+      CALL FUNCTION 'ZFM_Q2C_CPI_CALL_ASYNC'
+        STARTING NEW TASK 'CPI_REPROCESS'
+        EXPORTING
+          iv_pedido   = entity-Pedido
+          iv_bandeira = entity-Bandeira.
 
-          " 6. Chamar CPI — passa estrutura de tabela plana para desacoplar do tipo RAP.
-          " Se novos campos forem necessários, ajustar apenas ZCL_Q2C_CPI_CALLER.
-          cpi_caller->call_cpi_reprocess(
-            EXPORTING
-              is_arq    = ls_arq
-            IMPORTING
-              ev_status = DATA(cpi_status)
-          ).
-
-          " 6. CPI aceitou o envio — NÃO atualizar status aqui.
-          " CPI processará o arquivo e chamará de volta:
-          "   PATCH ZSB_Q2C_ARQ_INB_SVR → atualiza Status + UltimoErro
-          "   POST  ZSB_Q2C_LOG_INB_SVR → insere linha de resultado no LOG
-          insert_log(
-            pedido   = entity-Pedido
-            bandeira = entity-Bandeira
-            etapa    = 'ENVIO_CPI'
-            mensagem = COND #( WHEN cpi_status IS NOT INITIAL
-                               THEN cpi_status
-                               ELSE 'Arquivo enviado ao CPI — aguardando callback' )
-          ).
-
-        CATCH cx_root INTO DATA(exc).
-
-          " 7. Erro: STATUS = ERRO + gravar ULTIMO_ERRO
-          DATA(error_msg) = exc->get_text( ).
-
-          MODIFY ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
-            ENTITY arqmgr
-              UPDATE FIELDS ( Status UltimoErro Datum Uzeit Ernam )
-              WITH VALUE #( (
-                %key       = entity-%key
-                Status     = 'ERRO'
-                UltimoErro = error_msg
-                Datum      = sy-datum
-                Uzeit      = sy-uzeit
-                Ernam      = sy-uname
-              ) ).
-
-          insert_log(
-            pedido   = entity-Pedido
-            bandeira = entity-Bandeira
-            etapa    = 'ERRO'
-            mensagem = error_msg
-          ).
-
-      ENDTRY.
     ENDLOOP.
 
-    " 8. Ler estado final e retornar (obrigatório para result [1] $self)
+    " 6. Ler estado final e retornar (obrigatório para result [1] $self)
+    "    Neste ponto o status já está EM_PROCESSAMENTO — o FM async
+    "    atualizará para PROCESSADO/ERRO em segundo plano.
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
         ALL FIELDS

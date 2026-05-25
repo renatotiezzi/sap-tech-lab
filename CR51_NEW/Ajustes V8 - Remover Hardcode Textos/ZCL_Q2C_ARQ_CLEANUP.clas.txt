@@ -12,13 +12,7 @@ CLASS zcl_q2c_arq_cleanup DEFINITION
     CONSTANTS c_log_object        TYPE c LENGTH 20  VALUE 'ZQ2C_ARQ'.
     CONSTANTS c_log_subobject     TYPE c LENGTH 20  VALUE 'CLEANUP'.
     CONSTANTS c_default_dias      TYPE numc3        VALUE '090'.
-    CONSTANTS c_tvarv_key            TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
-    CONSTANTS c_selname_dias          TYPE c LENGTH 10  VALUE 'P_DIAS'.
-    CONSTANTS c_selname_teste         TYPE c LENGTH 10  VALUE 'P_TESTE'.
-    CONSTANTS c_label_dias            TYPE string       VALUE 'Retenção (dias)'.
-    CONSTANTS c_label_teste           TYPE string       VALUE 'Modo Teste (sem delete)'.
-    CONSTANTS c_msg_modo_teste        TYPE string       VALUE 'MODO TESTE ativo — nenhum registro foi deletado.'.
-    CONSTANTS c_msg_sem_registros     TYPE string       VALUE 'Nenhum registro elegível — nada a deletar.'.
+    CONSTANTS c_tvarv_key         TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
 
     METHODS get_dias_retencao
       RETURNING VALUE(rv_dias) TYPE numc3.
@@ -53,23 +47,33 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 * -----------------------------------------------------------------------
   METHOD if_apj_dt_exec_object~get_parameters.
 
+    " --- text-001='P_DIAS'  002='P_TESTE'  003='Retenção (dias)'  004='Modo Teste (sem delete)'
+    DATA lv_sel_dias  TYPE c LENGTH 30.
+    DATA lv_sel_teste TYPE c LENGTH 30.
+    DATA lv_lbl_dias  TYPE string.
+    DATA lv_lbl_teste TYPE string.
+    lv_sel_dias  = text-001.
+    lv_sel_teste = text-002.
+    lv_lbl_dias  = text-003.
+    lv_lbl_teste = text-004.
+
     " Definição dos parâmetros
     et_parameter_def = VALUE #(
 
       " P_DIAS — número de dias de retenção (padrão 90)
-      ( selname        = c_selname_dias
+      ( selname        = lv_sel_dias
         kind           = if_apj_dt_exec_object=>parameter
         datatype       = 'N'
         length         = 3
-        param_text     = c_label_dias
+        param_text     = lv_lbl_dias
         changeable_ind = abap_true )
 
       " P_TESTE — checkbox modo teste (sem delete real)
-      ( selname        = c_selname_teste
+      ( selname        = lv_sel_teste
         kind           = if_apj_dt_exec_object=>parameter
         datatype       = 'C'
         length         = 1
-        param_text     = c_label_teste
+        param_text     = lv_lbl_teste
         checkbox_ind   = abap_true
         changeable_ind = abap_true )
 
@@ -77,7 +81,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
     " Valores padrão — lê TVARV; se não encontrar usa 90
     et_parameter_val = VALUE #(
-      ( selname = c_selname_dias
+      ( selname = lv_sel_dias
         kind    = if_apj_dt_exec_object=>parameter
         sign    = 'I'
         option  = 'EQ'
@@ -101,6 +105,18 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 * -----------------------------------------------------------------------
   METHOD if_apj_rt_exec_object~execute.
 
+    " --- text-001='P_DIAS'  002='P_TESTE'
+    " --- text-005='MODO TESTE ativo — nenhum registro foi deletado.'
+    " --- text-006='Nenhum registro elegível — nada a deletar.'
+    DATA lv_sel_dias   TYPE c LENGTH 30.
+    DATA lv_sel_teste  TYPE c LENGTH 30.
+    DATA lv_msg_teste  TYPE string.
+    DATA lv_msg_nenhum TYPE string.
+    lv_sel_dias   = text-001.
+    lv_sel_teste  = text-002.
+    lv_msg_teste  = text-005.
+    lv_msg_nenhum = text-006.
+
     DATA lv_dias    TYPE numc3.
     DATA lv_teste   TYPE c LENGTH 1.
     DATA lv_corte   TYPE dats.
@@ -112,9 +128,9 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     " --- Coletar parâmetros -------------------------------------------
     LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<lwa>).
       CASE <lwa>-selname.
-        WHEN c_selname_dias.
+        WHEN lv_sel_dias.
           lv_dias = <lwa>-low.
-        WHEN c_selname_teste.
+        WHEN lv_sel_teste.
           lv_teste = <lwa>-low.
       ENDCASE.
     ENDLOOP.
@@ -167,7 +183,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
           lo_log->add_item( cl_bali_free_text_setter=>create(
             severity = if_bali_constants=>c_severity_warning
-            text     = c_msg_modo_teste
+            text     = lv_msg_teste
           ) ).
 
         " --- Produção ----------------------------------------------------
@@ -176,7 +192,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           IF lv_cnt_arq = 0.
             lo_log->add_item( cl_bali_free_text_setter=>create(
               severity = if_bali_constants=>c_severity_status
-              text     = c_msg_sem_registros
+              text     = lv_msg_nenhum
             ) ).
           ELSE.
 

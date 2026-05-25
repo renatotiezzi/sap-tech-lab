@@ -42,9 +42,7 @@ CLASS zcl_q2c_cpi_caller DEFINITION
   PRIVATE SECTION.
     " Destino RFC configurado na SM59 (tipo G - HTTP para sistema externo)
     " Host, porta (443) e path (/http/mgr/reprocessamento) definidos no destino.
-    CONSTANTS c_destination         TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
-    CONSTANTS c_header_content_type  TYPE string  VALUE 'Content-Type'.
-    CONSTANTS c_mime_json             TYPE string  VALUE 'application/json'.
+    CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
 
     " Campos usados para montar o payload.
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
@@ -110,6 +108,13 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute_http_call.
+
+    " --- text-001='Content-Type'  text-002='application/json'
+    DATA lv_content_type TYPE string.
+    DATA lv_mime_json     TYPE string.
+    lv_content_type = text-001.
+    lv_mime_json    = text-002.
+
     DATA: lo_client    TYPE REF TO if_http_client,
           lv_http_code TYPE i,
           lv_reason    TYPE string.
@@ -135,8 +140,8 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
     " 2. Método POST + Content-Type JSON
     lo_client->request->set_method( if_http_request=>co_request_method_post ).
-    lo_client->request->set_header_field( name  = c_header_content_type
-                                          value = c_mime_json ).
+    lo_client->request->set_header_field( name  = lv_content_type
+                                          value = lv_mime_json ).
 
     " 3. Setar body diretamente como string (sem conversão)
 *   " Conversão para xstring não necessária — conteudo já está em Base64

@@ -24,20 +24,11 @@
 *  - Bloqueios: CANCELADO e PROCESSADO → reprocessamento não permitido
 *
 * V8 - Remover hardcode de textos:
-*  - Literais de texto declarados como CONSTANTS na PRIVATE SECTION da classe
+*  - text-NNN atribuídos a variáveis locais (LIKE campo alvo) no início de cada método
+*  - Criar text elements via SE80 → ZBP_I_Q2C_ARQ_MGR → Text Elements
 *----------------------------------------------------------------------*
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
-
-    CONSTANTS:
-      c_status_cancelado   TYPE c LENGTH 20  VALUE 'CANCELADO',
-      c_status_processado  TYPE c LENGTH 20  VALUE 'PROCESSADO',
-      c_status_em_proc     TYPE c LENGTH 20  VALUE 'EM_PROCESSAMENTO',
-      c_etapa_reprocess    TYPE c LENGTH 20  VALUE 'REPROCESSAMENTO',
-      c_etapa_cancel       TYPE c LENGTH 20  VALUE 'CANCELAMENTO',
-      c_msg_reprocess_init TYPE string       VALUE 'Reprocessamento iniciado',
-      c_msg_cancel_manual  TYPE string       VALUE 'Registro cancelado manualmente',
-      c_task_cpi_reprocess TYPE c LENGTH 20  VALUE 'CPI_REPROCESS'.
 
     METHODS reprocess FOR MODIFY
       IMPORTING keys FOR ACTION arqmgr~reprocess
@@ -73,6 +64,21 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   METHOD reprocess.
 
+    " --- text-001='CANCELADO'  002='PROCESSADO'  003='EM_PROCESSAMENTO'
+    " --- text-004='REPROCESSAMENTO'  005='Reprocessamento iniciado'  006='CPI_REPROCESS'
+    DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
+    DATA lv_processado LIKE ztbq2c_arq_mgr-status.
+    DATA lv_em_proc    LIKE ztbq2c_arq_mgr-status.
+    DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
+    DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
+    DATA lv_task       TYPE c LENGTH 20.
+    lv_cancelado  = text-001.
+    lv_processado = text-002.
+    lv_em_proc    = text-003.
+    lv_etapa      = text-004.
+    lv_mensagem   = text-005.
+    lv_task       = text-006.
+
     " 1. Ler dados completos das entidades selecionadas
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
@@ -84,7 +90,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     LOOP AT entities INTO DATA(entity).
 
       " 2a. Validar: não reprocessar CANCELADO
-      IF entity-Status = c_status_cancelado.
+      IF entity-Status = lv_cancelado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
@@ -97,7 +103,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       ENDIF.
 
       " 2b. Validar: não reprocessar PROCESSADO
-      IF entity-Status = c_status_processado.
+      IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
@@ -118,7 +124,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
           WITH VALUE #( (
             %key       = entity-%key
             Tentativas = entity-Tentativas + 1
-            Status     = c_status_em_proc
+            Status     = lv_em_proc
             Datum      = sy-datum
             Uzeit      = sy-uzeit
             Ernam      = sy-uname
@@ -130,8 +136,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       insert_log(
         pedido   = entity-Pedido
         bandeira = entity-Bandeira
-        etapa    = c_etapa_reprocess
-        mensagem = c_msg_reprocess_init
+        etapa    = lv_etapa
+        mensagem = lv_mensagem
       ).
 
       " 5. Disparar chamada CPI em nova work process (assíncrono).
@@ -143,7 +149,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       "      - Inserir linha de resultado em ZTBQ2C_LOG_MGR
       "      - COMMIT WORK
       CALL FUNCTION 'ZFM_Q2C_CPI_CALL_ASYNC'
-        STARTING NEW TASK c_task_cpi_reprocess
+        STARTING NEW TASK lv_task
         EXPORTING
           iv_pedido   = entity-Pedido
           iv_bandeira = entity-Bandeira.
@@ -168,6 +174,17 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
   METHOD cancel.
 
+    " --- text-001='CANCELADO'  002='PROCESSADO'
+    " --- text-007='CANCELAMENTO'  008='Registro cancelado manualmente'
+    DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
+    DATA lv_processado LIKE ztbq2c_arq_mgr-status.
+    DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
+    DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
+    lv_cancelado  = text-001.
+    lv_processado = text-002.
+    lv_etapa      = text-007.
+    lv_mensagem   = text-008.
+
     " 1. Ler dados atuais
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
       ENTITY arqmgr
@@ -178,7 +195,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     LOOP AT entities INTO DATA(entity).
 
       " 2. Validar: não cancelar PROCESSADO
-      IF entity-Status = c_status_processado.
+      IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
@@ -196,7 +213,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
           UPDATE FIELDS ( Status Datum Uzeit Ernam )
           WITH VALUE #( (
             %key  = entity-%key
-            Status = c_status_cancelado
+            Status = lv_cancelado
             Datum  = sy-datum
             Uzeit  = sy-uzeit
             Ernam  = sy-uname
@@ -208,8 +225,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       insert_log(
         pedido   = entity-Pedido
         bandeira = entity-Bandeira
-        etapa    = c_etapa_cancel
-        mensagem = c_msg_cancel_manual
+        etapa    = lv_etapa
+        mensagem = lv_mensagem
       ).
 
     ENDLOOP.

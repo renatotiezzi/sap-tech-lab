@@ -42,7 +42,9 @@ CLASS zcl_q2c_cpi_caller DEFINITION
   PRIVATE SECTION.
     " Destino RFC configurado na SM59 (tipo G - HTTP para sistema externo)
     " Host, porta (443) e path (/http/mgr/reprocessamento) definidos no destino.
-    CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
+    CONSTANTS c_destination         TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
+    CONSTANTS c_header_content_type  TYPE string  VALUE 'Content-Type'.
+    CONSTANTS c_mime_json             TYPE string  VALUE 'application/json'.
 
     " Campos usados para montar o payload.
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
@@ -69,17 +71,6 @@ CLASS zcl_q2c_cpi_caller DEFINITION
 ENDCLASS.
 
 CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
-
-*"* Elementos de texto (SE80 → ZCL_Q2C_CPI_CALLER → Text Elements):
-*"*   text-001 = 'Content-Type'
-*"*   text-002 = 'application/json'
-*"*   text-003 = 'Destino RFC '''          <- valor inclui aspas simples ao final
-*"*   text-004 = ''' não encontrado/acessível (subrc='  <- valor inicia com aspas simples
-*"*   text-005 = 'Falha de comunicação HTTP ao enviar para CPI (subrc='
-*"*   text-006 = 'Falha ao receber resposta do CPI (subrc='
-*"*   text-007 = 'CPI HTTP '
-*"*   text-008 = ' ('
-*"*   text-009 = '): '
 
   METHOD call_cpi_reprocess.
     CLEAR me->mv_error_detail.
@@ -138,15 +129,14 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                   = 6
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |{ text-003 }{ c_destination }{ text-004 }{ sy-subrc })|. " 'Destino RFC \'...\' não encontrado/acessível (subrc=...)'
+      me->mv_error_detail = |Destino RFC '{ c_destination }' não encontrado/acessível (subrc={ sy-subrc })|.
       RETURN.
     ENDIF.
 
     " 2. Método POST + Content-Type JSON
     lo_client->request->set_method( if_http_request=>co_request_method_post ).
-    lo_client->request->set_header_field( name  = text-001  " 'Content-Type'
-                                          value = text-002  " 'application/json'
-                                        ).
+    lo_client->request->set_header_field( name  = c_header_content_type
+                                          value = c_mime_json ).
 
     " 3. Setar body diretamente como string (sem conversão)
 *   " Conversão para xstring não necessária — conteudo já está em Base64
@@ -162,7 +152,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 3
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |{ text-005 }{ sy-subrc })|. " 'Falha de comunicação HTTP ao enviar para CPI (subrc=...)'
+      me->mv_error_detail = |Falha de comunicação HTTP ao enviar para CPI (subrc={ sy-subrc })|.
       lo_client->close( ).
       RETURN.
     ENDIF.
@@ -176,7 +166,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 4
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |{ text-006 }{ sy-subrc })|. " 'Falha ao receber resposta do CPI (subrc=...)'
+      me->mv_error_detail = |Falha ao receber resposta do CPI (subrc={ sy-subrc })|.
       lo_client->close( ).
       RETURN.
     ENDIF.
@@ -193,7 +183,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
     " HTTP != 2xx = erro de negócio CPI
     IF lv_http_code < 200 OR lv_http_code >= 300.
-      me->mv_error_detail = |{ text-007 }{ lv_http_code }{ text-008 }{ lv_reason }{ text-009 }{ rv_response }|. " 'CPI HTTP ... (...): ...'
+      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rv_response }|.
       CLEAR rv_response.
     ENDIF.
 

@@ -24,25 +24,20 @@
 *  - Bloqueios: CANCELADO e PROCESSADO → reprocessamento não permitido
 *
 * V8 - Remover hardcode de textos:
-*  - Todos os literais de texto substituídos por text-NNN
-*  - Pool de textos deve ser mantido no SE80 do programa ZBP_I_Q2C_ARQ_MGR
-*----------------------------------------------------------------------*
-*"* Elementos de texto (SE80 → ZBP_I_Q2C_ARQ_MGR → Text Elements):
-*"*   text-001 = 'CANCELADO'
-*"*   text-002 = 'PROCESSADO'
-*"*   text-003 = 'EM_PROCESSAMENTO'
-*"*   text-004 = 'REPROCESSAMENTO'
-*"*   text-005 = 'Reprocessamento iniciado'
-*"*   text-006 = 'CANCELAMENTO'
-*"*   text-007 = 'Registro cancelado manualmente'
-*"*   text-008 = 'CPI_REPROCESS'
-*"*   text-009 = 'Registro'
-*"*   text-010 = 'não pode ser reprocessado (status: '
-*"*   text-011 = 'já foi processado — reprocessamento não permitido'
-*"*   text-012 = 'já processado — cancelamento não permitido'
+*  - Literais de texto declarados como CONSTANTS na PRIVATE SECTION da classe
 *----------------------------------------------------------------------*
 CLASS lhc_arq_mgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
+
+    CONSTANTS:
+      c_status_cancelado   TYPE c LENGTH 20  VALUE 'CANCELADO',
+      c_status_processado  TYPE c LENGTH 20  VALUE 'PROCESSADO',
+      c_status_em_proc     TYPE c LENGTH 20  VALUE 'EM_PROCESSAMENTO',
+      c_etapa_reprocess    TYPE c LENGTH 20  VALUE 'REPROCESSAMENTO',
+      c_etapa_cancel       TYPE c LENGTH 20  VALUE 'CANCELAMENTO',
+      c_msg_reprocess_init TYPE string       VALUE 'Reprocessamento iniciado',
+      c_msg_cancel_manual  TYPE string       VALUE 'Registro cancelado manualmente',
+      c_task_cpi_reprocess TYPE c LENGTH 20  VALUE 'CPI_REPROCESS'.
 
     METHODS reprocess FOR MODIFY
       IMPORTING keys FOR ACTION arqmgr~reprocess
@@ -89,26 +84,26 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     LOOP AT entities INTO DATA(entity).
 
       " 2a. Validar: não reprocessar CANCELADO
-      IF entity-Status = text-001. " 'CANCELADO'
+      IF entity-Status = c_status_cancelado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |{ text-009 } { entity-Pedido }/{ entity-Bandeira } { text-010 }{ entity-Status })| " 'Registro ... não pode ser reprocessado (status: ...)'
+            text     = |Registro { entity-Pedido }/{ entity-Bandeira } não pode ser reprocessado (status: { entity-Status })|
           )
         ) TO reported-arqmgr.
         CONTINUE.
       ENDIF.
 
       " 2b. Validar: não reprocessar PROCESSADO
-      IF entity-Status = text-002. " 'PROCESSADO'
+      IF entity-Status = c_status_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |{ text-009 } { entity-Pedido }/{ entity-Bandeira } { text-011 }| " 'Registro ... já foi processado — reprocessamento não permitido'
+            text     = |Registro { entity-Pedido }/{ entity-Bandeira } já foi processado — reprocessamento não permitido|
           )
         ) TO reported-arqmgr.
         CONTINUE.
@@ -123,7 +118,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
           WITH VALUE #( (
             %key       = entity-%key
             Tentativas = entity-Tentativas + 1
-            Status     = text-003 " 'EM_PROCESSAMENTO'
+            Status     = c_status_em_proc
             Datum      = sy-datum
             Uzeit      = sy-uzeit
             Ernam      = sy-uname
@@ -135,8 +130,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       insert_log(
         pedido   = entity-Pedido
         bandeira = entity-Bandeira
-        etapa    = text-004 " 'REPROCESSAMENTO'
-        mensagem = text-005 " 'Reprocessamento iniciado'
+        etapa    = c_etapa_reprocess
+        mensagem = c_msg_reprocess_init
       ).
 
       " 5. Disparar chamada CPI em nova work process (assíncrono).
@@ -148,7 +143,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       "      - Inserir linha de resultado em ZTBQ2C_LOG_MGR
       "      - COMMIT WORK
       CALL FUNCTION 'ZFM_Q2C_CPI_CALL_ASYNC'
-        STARTING NEW TASK text-008 " 'CPI_REPROCESS'
+        STARTING NEW TASK c_task_cpi_reprocess
         EXPORTING
           iv_pedido   = entity-Pedido
           iv_bandeira = entity-Bandeira.
@@ -183,13 +178,13 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     LOOP AT entities INTO DATA(entity).
 
       " 2. Validar: não cancelar PROCESSADO
-      IF entity-Status = text-002. " 'PROCESSADO'
+      IF entity-Status = c_status_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |{ text-009 } { entity-Pedido }/{ entity-Bandeira } { text-012 }| " 'Registro ... já processado — cancelamento não permitido'
+            text     = |Registro { entity-Pedido }/{ entity-Bandeira } já processado — cancelamento não permitido|
           )
         ) TO reported-arqmgr.
         CONTINUE.
@@ -201,7 +196,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
           UPDATE FIELDS ( Status Datum Uzeit Ernam )
           WITH VALUE #( (
             %key  = entity-%key
-            Status = text-001 " 'CANCELADO'
+            Status = c_status_cancelado
             Datum  = sy-datum
             Uzeit  = sy-uzeit
             Ernam  = sy-uname
@@ -213,8 +208,8 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       insert_log(
         pedido   = entity-Pedido
         bandeira = entity-Bandeira
-        etapa    = text-006 " 'CANCELAMENTO'
-        mensagem = text-007 " 'Registro cancelado manualmente'
+        etapa    = c_etapa_cancel
+        mensagem = c_msg_cancel_manual
       ).
 
     ENDLOOP.

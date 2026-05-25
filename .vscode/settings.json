@@ -1,3 +1,9 @@
 {
-  "git.openDiffOnClick": false
+  "git.openDiffOnClick": false,
+  "chat.tools.terminal.autoApprove": {
+    "/^cd \"c:\\\\Users\\\\renat\\\\GitHub\\\\sap-tech-lab\"; git add CR51_NEW/Log/; git commit -m \"refactor\\(log\\): cross-BO association -> composition parent-child\n\nZI_Q2C_LOG_SUM agora usa composition \\[0\\.\\.\\*\\] of ZI_Q2C_LOG_DET\nem vez de cross-BO association para ZI_Q2C_LOG_MGR\\.\n\nNovos objetos:\n- ZI_Q2C_LOG_DET        : child interface CDS \\(non-root\\)\n- ZC_Q2C_LOG_DET_APP    : child projection CDS\n- ZC_Q2C_LOG_DET_APP_MDE: metadata extension \\(tabela sem drill-down\\)\n\nAlterados:\n- ZI_Q2C_LOG_SUM\\.ddls   : association -> composition of ZI_Q2C_LOG_DET\n- ZI_Q2C_LOG_SUM\\.bdef   : add child behavior LogDet\n- ZBP_I_Q2C_LOG_SUM locals_imp: add lhc_log_det \\(empty handler\\)\n- ZC_Q2C_LOG_SUM_APP\\.ddls : redirected to composition child ZC_Q2C_LOG_DET_APP\n- ZC_Q2C_LOG_SUM_APP\\.bdef : add child projection LogDetApp\n- ZSD_Q2C_LOG_MGR_APP\\.srvd: remove LogDetail \\(era root standalone\\)\n\nComportamento resultante:\n- List Report: 1 linha por \\(Pedido \\+ Bandeira\\) com ultima mensagem\n- Object Page: tabela com TODO o historico daquela chave \\(sem chevron\\)\n- Sem standalone list de todos os logs misturados\"; git push$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }

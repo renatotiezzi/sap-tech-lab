@@ -12,7 +12,13 @@ CLASS zcl_q2c_arq_cleanup DEFINITION
     CONSTANTS c_log_object        TYPE c LENGTH 20  VALUE 'ZQ2C_ARQ'.
     CONSTANTS c_log_subobject     TYPE c LENGTH 20  VALUE 'CLEANUP'.
     CONSTANTS c_default_dias      TYPE numc3        VALUE '090'.
-    CONSTANTS c_tvarv_key         TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
+    CONSTANTS c_tvarv_key            TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
+    CONSTANTS c_selname_dias          TYPE c LENGTH 10  VALUE 'P_DIAS'.
+    CONSTANTS c_selname_teste         TYPE c LENGTH 10  VALUE 'P_TESTE'.
+    CONSTANTS c_label_dias            TYPE string       VALUE 'Retenção (dias)'.
+    CONSTANTS c_label_teste           TYPE string       VALUE 'Modo Teste (sem delete)'.
+    CONSTANTS c_msg_modo_teste        TYPE string       VALUE 'MODO TESTE ativo — nenhum registro foi deletado.'.
+    CONSTANTS c_msg_sem_registros     TYPE string       VALUE 'Nenhum registro elegível — nada a deletar.'.
 
     METHODS get_dias_retencao
       RETURNING VALUE(rv_dias) TYPE numc3.
@@ -21,23 +27,6 @@ ENDCLASS.
 
 
 CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
-
-*"* Elementos de texto (SE80 → ZCL_Q2C_ARQ_CLEANUP → Text Elements):
-*"*   text-001 = 'P_DIAS'
-*"*   text-002 = 'P_TESTE'
-*"*   text-003 = 'Retenção (dias)'
-*"*   text-004 = 'Modo Teste (sem delete)'
-*"*   text-005 = 'MODO TESTE ativo — nenhum registro foi deletado.'
-*"*   text-006 = 'Nenhum registro elegível — nada a deletar.'
-*"*   text-007 = 'CLEANUP_'
-*"*   text-008 = 'Cleanup iniciado — Status: '
-*"*   text-009 = ', corte: '
-*"*   text-010 = ' ('
-*"*   text-011 = ' dias)'
-*"*   text-012 = 'Registros elegíveis → ARQ: '
-*"*   text-013 = ' / LOG: '
-*"*   text-014 = 'Concluído — deletados: ARQ '
-*"*   text-015 = ' / LOG '
 
 * -----------------------------------------------------------------------
 * GET_DIAS_RETENCAO — lê ZZ1_TVARVC_Q2C; fallback para c_default_dias
@@ -68,19 +57,19 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     et_parameter_def = VALUE #(
 
       " P_DIAS — número de dias de retenção (padrão 90)
-      ( selname        = text-001  " 'P_DIAS'
+      ( selname        = c_selname_dias
         kind           = if_apj_dt_exec_object=>parameter
         datatype       = 'N'
         length         = 3
-        param_text     = text-003  " 'Retenção (dias)'
+        param_text     = c_label_dias
         changeable_ind = abap_true )
 
       " P_TESTE — checkbox modo teste (sem delete real)
-      ( selname        = text-002  " 'P_TESTE'
+      ( selname        = c_selname_teste
         kind           = if_apj_dt_exec_object=>parameter
         datatype       = 'C'
         length         = 1
-        param_text     = text-004  " 'Modo Teste (sem delete)'
+        param_text     = c_label_teste
         checkbox_ind   = abap_true
         changeable_ind = abap_true )
 
@@ -88,7 +77,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
     " Valores padrão — lê TVARV; se não encontrar usa 90
     et_parameter_val = VALUE #(
-      ( selname = text-001  " 'P_DIAS'
+      ( selname = c_selname_dias
         kind    = if_apj_dt_exec_object=>parameter
         sign    = 'I'
         option  = 'EQ'
@@ -123,9 +112,9 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     " --- Coletar parâmetros -------------------------------------------
     LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<lwa>).
       CASE <lwa>-selname.
-        WHEN text-001. " 'P_DIAS'
+        WHEN c_selname_dias.
           lv_dias = <lwa>-low.
-        WHEN text-002. " 'P_TESTE'
+        WHEN c_selname_teste.
           lv_teste = <lwa>-low.
       ENDCASE.
     ENDLOOP.
@@ -144,14 +133,14 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           cl_bali_header_setter=>create(
             object      = c_log_object
             subobject   = c_log_subobject
-            external_id = |{ text-007 }{ sy-datum }_{ sy-uzeit }| " 'CLEANUP_...'
+            external_id = |CLEANUP_{ sy-datum }_{ sy-uzeit }|
           )
         ).
 
         " Mensagem de início
         lo_log->add_item( cl_bali_free_text_setter=>create(
           severity = if_bali_constants=>c_severity_status
-          text     = |{ text-008 }{ c_status_cancelado }{ text-009 }{ lv_corte DATE = ISO }{ text-010 }{ lv_dias }{ text-011 }| " 'Cleanup iniciado — Status: ..., corte: ... (...) dias)'
+          text     = |Cleanup iniciado — Status: { c_status_cancelado }, corte: { lv_corte DATE = ISO } ({ lv_dias } dias)|
         ) ).
 
         " --- Apurar contagens -------------------------------------------
@@ -170,7 +159,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
         lo_log->add_item( cl_bali_free_text_setter=>create(
           severity = if_bali_constants=>c_severity_status
-          text     = |{ text-012 }{ lv_cnt_arq }{ text-013 }{ lv_cnt_log }| " 'Registros elegíveis → ARQ: ...'
+          text     = |Registros elegíveis → ARQ: { lv_cnt_arq } / LOG: { lv_cnt_log }|
         ) ).
 
         " --- Modo Teste -------------------------------------------------
@@ -178,7 +167,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
           lo_log->add_item( cl_bali_free_text_setter=>create(
             severity = if_bali_constants=>c_severity_warning
-            text     = text-005  " 'MODO TESTE ativo — nenhum registro foi deletado.'
+            text     = c_msg_modo_teste
           ) ).
 
         " --- Produção ----------------------------------------------------
@@ -187,7 +176,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           IF lv_cnt_arq = 0.
             lo_log->add_item( cl_bali_free_text_setter=>create(
               severity = if_bali_constants=>c_severity_status
-              text     = text-006  " 'Nenhum registro elegível — nada a deletar.'
+              text     = c_msg_sem_registros
             ) ).
           ELSE.
 
@@ -217,7 +206,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
             lo_log->add_item( cl_bali_free_text_setter=>create(
               severity = if_bali_constants=>c_severity_status
-              text     = |{ text-014 }{ lv_del_arq }{ text-015 }{ lv_del_log }| " 'Concluído — deletados: ARQ ...'
+              text     = |Concluído — deletados: ARQ { lv_del_arq } / LOG { lv_del_log }|
             ) ).
 
           ENDIF.

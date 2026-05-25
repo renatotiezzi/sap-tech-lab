@@ -1,4 +1,4 @@
-﻿*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
 *& Classe: ZCL_Q2C_CPI_CALLER
 *& Responsável por chamar o iFlow CPI para reprocessamento de arquivos.
 *&

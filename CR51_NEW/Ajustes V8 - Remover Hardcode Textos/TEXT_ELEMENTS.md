@@ -31,8 +31,13 @@ Criar via **SE80 → Class/Interface → [Objeto] → Goto → Text Elements →
 
 | Sym | Text               | Usado em          |
 |-----|--------------------|-------------------|
-| 001 | `Content-Type`     | execute_http_call |
-| 002 | `application/json` | execute_http_call |
+| 001 | `Content-Type`                                            | execute_http_call |
+| 002 | `application/json`                                       | execute_http_call |
+| 003 | `Destino RFC '`                                          | execute_http_call |
+| 004 | `' não encontrado/acessível (subrc=`                     | execute_http_call |
+| 005 | `Falha de comunicação HTTP ao enviar para CPI (subrc=`  | execute_http_call |
+| 006 | `Falha ao receber resposta do CPI (subrc=`               | execute_http_call |
+| 007 | `CPI HTTP `                                              | execute_http_call |
 
 ---
 

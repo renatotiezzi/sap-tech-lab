@@ -42,7 +42,9 @@ CLASS zcl_q2c_cpi_caller DEFINITION
   PRIVATE SECTION.
     " Destino RFC configurado na SM59 (tipo G - HTTP para sistema externo)
     " Host, porta (443) e path (/http/mgr/reprocessamento) definidos no destino.
-    CONSTANTS c_destination TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
+    CONSTANTS c_destination   TYPE rfcdest VALUE 'CPI_MGR_REPROCESSO'.
+    CONSTANTS c_json_filename  TYPE string  VALUE 'filename'.
+    CONSTANTS c_json_conteudo  TYPE string  VALUE 'conteudo'.
 
     " Campos usados para montar o payload.
     " Para adicionar campo: inclua aqui e use-o em BUILD_PAYLOAD.
@@ -103,17 +105,31 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
     "   2. Preencha no VALUE # em call_cpi_reprocess
     "   3. Inclua na string abaixo
     " ==========================================================
-    rv_payload = |\{ "filename": "{ is_fields-bandeira }", | &
-                 |"conteudo": "{ is_fields-arquivo }" \}|.
+    rv_payload = |\{ "{ c_json_filename }": "{ is_fields-bandeira }", | &
+                 |"{ c_json_conteudo }": "{ is_fields-arquivo }" \}|.
   ENDMETHOD.
 
   METHOD execute_http_call.
 
     " --- text-001='Content-Type'  text-002='application/json'
+    " --- text-003='Destino RFC '  text-004=' não encontrado/acessível (subrc='
+    " --- text-005='Falha de comunicação HTTP ao enviar para CPI (subrc='
+    " --- text-006='Falha ao receber resposta do CPI (subrc='
+    " --- text-007='CPI HTTP '
     DATA lv_content_type TYPE string.
     DATA lv_mime_json     TYPE string.
+    DATA lv_err3          TYPE string.
+    DATA lv_err4          TYPE string.
+    DATA lv_err5          TYPE string.
+    DATA lv_err6          TYPE string.
+    DATA lv_err7          TYPE string.
     lv_content_type = text-001.
     lv_mime_json    = text-002.
+    lv_err3         = text-003.
+    lv_err4         = text-004.
+    lv_err5         = text-005.
+    lv_err6         = text-006.
+    lv_err7         = text-007.
 
     DATA: lo_client    TYPE REF TO if_http_client,
           lv_http_code TYPE i,
@@ -134,7 +150,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                   = 6
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |Destino RFC '{ c_destination }' não encontrado/acessível (subrc={ sy-subrc })|.
+      me->mv_error_detail = |{ lv_err3 }{ c_destination }{ lv_err4 }{ sy-subrc })|.
       RETURN.
     ENDIF.
 
@@ -157,7 +173,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 3
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |Falha de comunicação HTTP ao enviar para CPI (subrc={ sy-subrc })|.
+      me->mv_error_detail = |{ lv_err5 }{ sy-subrc })|.
       lo_client->close( ).
       RETURN.
     ENDIF.
@@ -171,7 +187,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
         OTHERS                     = 4
     ).
     IF sy-subrc <> 0.
-      me->mv_error_detail = |Falha ao receber resposta do CPI (subrc={ sy-subrc })|.
+      me->mv_error_detail = |{ lv_err6 }{ sy-subrc })|.
       lo_client->close( ).
       RETURN.
     ENDIF.
@@ -188,7 +204,7 @@ CLASS zcl_q2c_cpi_caller IMPLEMENTATION.
 
     " HTTP != 2xx = erro de negócio CPI
     IF lv_http_code < 200 OR lv_http_code >= 300.
-      me->mv_error_detail = |CPI HTTP { lv_http_code } ({ lv_reason }): { rv_response }|.
+      me->mv_error_detail = |{ lv_err7 }{ lv_http_code } ({ lv_reason }): { rv_response }|.
       CLEAR rv_response.
     ENDIF.
 

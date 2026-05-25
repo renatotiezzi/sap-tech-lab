@@ -67,11 +67,11 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     " --- text-001='CANCELADO'  002='PROCESSADO'  003='EM_PROCESSAMENTO'
     " --- text-004='REPROCESSAMENTO'  005='Reprocessamento iniciado'  006='CPI_REPROCESS'
     " --- text-009='Registro'  010='não pode ser reprocessado (status:'  011='já foi processado — reprocessamento não permitido'
-    DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
-    DATA lv_processado LIKE ztbq2c_arq_mgr-status.
-    DATA lv_em_proc    LIKE ztbq2c_arq_mgr-status.
-    DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
-    DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
+    DATA lv_cancelado  TYPE ztbq2c_arq_mgr-status.
+    DATA lv_processado TYPE ztbq2c_arq_mgr-status.
+    DATA lv_em_proc    TYPE ztbq2c_arq_mgr-status.
+    DATA lv_etapa      TYPE ztbq2c_log_mgr-etapa.
+    DATA lv_mensagem   TYPE ztbq2c_log_mgr-mensagem.
     DATA lv_task       TYPE c LENGTH 20.
     DATA lv_msg        TYPE string.
     DATA lv_pfx        TYPE string.
@@ -187,10 +187,10 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     " --- text-001='CANCELADO'  002='PROCESSADO'
     " --- text-007='CANCELAMENTO'  008='Registro cancelado manualmente'
     " --- text-009='Registro'  012='já processado — cancelamento não permitido'
-    DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
-    DATA lv_processado LIKE ztbq2c_arq_mgr-status.
-    DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
-    DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
+    DATA lv_cancelado  TYPE ztbq2c_arq_mgr-status.
+    DATA lv_processado TYPE ztbq2c_arq_mgr-status.
+    DATA lv_etapa      TYPE ztbq2c_log_mgr-etapa.
+    DATA lv_mensagem   TYPE ztbq2c_log_mgr-mensagem.
     DATA lv_msg        TYPE string.
     DATA lv_pfx        TYPE string.
     DATA lv_txt3       TYPE string.

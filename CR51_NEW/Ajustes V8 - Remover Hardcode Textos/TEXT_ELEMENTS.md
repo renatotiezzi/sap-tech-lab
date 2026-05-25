@@ -53,3 +53,11 @@ Criar via **SE80 → Class/Interface → [Objeto] → Goto → Text Elements →
 | 004 | `Modo Teste (sem delete)`                         | get_parameters     |
 | 005 | `MODO TESTE ativo — nenhum registro foi deletado.`| execute            |
 | 006 | `Nenhum registro elegível — nada a deletar.`      | execute            |
+| 007 | `CLEANUP_`                                        | execute            |
+| 008 | `Cleanup iniciado — Status: `                     | execute            |
+| 009 | `, corte: `                                       | execute            |
+| 010 | ` dias)`                                          | execute            |
+| 011 | `Registros elegíveis → ARQ: `                     | execute            |
+| 012 | ` / LOG: `                                        | execute            |
+| 013 | `Concluído — deletados: ARQ `                     | execute            |
+| 014 | ` / LOG `                                         | execute            |

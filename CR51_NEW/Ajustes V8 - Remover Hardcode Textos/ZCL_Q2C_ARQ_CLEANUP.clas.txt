@@ -108,14 +108,34 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     " --- text-001='P_DIAS'  002='P_TESTE'
     " --- text-005='MODO TESTE ativo — nenhum registro foi deletado.'
     " --- text-006='Nenhum registro elegível — nada a deletar.'
+    " --- text-007='CLEANUP_'  text-008='Cleanup iniciado — Status: '
+    " --- text-009=', corte: '  text-010=' dias)'
+    " --- text-011='Registros elegíveis → ARQ: '  text-012=' / LOG: '
+    " --- text-013='Concluído — deletados: ARQ '  text-014=' / LOG '
     DATA lv_sel_dias   TYPE c LENGTH 30.
     DATA lv_sel_teste  TYPE c LENGTH 30.
     DATA lv_msg_teste  TYPE string.
     DATA lv_msg_nenhum TYPE string.
+    DATA lv_t7         TYPE string.
+    DATA lv_t8         TYPE string.
+    DATA lv_t9         TYPE string.
+    DATA lv_t10        TYPE string.
+    DATA lv_t11        TYPE string.
+    DATA lv_t12        TYPE string.
+    DATA lv_t13        TYPE string.
+    DATA lv_t14        TYPE string.
     lv_sel_dias   = text-001.
     lv_sel_teste  = text-002.
     lv_msg_teste  = text-005.
     lv_msg_nenhum = text-006.
+    lv_t7  = text-007.
+    lv_t8  = text-008.
+    lv_t9  = text-009.
+    lv_t10 = text-010.
+    lv_t11 = text-011.
+    lv_t12 = text-012.
+    lv_t13 = text-013.
+    lv_t14 = text-014.
 
     DATA lv_dias    TYPE numc3.
     DATA lv_teste   TYPE c LENGTH 1.
@@ -149,14 +169,14 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           cl_bali_header_setter=>create(
             object      = c_log_object
             subobject   = c_log_subobject
-            external_id = |CLEANUP_{ sy-datum }_{ sy-uzeit }|
+            external_id = |{ lv_t7 }{ sy-datum }_{ sy-uzeit }|
           )
         ).
 
         " Mensagem de início
         lo_log->add_item( cl_bali_free_text_setter=>create(
           severity = if_bali_constants=>c_severity_status
-          text     = |Cleanup iniciado — Status: { c_status_cancelado }, corte: { lv_corte DATE = ISO } ({ lv_dias } dias)|
+          text     = |{ lv_t8 }{ c_status_cancelado }{ lv_t9 }{ lv_corte DATE = ISO } ({ lv_dias }{ lv_t10 }|
         ) ).
 
         " --- Apurar contagens -------------------------------------------
@@ -175,7 +195,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
         lo_log->add_item( cl_bali_free_text_setter=>create(
           severity = if_bali_constants=>c_severity_status
-          text     = |Registros elegíveis → ARQ: { lv_cnt_arq } / LOG: { lv_cnt_log }|
+          text     = |{ lv_t11 }{ lv_cnt_arq }{ lv_t12 }{ lv_cnt_log }|
         ) ).
 
         " --- Modo Teste -------------------------------------------------
@@ -222,7 +242,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
             lo_log->add_item( cl_bali_free_text_setter=>create(
               severity = if_bali_constants=>c_severity_status
-              text     = |Concluído — deletados: ARQ { lv_del_arq } / LOG { lv_del_log }|
+              text     = |{ lv_t13 }{ lv_del_arq }{ lv_t14 }{ lv_del_log }|
             ) ).
 
           ENDIF.

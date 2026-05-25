@@ -72,6 +72,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
     DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
     DATA lv_task       TYPE c LENGTH 20.
+    DATA lv_msg       TYPE string.
     lv_cancelado  = text-001.
     lv_processado = text-002.
     lv_em_proc    = text-003.
@@ -92,11 +93,12 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2a. Validar: não reprocessar CANCELADO
       IF entity-Status = lv_cancelado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
+        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } não pode ser reprocessado (status: { entity-Status })|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |Registro { entity-Pedido }/{ entity-Bandeira } não pode ser reprocessado (status: { entity-Status })|
+            text     = lv_msg
           )
         ) TO reported-arqmgr.
         CONTINUE.
@@ -105,11 +107,12 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2b. Validar: não reprocessar PROCESSADO
       IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
+        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } já foi processado — reprocessamento não permitido|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |Registro { entity-Pedido }/{ entity-Bandeira } já foi processado — reprocessamento não permitido|
+            text     = lv_msg
           )
         ) TO reported-arqmgr.
         CONTINUE.
@@ -180,6 +183,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
     DATA lv_processado LIKE ztbq2c_arq_mgr-status.
     DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
     DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
+    DATA lv_msg        TYPE string.
     lv_cancelado  = text-001.
     lv_processado = text-002.
     lv_etapa      = text-007.
@@ -197,11 +201,12 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2. Validar: não cancelar PROCESSADO
       IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
+        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } já processado — cancelamento não permitido|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = |Registro { entity-Pedido }/{ entity-Bandeira } já processado — cancelamento não permitido|
+            text     = lv_msg
           )
         ) TO reported-arqmgr.
         CONTINUE.

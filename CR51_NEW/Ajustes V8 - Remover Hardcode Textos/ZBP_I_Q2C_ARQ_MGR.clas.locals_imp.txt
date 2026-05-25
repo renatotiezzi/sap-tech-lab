@@ -66,19 +66,26 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
     " --- text-001='CANCELADO'  002='PROCESSADO'  003='EM_PROCESSAMENTO'
     " --- text-004='REPROCESSAMENTO'  005='Reprocessamento iniciado'  006='CPI_REPROCESS'
+    " --- text-009='Registro'  010='não pode ser reprocessado (status:'  011='já foi processado — reprocessamento não permitido'
     DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
     DATA lv_processado LIKE ztbq2c_arq_mgr-status.
     DATA lv_em_proc    LIKE ztbq2c_arq_mgr-status.
     DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
     DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
     DATA lv_task       TYPE c LENGTH 20.
-    DATA lv_msg       TYPE string.
+    DATA lv_msg        TYPE string.
+    DATA lv_pfx        TYPE string.
+    DATA lv_txt1       TYPE string.
+    DATA lv_txt2       TYPE string.
     lv_cancelado  = text-001.
     lv_processado = text-002.
     lv_em_proc    = text-003.
     lv_etapa      = text-004.
     lv_mensagem   = text-005.
     lv_task       = text-006.
+    lv_pfx        = text-009.
+    lv_txt1       = text-010.
+    lv_txt2       = text-011.
 
     " 1. Ler dados completos das entidades selecionadas
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
@@ -93,7 +100,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2a. Validar: não reprocessar CANCELADO
       IF entity-Status = lv_cancelado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
-        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } não pode ser reprocessado (status: { entity-Status })|.
+        lv_msg = |{ lv_pfx } { entity-Pedido }/{ entity-Bandeira } { lv_txt1 } { entity-Status })|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
@@ -107,7 +114,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2b. Validar: não reprocessar PROCESSADO
       IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
-        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } já foi processado — reprocessamento não permitido|.
+        lv_msg = |{ lv_pfx } { entity-Pedido }/{ entity-Bandeira } { lv_txt2 }|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(
@@ -179,15 +186,20 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
 
     " --- text-001='CANCELADO'  002='PROCESSADO'
     " --- text-007='CANCELAMENTO'  008='Registro cancelado manualmente'
+    " --- text-009='Registro'  012='já processado — cancelamento não permitido'
     DATA lv_cancelado  LIKE ztbq2c_arq_mgr-status.
     DATA lv_processado LIKE ztbq2c_arq_mgr-status.
     DATA lv_etapa      LIKE ztbq2c_log_mgr-etapa.
     DATA lv_mensagem   LIKE ztbq2c_log_mgr-mensagem.
     DATA lv_msg        TYPE string.
+    DATA lv_pfx        TYPE string.
+    DATA lv_txt3       TYPE string.
     lv_cancelado  = text-001.
     lv_processado = text-002.
     lv_etapa      = text-007.
     lv_mensagem   = text-008.
+    lv_pfx        = text-009.
+    lv_txt3       = text-012.
 
     " 1. Ler dados atuais
     READ ENTITIES OF zi_q2c_arq_mgr IN LOCAL MODE
@@ -201,7 +213,7 @@ CLASS lhc_arq_mgr IMPLEMENTATION.
       " 2. Validar: não cancelar PROCESSADO
       IF entity-Status = lv_processado.
         APPEND VALUE #( %key = entity-%key ) TO failed-arqmgr.
-        lv_msg = |Registro { entity-Pedido }/{ entity-Bandeira } já processado — cancelamento não permitido|.
+        lv_msg = |{ lv_pfx } { entity-Pedido }/{ entity-Bandeira } { lv_txt3 }|.
         APPEND VALUE #(
           %key = entity-%key
           %msg = new_message_with_text(

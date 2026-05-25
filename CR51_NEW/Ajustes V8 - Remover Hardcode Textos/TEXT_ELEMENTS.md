@@ -17,7 +17,11 @@ Criar via **SE80 → Class/Interface → [Objeto] → Goto → Text Elements →
 | 005 | `Reprocessamento iniciado`      | reprocess              |
 | 006 | `CPI_REPROCESS`                 | reprocess              |
 | 007 | `CANCELAMENTO`                  | cancel                 |
-| 008 | `Registro cancelado manualmente`| cancel                 |
+| 008 | `Registro cancelado manualmente`                            | cancel                 |
+| 009 | `Registro`                                                  | reprocess, cancel      |
+| 010 | `não pode ser reprocessado (status:`                        | reprocess              |
+| 011 | `já foi processado — reprocessamento não permitido`         | reprocess              |
+| 012 | `já processado — cancelamento não permitido`                | cancel                 |
 
 ---
 

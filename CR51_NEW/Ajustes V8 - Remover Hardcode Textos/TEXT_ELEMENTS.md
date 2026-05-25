@@ -1,0 +1,46 @@
+# Text Elements — V8 (Remover Hardcode de Textos)
+
+Criar via **SE80 → Class/Interface → [Objeto] → Goto → Text Elements → Text Symbols**
+
+---
+
+## ZBP_I_Q2C_ARQ_MGR
+
+> SE80 → Class/Interface → `ZBP_I_Q2C_ARQ_MGR` → Goto → Text Elements → Text Symbols
+
+| Sym | Text                            | Usado em               |
+|-----|---------------------------------|------------------------|
+| 001 | `CANCELADO`                     | reprocess, cancel      |
+| 002 | `PROCESSADO`                    | reprocess, cancel      |
+| 003 | `EM_PROCESSAMENTO`              | reprocess              |
+| 004 | `REPROCESSAMENTO`               | reprocess              |
+| 005 | `Reprocessamento iniciado`      | reprocess              |
+| 006 | `CPI_REPROCESS`                 | reprocess              |
+| 007 | `CANCELAMENTO`                  | cancel                 |
+| 008 | `Registro cancelado manualmente`| cancel                 |
+
+---
+
+## ZCL_Q2C_CPI_CALLER
+
+> SE80 → Class/Interface → `ZCL_Q2C_CPI_CALLER` → Goto → Text Elements → Text Symbols
+
+| Sym | Text               | Usado em          |
+|-----|--------------------|-------------------|
+| 001 | `Content-Type`     | execute_http_call |
+| 002 | `application/json` | execute_http_call |
+
+---
+
+## ZCL_Q2C_ARQ_CLEANUP
+
+> SE80 → Class/Interface → `ZCL_Q2C_ARQ_CLEANUP` → Goto → Text Elements → Text Symbols
+
+| Sym | Text                                              | Usado em           |
+|-----|---------------------------------------------------|--------------------|
+| 001 | `P_DIAS`                                          | get_parameters, execute |
+| 002 | `P_TESTE`                                         | get_parameters, execute |
+| 003 | `Retenção (dias)`                                 | get_parameters     |
+| 004 | `Modo Teste (sem delete)`                         | get_parameters     |
+| 005 | `MODO TESTE ativo — nenhum registro foi deletado.`| execute            |
+| 006 | `Nenhum registro elegível — nada a deletar.`      | execute            |

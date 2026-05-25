@@ -114,8 +114,6 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     " --- text-013='Concluído — deletados: ARQ '  text-014=' / LOG '
     DATA lv_sel_dias   TYPE c LENGTH 30.
     DATA lv_sel_teste  TYPE c LENGTH 30.
-    DATA lv_msg_teste  TYPE string.
-    DATA lv_msg_nenhum TYPE string.
     DATA lv_t7         TYPE string.
     DATA lv_t8         TYPE string.
     DATA lv_t9         TYPE string.
@@ -126,8 +124,6 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     DATA lv_t14        TYPE string.
     lv_sel_dias   = text-001.
     lv_sel_teste  = text-002.
-    lv_msg_teste  = text-005.
-    lv_msg_nenhum = text-006.
     lv_t7  = text-007.
     lv_t8  = text-008.
     lv_t9  = text-009.
@@ -203,7 +199,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
           lo_log->add_item( cl_bali_free_text_setter=>create(
             severity = if_bali_constants=>c_severity_warning
-            text     = lv_msg_teste
+            text     = text-005
           ) ).
 
         " --- Produção ----------------------------------------------------
@@ -212,7 +208,7 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
           IF lv_cnt_arq = 0.
             lo_log->add_item( cl_bali_free_text_setter=>create(
               severity = if_bali_constants=>c_severity_status
-              text     = lv_msg_nenhum
+              text     = text-006
             ) ).
           ELSE.
 

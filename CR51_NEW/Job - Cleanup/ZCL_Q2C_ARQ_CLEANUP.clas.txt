@@ -9,8 +9,8 @@ CLASS zcl_q2c_arq_cleanup DEFINITION
 
   PRIVATE SECTION.
     CONSTANTS c_status_cancelado TYPE c LENGTH 20  VALUE 'CANCELADO'.
-    CONSTANTS c_log_object        TYPE c LENGTH 20  VALUE 'ZQ2C_ARQ'.
-    CONSTANTS c_log_subobject     TYPE c LENGTH 20  VALUE 'CLEANUP'.
+    CONSTANTS c_log_object        TYPE balobj_d     VALUE 'ZQ2C_ARQ'.
+    CONSTANTS c_log_subobject     TYPE balsubobj    VALUE 'CLEANUP'.
     CONSTANTS c_default_dias      TYPE numc3        VALUE '090'.
     CONSTANTS c_tvarv_key         TYPE c LENGTH 30  VALUE 'ZZ_GAP014_ARQ_DIAS'.
 

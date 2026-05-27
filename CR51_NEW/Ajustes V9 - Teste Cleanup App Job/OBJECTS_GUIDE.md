@@ -57,9 +57,31 @@ Sem esse cadastro no `SLG0`, a construcao/persistencia do log via BALI pode falh
 
 ## Objetos de App Job no SAP (transacional)
 
-1. Application Job Catalog Entry (referenciando a classe)
-2. Application Job Template (parametros `P_DIAS` e `P_TESTE`)
-3. Application Log Object/Subobject (`ZQ2C_ARQ` / `CLEANUP`)
+### Padrao de nome (GAP 014)
+
+- Classe de execucao: `ZCL_Q2C_ARQ_CLEANUP`
+- Catalog Entry: `ZQ2CCE_014`
+- Template: `ZQ2CTE_014`
+- Log Object: `ZQ2C_ARQ`
+- Log Subobject: `CLEANUP`
+
+### Objetos obrigatorios a criar
+
+1. `Application Job Catalog Entry` `ZQ2CCE_014`
+2. `Application Job Template` `ZQ2CTE_014`
+3. `Application Log Object/Subobject` `ZQ2C_ARQ` / `CLEANUP`
+
+### Descricoes sugeridas
+
+- `ZQ2CCE_014`: `CR51 - Cleanup ARQ App Job`
+- `ZQ2CTE_014`: `CR51 - Cleanup ARQ Template`
+- `ZQ2C_ARQ/CLEANUP`: `CR51 - Cleanup Logs`
+
+### Vinculos tecnicos
+
+- `ZQ2CCE_014` deve apontar para `ZCL_Q2C_ARQ_CLEANUP`.
+- `ZQ2CTE_014` deve usar os parametros `P_DIAS` e `P_TESTE` definidos na classe.
+- A classe grava logs em `ZQ2C_ARQ` / `CLEANUP`.
 
 ## Fluxo de teste first-time-right
 

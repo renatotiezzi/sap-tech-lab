@@ -1,0 +1,51 @@
+REPORT zr_q2c_cleanup_seed_data.
+
+PARAMETERS p_qtd  TYPE i DEFAULT 20.
+PARAMETERS p_dias TYPE i DEFAULT 95.
+
+DATA lt_arq TYPE STANDARD TABLE OF ztbq2c_arq_mgr WITH EMPTY KEY.
+DATA lt_log TYPE STANDARD TABLE OF ztbq2c_log_mgr WITH EMPTY KEY.
+
+DATA lv_idx      TYPE i.
+DATA lv_datum    TYPE dats.
+DATA lv_uzeit    TYPE tims.
+DATA lv_pedido   TYPE ztbq2c_arq_mgr-pedido.
+DATA lv_bandeira TYPE ztbq2c_arq_mgr-bandeira.
+
+DO p_qtd TIMES.
+  lv_idx      = sy-index.
+  lv_datum    = sy-datum - p_dias - lv_idx.
+  lv_uzeit    = sy-uzeit.
+  lv_pedido   = |TSTCLN{ lv_idx WIDTH = 10 PAD = '0' }|.
+  lv_bandeira = |BD{ lv_idx WIDTH = 2 PAD = '0' }|.
+
+  APPEND VALUE #(
+    pedido   = lv_pedido
+    bandeira = lv_bandeira
+    status   = 'CANCELADO'
+    datum    = lv_datum
+    arquivo  = |ARQ_{ lv_idx }.xml|
+  ) TO lt_arq.
+
+  APPEND VALUE #(
+    pedido   = lv_pedido
+    bandeira = lv_bandeira
+    datum    = lv_datum
+    uzeit    = lv_uzeit
+    etapa    = 'SEED'
+    mensagem = 'Registro de teste para limpeza'
+  ) TO lt_log.
+ENDDO.
+
+MODIFY ztbq2c_arq_mgr FROM TABLE @lt_arq.
+DATA(lv_rows_arq) = sy-dbcnt.
+
+MODIFY ztbq2c_log_mgr FROM TABLE @lt_log.
+DATA(lv_rows_log) = sy-dbcnt.
+
+COMMIT WORK.
+
+WRITE: / 'Seed finalizado.'.
+WRITE: / 'ARQ upsert:', lv_rows_arq.
+WRITE: / 'LOG upsert:', lv_rows_log.
+WRITE: / 'Registros com data <= sy-datum -', p_dias, '(elegiveis para cleanup P_DIAS=090).'.

@@ -1,0 +1,29 @@
+REPORT zr_q2c_cleanup_runner.
+
+PARAMETERS p_dias  TYPE numc3 DEFAULT '090'.
+PARAMETERS p_teste AS CHECKBOX DEFAULT 'X'.
+
+TRY.
+    DATA(lo_cleanup) = NEW zcl_q2c_arq_cleanup( ).
+
+    lo_cleanup->if_apj_rt_exec_object~execute(
+      it_parameters = VALUE #(
+        ( selname = 'P_DIAS'
+          kind    = if_apj_dt_exec_object=>parameter
+          sign    = 'I'
+          option  = 'EQ'
+          low     = p_dias )
+        ( selname = 'P_TESTE'
+          kind    = if_apj_dt_exec_object=>parameter
+          sign    = 'I'
+          option  = 'EQ'
+          low     = p_teste )
+      )
+    ).
+
+    WRITE: / 'Execucao concluida.'.
+    WRITE: / 'Verificar SLG1 -> Object: ZQ2C_ARQ, Subobject: CLEANUP'.
+
+  CATCH cx_root INTO DATA(lx).
+    WRITE: / 'Erro ao executar cleanup:', lx->get_text( ).
+ENDTRY.

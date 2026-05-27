@@ -22,10 +22,9 @@ ENDCLASS.
 
 CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
-* -----------------------------------------------------------------------
-* GET_DIAS_RETENCAO — lê ZZ1_TVARVC_Q2C; fallback para c_default_dias
-* -----------------------------------------------------------------------
   METHOD get_dias_retencao.
+
+    " Lê ZZ1_TVARVC_Q2C; fallback para c_default_dias.
 
     SELECT SINGLE low
       FROM zz1_tvarvc_q2c
@@ -42,10 +41,9 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
   ENDMETHOD.
 
 
-* -----------------------------------------------------------------------
-* GET_PARAMETERS — define a tela de seleção do job (design time)
-* -----------------------------------------------------------------------
   METHOD if_apj_dt_exec_object~get_parameters.
+
+    " Define a tela de seleção do job (design time).
 
     " --- text-001='P_DIAS'  002='P_TESTE'  003='Retenção (dias)'  004='Modo Teste (sem delete)'
     DATA lv_sel_dias  TYPE c LENGTH 30.
@@ -91,19 +89,9 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
   ENDMETHOD.
 
 
-* -----------------------------------------------------------------------
-* EXECUTE — lógica de limpeza (runtime)
-*
-* Lógica:
-*   1. Calcula data de corte = sy-datum - P_DIAS
-*   2. Apura registros elegíveis (STATUS = 'CANCELADO' AND DATUM <= corte)
-*   3. Se modo teste: apenas loga contagens, sem delete
-*   4. Se produção:
-*      a. DELETE ZTBQ2C_LOG_MGR dos pedidos elegíveis (FK primeiro)
-*      b. DELETE ZTBQ2C_ARQ_MGR dos registros elegíveis
-*      c. COMMIT WORK
-* -----------------------------------------------------------------------
   METHOD if_apj_rt_exec_object~execute.
+
+    " Runtime cleanup: calcula corte, apura elegíveis e remove em modo produção.
 
     " --- text-001='P_DIAS'  002='P_TESTE'
     " --- text-005='MODO TESTE ativo — nenhum registro foi deletado.'

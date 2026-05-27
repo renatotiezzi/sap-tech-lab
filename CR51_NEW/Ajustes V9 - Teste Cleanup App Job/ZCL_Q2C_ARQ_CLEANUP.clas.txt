@@ -233,9 +233,10 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
         ENDIF.
 
-        " Salvar no Application Log (SLG1), mesmo em execução direta via report
+        " Salvar no Application Log (SLG1)
         cl_bali_log_db=>get_instance( )->save_log(
-          log = lo_log
+          log                        = lo_log
+          assign_to_current_appl_job = abap_true
         ).
 
       CATCH cx_bali_runtime INTO DATA(lx).

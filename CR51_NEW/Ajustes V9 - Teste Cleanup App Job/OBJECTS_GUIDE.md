@@ -22,11 +22,21 @@ Guia dos objetos necessarios para o Job App de limpeza do CR51.
 - `ZTBQ2C_LOG_MGR`
 - `ZZ1_TVARVC_Q2C` (parametro de retencao)
 
-## Application Log (SLG1)
+## Application Log (SLG0/SLG1)
 
 - Objeto: `ZQ2C_ARQ`
 - Subobjeto: `CLEANUP`
 - Persistencia via BALI (`CL_BALI_LOG_DB`)
+
+### Pre-requisito obrigatorio no SAP
+
+1. Acessar transacao `SLG0`.
+2. Criar objeto de log `ZQ2C_ARQ`.
+3. Criar subobjeto `CLEANUP` para o objeto acima.
+4. Salvar em request e transportar para o ambiente alvo.
+5. Validar em `SLG1` que objeto/subobjeto existem para selecao.
+
+Sem esse cadastro no `SLG0`, a construcao/persistencia do log via BALI pode falhar em runtime.
 
 ## Text Symbols da classe ZCL_Q2C_ARQ_CLEANUP
 
@@ -53,6 +63,7 @@ Guia dos objetos necessarios para o Job App de limpeza do CR51.
 
 ## Fluxo de teste first-time-right
 
+0. Confirmar pre-requisito de log no `SLG0` (`ZQ2C_ARQ` / `CLEANUP`).
 1. Rodar `ZR_Q2C_CLEANUP_SEED_DATA` para gerar dados antigos (>90 dias).
 2. Rodar `ZR_Q2C_CLEANUP_RUNNER` com `P_TESTE = X`.
 3. Validar logs no SLG1.

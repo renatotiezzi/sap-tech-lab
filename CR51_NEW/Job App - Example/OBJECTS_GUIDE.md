@@ -12,7 +12,7 @@ Este guia lista os objetos minimos para gerar um App Job no padrao da classe `ZC
   - `IF_APJ_DT_EXEC_OBJECT~GET_PARAMETERS`
   - `IF_APJ_RT_EXEC_OBJECT~EXECUTE`
 
-## 2) Application Log (SLG1)
+## 2) Application Log (SLG0/SLG1)
 
 - Objeto de log: `ZR2RL_046`
 - Subobjeto: `ENT_FAT`
@@ -20,6 +20,16 @@ Este guia lista os objetos minimos para gerar um App Job no padrao da classe `ZC
   - `CL_BALI_HEADER_SETTER`
   - `CL_BALI_LOG`
   - `CL_BALI_LOG_DB`
+
+### Pre-requisito obrigatorio no SAP
+
+1. Acessar `SLG0`.
+2. Criar objeto de log `ZR2RL_046`.
+3. Criar subobjeto `ENT_FAT`.
+4. Salvar e transportar os objetos de customizing.
+5. Validar em `SLG1` que objeto/subobjeto aparecem para consulta.
+
+Sem cadastro no `SLG0`, o log BALI pode falhar mesmo com codigo correto.
 
 ## 3) Message Class (SE91)
 
@@ -58,7 +68,7 @@ Este guia lista os objetos minimos para gerar um App Job no padrao da classe `ZC
 ## 8) Checklist de geracao
 
 1. Criar/ativar classe.
-2. Criar objeto/subobjeto de log.
+2. Criar objeto/subobjeto de log no `SLG0`.
 3. Criar classe de mensagem.
 4. Criar Job Catalog Entry.
 5. Criar Job Template.

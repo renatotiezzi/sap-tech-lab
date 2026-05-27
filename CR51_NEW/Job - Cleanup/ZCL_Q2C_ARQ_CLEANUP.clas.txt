@@ -253,20 +253,23 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
     " Compatível com releases que variam a assinatura de SAVE_LOG.
     DATA lv_assign_to_job TYPE abap_bool VALUE abap_true.
     DATA lt_bind TYPE abap_parmbind_tab.
+    DATA lo_log_db TYPE REF TO object.
 
-    APPEND VALUE #( name = 'LOG'
+    INSERT VALUE #( name = 'LOG'
                     kind = cl_abap_objectdescr=>exporting
-                    value = REF #( io_log ) ) TO lt_bind.
-    APPEND VALUE #( name = 'ASSIGN_TO_CURRENT_APPL_JOB'
+                    value = REF #( io_log ) ) INTO TABLE lt_bind.
+    INSERT VALUE #( name = 'ASSIGN_TO_CURRENT_APPL_JOB'
                     kind = cl_abap_objectdescr=>exporting
-                    value = REF #( lv_assign_to_job ) ) TO lt_bind.
+                    value = REF #( lv_assign_to_job ) ) INTO TABLE lt_bind.
+
+    lo_log_db = cl_bali_log_db=>get_instance( ).
 
     TRY.
-        CALL METHOD cl_bali_log_db=>get_instance( )->('SAVE_LOG')
+        CALL METHOD lo_log_db->('SAVE_LOG')
           PARAMETER-TABLE lt_bind.
       CATCH cx_sy_dyn_call_param_not_found.
         DELETE lt_bind WHERE name = 'ASSIGN_TO_CURRENT_APPL_JOB'.
-        CALL METHOD cl_bali_log_db=>get_instance( )->('SAVE_LOG')
+        CALL METHOD lo_log_db->('SAVE_LOG')
           PARAMETER-TABLE lt_bind.
       CATCH cx_sy_dyn_call_illegal_type.
         " Ignora erro de binding para não interromper processamento do job.

@@ -17,6 +17,10 @@ CLASS zcl_q2c_arq_cleanup DEFINITION
     METHODS get_dias_retencao
       RETURNING VALUE(rv_dias) TYPE numc3.
 
+    METHODS save_bali_log
+      IMPORTING
+        io_log TYPE REF TO if_bali_log.
+
 ENDCLASS.
 
 
@@ -233,16 +237,41 @@ CLASS zcl_q2c_arq_cleanup IMPLEMENTATION.
 
         ENDIF.
 
-        " Salvar no Application Log (SLG1)
-        cl_bali_log_db=>get_instance( )->save_log(
-          log                        = lo_log
-          assign_to_current_appl_job = abap_true
-        ).
+        save_bali_log( lo_log ).
 
       CATCH cx_bali_runtime INTO DATA(lx).
         RAISE EXCEPTION TYPE cx_apj_rt_content
           EXPORTING
             previous = lx.
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD save_bali_log.
+
+    " Compatível com releases que variam a assinatura de SAVE_LOG.
+    DATA lv_assign_to_job TYPE abap_bool VALUE abap_true.
+    DATA lt_bind TYPE abap_parmbind_tab.
+
+    APPEND VALUE #( name = 'LOG'
+                    kind = cl_abap_objectdescr=>exporting
+                    value = REF #( io_log ) ) TO lt_bind.
+    APPEND VALUE #( name = 'ASSIGN_TO_CURRENT_APPL_JOB'
+                    kind = cl_abap_objectdescr=>exporting
+                    value = REF #( lv_assign_to_job ) ) TO lt_bind.
+
+    TRY.
+        CALL METHOD cl_bali_log_db=>get_instance( )->('SAVE_LOG')
+          PARAMETER-TABLE lt_bind.
+      CATCH cx_sy_dyn_call_param_not_found.
+        DELETE lt_bind WHERE name = 'ASSIGN_TO_CURRENT_APPL_JOB'.
+        CALL METHOD cl_bali_log_db=>get_instance( )->('SAVE_LOG')
+          PARAMETER-TABLE lt_bind.
+      CATCH cx_sy_dyn_call_illegal_type.
+        " Ignora erro de binding para não interromper processamento do job.
+      CATCH cx_bali_runtime.
+        " Ignora falha de persistência de log para evitar dump em background.
     ENDTRY.
 
   ENDMETHOD.

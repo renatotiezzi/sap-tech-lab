@@ -1,0 +1,244 @@
+CLASS zcl_r2r_entrada_fatura_job_app DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_apj_dt_exec_object.
+    INTERFACES if_apj_rt_exec_object.
+
+  PRIVATE SECTION.
+    " --- Types (keep local, no DDIC dependency) ---
+    TYPES ty_bukrs_range TYPE RANGE OF bukrs.
+    TYPES ty_external_id TYPE if_bali_header_setter=>ty_external_id.
+    TYPES ty_variable TYPE if_bali_message_setter=>ty_variable.
+    TYPES ty_budat_range TYPE RANGE OF dats.
+
+    TYPES: BEGIN OF ty_params,
+             teste   TYPE abap_bool,
+             budat_r TYPE ty_budat_range,
+             bukrs_r TYPE ty_bukrs_range,
+           END OF ty_params.
+
+    TYPES: BEGIN OF ty_miro,
+             supplierinvoice TYPE string,
+             fiscalyear      TYPE gjahr,
+             companycode     TYPE bukrs,
+             postingdate     TYPE dats,
+             invoicingparty  TYPE lifnr,
+             reversedocument TYPE re_stblg,
+           END OF ty_miro.
+
+    TYPES ty_miro_tab TYPE STANDARD TABLE OF ty_miro WITH EMPTY KEY.
+    TYPES ty_ftclear_tab TYPE STANDARD TABLE OF ftclear WITH EMPTY KEY.
+    TYPES ty_ftpost_tab  TYPE STANDARD TABLE OF ftpost  WITH EMPTY KEY.
+    TYPES ty_fttax_tab   TYPE STANDARD TABLE OF fttax   WITH EMPTY KEY.
+
+    " --- Constants ---
+    CONSTANTS gc_log_object TYPE balobj_d   VALUE 'ZR2RL_046' ##NO_TEXT.
+    CONSTANTS gc_log_subobject TYPE balsubobj VALUE 'ENT_FAT' ##NO_TEXT.
+    CONSTANTS gc_msgid      TYPE symsgid    VALUE 'ZR2R_JOB' ##NO_TEXT.
+    CONSTANTS gc_tcode      TYPE tcode      VALUE 'FB05' ##NO_TEXT.
+    CONSTANTS gc_auglv      TYPE auglv      VALUE 'UMBUCHNG' ##NO_TEXT.
+    CONSTANTS gc_sgfunct    TYPE c LENGTH 1 VALUE 'C' ##NO_TEXT.
+    CONSTANTS gc_blart      TYPE blart      VALUE 'KA' ##NO_TEXT.
+    CONSTANTS gc_newbs      TYPE c LENGTH 2 VALUE '31' ##NO_TEXT.
+    CONSTANTS gc_selfd      TYPE c LENGTH 5 VALUE 'BELNR' ##NO_TEXT.
+    CONSTANTS gc_agkoa_vendor TYPE c LENGTH 1 VALUE 'K' ##NO_TEXT.
+    CONSTANTS gc_agums      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
+    CONSTANTS gc_tvarv_doctype TYPE rvari_vnam VALUE 'ZR2R_046_DOCTYPE' ##NO_TEXT.
+
+    METHODS build_bali_log
+      IMPORTING
+        iv_external_id TYPE ty_external_id
+      RETURNING
+        VALUE(ro_log) TYPE REF TO if_bali_log.
+
+    METHODS add_log_msg
+      IMPORTING
+        io_log      TYPE REF TO if_bali_log
+        iv_msgid    TYPE symsgid
+        iv_msgno    TYPE symsgno
+        iv_severity TYPE if_bali_constants=>ty_severity
+        iv_v1       TYPE ty_variable OPTIONAL
+        iv_v2       TYPE ty_variable OPTIONAL
+        iv_v3       TYPE ty_variable OPTIONAL
+        iv_v4       TYPE ty_variable OPTIONAL.
+
+    METHODS save_bali_log
+      IMPORTING
+        io_log TYPE REF TO if_bali_log.
+
+    METHODS read_parameters
+      IMPORTING
+        it_parameters TYPE if_apj_rt_exec_object=>tt_templ_val
+      RETURNING
+        VALUE(rs_p) TYPE ty_params.
+
+    METHODS select_data
+      IMPORTING
+        is_p   TYPE ty_params
+        io_log TYPE REF TO if_bali_log
+      RETURNING
+        VALUE(rt_miro) TYPE ty_miro_tab
+      RAISING
+        cx_apj_rt_content.
+
+    METHODS process_posting
+      IMPORTING
+        it_miro TYPE ty_miro_tab
+        is_p    TYPE ty_params
+        io_log  TYPE REF TO if_bali_log.
+
+    METHODS format_date_ddmmyyyy
+      IMPORTING
+        iv_date TYPE dats
+      RETURNING
+        VALUE(rv_date) TYPE char8.
+
+    METHODS build_ft_tables
+      IMPORTING
+        is_miro     TYPE ty_miro
+        iv_vendor   TYPE lifnr
+        is_adv_key  TYPE string
+        is_re_key   TYPE string
+        iv_currency TYPE waers
+        iv_amount   TYPE wrbtr
+      EXPORTING
+        et_ftclear  TYPE ty_ftclear_tab
+        et_ftpost   TYPE ty_ftpost_tab
+        et_fttax    TYPE ty_fttax_tab.
+
+    METHODS call_clearing
+      IMPORTING
+        it_ftclear TYPE ty_ftclear_tab
+        it_ftpost  TYPE ty_ftpost_tab
+        it_fttax   TYPE ty_fttax_tab
+      EXPORTING
+        ev_msgid TYPE symsgid
+        ev_msgno TYPE symsgno
+        ev_msgty TYPE symsgty
+        ev_msgv1 TYPE symsgv
+        ev_msgv2 TYPE symsgv
+        ev_msgv3 TYPE symsgv
+        ev_msgv4 TYPE symsgv
+      RETURNING
+        VALUE(rv_ok) TYPE abap_bool.
+
+    METHODS get_doctype_from_tvarv
+      RETURNING
+        VALUE(rv_doctype) TYPE blart.
+
+ENDCLASS.
+
+CLASS zcl_r2r_entrada_fatura_job_app IMPLEMENTATION.
+
+  METHOD add_log_msg.
+    DATA(lo_msg) = cl_bali_message_setter=>create(
+      id       = iv_msgid
+      number   = iv_msgno
+      severity = iv_severity
+      variable_1 = iv_v1
+      variable_2 = iv_v2
+      variable_3 = iv_v3
+      variable_4 = iv_v4 ).
+    io_log->add_item( lo_msg ).
+  ENDMETHOD.
+
+  METHOD build_bali_log.
+    DATA(lo_header_setter) = cl_bali_header_setter=>create(
+      object      = gc_log_object
+      subobject   = gc_log_subobject
+      external_id = iv_external_id ).
+    ro_log = cl_bali_log=>create_with_header( lo_header_setter ).
+  ENDMETHOD.
+
+  METHOD if_apj_dt_exec_object~get_parameters.
+    et_parameter_def = VALUE #(
+      ( selname = 'P_BUKRS' kind = if_apj_dt_exec_object=>select_option datatype = 'C' length = 4 param_text = 'Empresa' component_type = 'BUKRS' changeable_ind = abap_true )
+      ( selname = 'P_BUDAT' kind = if_apj_dt_exec_object=>select_option datatype = 'D' length = 8 param_text = 'Periodo (data)' component_type = 'DATS' changeable_ind = abap_true )
+      ( selname = 'P_TESTE' kind = if_apj_dt_exec_object=>parameter datatype = 'C' length = 1 param_text = 'Modo Teste' checkbox_ind = abap_true changeable_ind = abap_true ) ).
+
+    et_parameter_val = VALUE #(
+      ( selname = 'P_BUDAT' sign = 'I' option = 'BT' low = sy-datum high = sy-datum )
+      ( selname = 'P_TESTE' sign = 'I' option = 'EQ' low = '' ) ).
+  ENDMETHOD.
+
+  METHOD read_parameters.
+    LOOP AT it_parameters ASSIGNING FIELD-SYMBOL(<ls_param>).
+      CASE <ls_param>-selname.
+        WHEN 'P_TESTE'.
+          IF <ls_param>-low IS NOT INITIAL.
+            rs_p-teste = abap_true.
+          ENDIF.
+        WHEN 'P_BUKRS'.
+          APPEND VALUE #( sign = <ls_param>-sign option = <ls_param>-option low = <ls_param>-low high = <ls_param>-high ) TO rs_p-bukrs_r.
+        WHEN 'P_BUDAT'.
+          APPEND VALUE #( sign = <ls_param>-sign option = <ls_param>-option low = <ls_param>-low high = <ls_param>-high ) TO rs_p-budat_r.
+      ENDCASE.
+    ENDLOOP.
+
+    IF rs_p-budat_r IS INITIAL.
+      rs_p-budat_r = VALUE #( ( sign = 'I' option = 'BT' low = sy-datum high = sy-datum ) ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD save_bali_log.
+    TRY.
+        cl_bali_log_db=>get_instance( )->save_log(
+          log                        = io_log
+          assign_to_current_appl_job = abap_true ).
+      CATCH cx_bali_runtime.
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD if_apj_rt_exec_object~execute.
+    DATA(ls_p) = read_parameters( it_parameters ).
+    DATA(lv_external_id) = CONV ty_external_id( |R2R046I001_{ sy-uname }_{ sy-datum }_{ sy-uzeit }| ).
+    DATA(lo_log) = build_bali_log( iv_external_id = lv_external_id ).
+
+    add_log_msg(
+      io_log = lo_log
+      iv_msgid = gc_msgid
+      iv_msgno = '001'
+      iv_severity = if_bali_constants=>c_severity_status ).
+
+    IF ls_p-teste = abap_true.
+      add_log_msg(
+        io_log = lo_log
+        iv_msgid = gc_msgid
+        iv_msgno = '002'
+        iv_severity = if_bali_constants=>c_severity_warning ).
+    ENDIF.
+
+    DATA(lt_miro) = select_data( is_p = ls_p io_log = lo_log ).
+    process_posting( it_miro = lt_miro is_p = ls_p io_log = lo_log ).
+    save_bali_log( lo_log ).
+  ENDMETHOD.
+
+  METHOD select_data.
+    " Metodo mantido como referencia do exemplo enviado; completar conforme regra funcional.
+  ENDMETHOD.
+
+  METHOD process_posting.
+    " Metodo mantido como referencia do exemplo enviado; completar conforme regra funcional.
+  ENDMETHOD.
+
+  METHOD format_date_ddmmyyyy.
+    rv_date = |{ iv_date+6(2) }{ iv_date+4(2) }{ iv_date+0(4) }|.
+  ENDMETHOD.
+
+  METHOD build_ft_tables.
+    " Metodo mantido como referencia do exemplo enviado; completar conforme regra funcional.
+  ENDMETHOD.
+
+  METHOD call_clearing.
+    " Metodo mantido como referencia do exemplo enviado; completar conforme regra funcional.
+    rv_ok = abap_false.
+  ENDMETHOD.
+
+  METHOD get_doctype_from_tvarv.
+    rv_doctype = 'RE'.
+  ENDMETHOD.
+
+ENDCLASS.

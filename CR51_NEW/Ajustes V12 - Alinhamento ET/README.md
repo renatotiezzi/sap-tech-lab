@@ -5,22 +5,24 @@ Formato idêntico ao documento — copiar e colar nas seções indicadas.
 
 ---
 
-## ► Seção 3 — Dependências (TVARV) — ADICIONAR linha
+## ► Seção 3 — Dependências (TVARV) — SUBSTITUIR tabela completa
 
-Adicionar à tabela existente da seção 3:
+Substituir a tabela existente da seção 3 por esta (inclui as 2 TVARVs da solução):
 
 | TVARV | Descrição | Utilização |
 |---|---|---|
+| ZZ_GAP014_ARQ_DIAS | Retenção de arquivos e logs | Define a quantidade de dias para retenção dos registros de processamento antes da limpeza automática pelo job ZCL_Q2C_ARQ_CLEANUP. Fallback de 90 dias se ausente. |
 | ZZ_GAP014_BAND_DEPARA | De-para Bandeira | Define a tradução entre o código técnico do arquivo recebido da MGR (ex.: PMDREN) e o nome amigável exibido na coluna Bandeira do cockpit Fiori (ex.: DSH_Renault). Manutenção via SM30 da tabela ZZ1_TVARVC_Q2C sem necessidade de retransporte de código. |
 
 ---
 
-## ► Seção 3.1 — Atividades de Cutover — ADICIONAR linha
+## ► Seção 3.1 — Atividades de Cutover — SUBSTITUIR tabela completa
 
-Adicionar à tabela existente da seção 3.1:
+Substituir a tabela existente da seção 3.1 por esta (inclui as 2 TVARVs da solução):
 
 | TVARV | Descrição | Utilização |
 |---|---|---|
+| ZZ_GAP014_ARQ_DIAS | Retenção de arquivos e logs | Define a quantidade de dias para retenção dos registros de processamento antes da limpeza automática pelo job ZCL_Q2C_ARQ_CLEANUP. Fallback de 90 dias se ausente. |
 | ZZ_GAP014_BAND_DEPARA | De-para Bandeira | Define a tradução entre o código técnico do arquivo recebido da MGR (ex.: PMDREN) e o nome amigável exibido na coluna Bandeira do cockpit Fiori (ex.: DSH_Renault). Manutenção via SM30 da tabela ZZ1_TVARVC_Q2C sem necessidade de retransporte de código. |
 
 ---

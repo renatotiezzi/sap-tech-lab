@@ -1,0 +1,32 @@
+================================================================================
+Carga inicial — TVARV ZZ_GAP014_BAND_DEPARA  (de-para Bandeira -> Operação)
+Tabela: ZZ1_TVARVC_Q2C
+Manutenção: SM30 / view de manutenção da tabela
+Transporte: DS4K907886 (customizing) — ou novo TR de dados se aplicável
+================================================================================
+
+NAME                   TYPE  NUMB  LOW           HIGH
+---------------------  ----  ----  ------------  ----------------
+ZZ_GAP014_BAND_DEPARA  S     0001  PMDDSOP       PFCO_Volvo
+ZZ_GAP014_BAND_DEPARA  S     0002  PMDDSOX       PRCO_Volvo
+ZZ_GAP014_BAND_DEPARA  S     0003  PMDDAFDSOP    PFCO_Daf
+ZZ_GAP014_BAND_DEPARA  S     0004  PMDDAFDSOX    PRCO_Daf
+ZZ_GAP014_BAND_DEPARA  S     0005  PMDVOLV       DSH_Volvo
+ZZ_GAP014_BAND_DEPARA  S     0006  PMDREN        DSH_Renault
+ZZ_GAP014_BAND_DEPARA  S     0007  PMDFORD       DSH_Ford
+ZZ_GAP014_BAND_DEPARA  S     0008  PMDDPASC      DSH_DPaschoal
+ZZ_GAP014_BAND_DEPARA  S     0009  PMDJCB        DSH_JCB
+ZZ_GAP014_BAND_DEPARA  S     0010  PMDDASA       DSH_DASA
+ZZ_GAP014_BAND_DEPARA  S     0011  PMDHYDRO      DSH_HYDRO
+
+================================================================================
+Observações
+--------------------------------------------------------------------------------
+1) NUMB é sequencial — usar 0001..NNNN. Se já existirem entradas para outros
+   parâmetros na ZZ1_TVARVC_Q2C, manter NUMB único por NAME.
+2) MANDT preenchido pelo client onde for executada a manutenção.
+3) Sem entrada cadastrada para uma bandeira recebida da MGR -> a CDS
+   ZI_Q2C_ARQ_MGR exibe a própria bandeira (coalesce fallback).
+4) Para adicionar/alterar bandeiras no futuro: somente manter esta tabela —
+   não há retransporte de código.
+================================================================================

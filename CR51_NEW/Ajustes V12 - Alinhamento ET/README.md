@@ -1,4 +1,119 @@
-# Ajustes V12 — Alinhamento com a Especificação Técnica (ET)
+# V12 — Complementos para a Especificação Técnica (ET)
+
+Itens implementados que **não constam na ET** (versão Inicial 19/05/2026).
+Formato idêntico ao documento — copiar e colar nas seções indicadas.
+
+---
+
+## ► Seção 3 — Dependências (TVARV) — ADICIONAR linha
+
+Adicionar à tabela existente da seção 3:
+
+| TVARV | Descrição | Utilização |
+|---|---|---|
+| ZZ_GAP014_BAND_DEPARA | De-para Bandeira | Define a tradução entre o código técnico do arquivo recebido da MGR (ex.: PMDREN) e o nome amigável exibido na coluna Bandeira do cockpit Fiori (ex.: DSH_Renault). Manutenção via SM30 da tabela ZZ1_TVARVC_Q2C sem necessidade de retransporte de código. |
+
+---
+
+## ► Seção 3.1 — Atividades de Cutover — ADICIONAR linha
+
+Adicionar à tabela existente da seção 3.1:
+
+| TVARV | Descrição | Utilização |
+|---|---|---|
+| ZZ_GAP014_BAND_DEPARA | De-para Bandeira | Define a tradução entre o código técnico do arquivo recebido da MGR (ex.: PMDREN) e o nome amigável exibido na coluna Bandeira do cockpit Fiori (ex.: DSH_Renault). Manutenção via SM30 da tabela ZZ1_TVARVC_Q2C sem necessidade de retransporte de código. |
+
+---
+
+## ► Seção 4.2 — Objetos Criados/Alterados — ADICIONAR linhas
+
+Adicionar às linhas existentes da tabela de objetos:
+
+| Tipo | Objeto | Descrição |
+|---|---|---|
+| Tabela | ZZ1_TVARVC_Q2C | Tabela customizada de variáveis de parametrização Q2C (TVARV custom). Armazena os parâmetros ZZ_GAP014_ARQ_DIAS (retenção do job de cleanup) e ZZ_GAP014_BAND_DEPARA (de-para Bandeira). Manutenção via SM30. |
+| Grupo de Funções | ZFG_Q2C_ASYNC | Grupo de funções para chamadas assíncronas ao CPI. Contém o FM ZFM_Q2C_CPI_CALL_ASYNC. |
+| Function Module | ZFM_Q2C_CPI_CALL_ASYNC | FM RFC-enabled que executa a chamada ao CPI em nova work process (STARTING NEW TASK), desacoplada do contexto RAP. Necessário para evitar HTTP 423 causado pelo lock ativo durante o callback do CPI. |
+| App Log Object | ZQ2C_ARQ | Objeto de log de aplicação (SLG0) para a solução Q2C ARQ Manager. Criado via transação SLG0. |
+| App Log Subobject | CLEANUP | Subobjeto de log para o job de limpeza ZCL_Q2C_ARQ_CLEANUP. Vinculado ao objeto ZQ2C_ARQ. Criado via transação SLG0. |
+| Job Catalog Entry | ZQ2C_ARQ_CLEANUP_CE | Catalog Entry APJ que registra o job de limpeza no framework Application Job. Aponta para a classe ZCL_Q2C_ARQ_CLEANUP. |
+| Job Template | ZQ2C_ARQ_CLEANUP_JT | Template APJ para agendamento do job de limpeza. Usa o Catalog Entry ZQ2C_ARQ_CLEANUP_CE; parâmetro P_DIAS default lido da TVARV ZZ_GAP014_ARQ_DIAS. |
+| Programa | ZR_Q2C_CLEANUP_RUNNER | Report ABAP para execução direta do job de limpeza fora do framework APJ (uso em teste e operação emergencial). |
+| Programa | ZR_Q2C_CLEANUP_SEED_DATA | Report ABAP auxiliar para geração de massa de dados de teste (registros com datas retroativas). Uso exclusivo em ambiente de desenvolvimento/teste. |
+
+---
+
+## ► Seção 4.3.1 — Tabelas — ADICIONAR tabela ZZ1_TVARVC_Q2C
+
+| | |
+|---|---|
+| **Nome** | ZZ1_TVARVC_Q2C |
+| **Descrição** | Tabela de variáveis de parametrização customizadas Q2C |
+| **Manutenção (SM30)** | SIM |
+| **Campos principais** | MANDT (chave), NAME CHAR 30 (chave), TYPE CHAR 1 (chave), NUMB NUMC 4 (chave), LOW CHAR 45, HIGH CHAR 45 |
+| **Índices** | N/A |
+| **Observação** | Não é a tabela standard TVARVC. Layout equivalente, namespace Z. Usada para parâmetros ZZ_GAP014_ARQ_DIAS e ZZ_GAP014_BAND_DEPARA. |
+
+---
+
+## ► Seção 4.3.9 — Programas — ADICIONAR
+
+**Nome:** ZR_Q2C_CLEANUP_RUNNER
+**Descrição:** Executor direto do job de limpeza
+**Tipo:** Report
+**Lógica:** Instancia ZCL_Q2C_ARQ_CLEANUP e executa o método IF_APJ_RT_EXEC_OBJECT~EXECUTE diretamente, sem o framework APJ. Aceita parâmetros P_DIAS (número de dias de retenção) e P_TESTE (checkbox — sem delete real). Utilizado para execução emergencial ou testes fora do agendamento APJ.
+
+---
+
+**Nome:** ZR_Q2C_CLEANUP_SEED_DATA
+**Descrição:** Gerador de massa de dados para teste do cleanup
+**Tipo:** Report
+**Lógica:** Insere registros na ZTBQ2C_ARQ_MGR com datas retroativas (acima de 90 dias) para validação do job de limpeza em ambiente de desenvolvimento/teste. Não deve ser transportado para produção.
+
+---
+
+## ► Seção 4.3.10 — Classes / Interfaces — NENHUM OBJETO NOVO
+Todos os objetos desta seção já constam na ET. Nenhum ajuste necessário.
+
+---
+
+## ► Seção 4.3.11 — Grupo de Funções — ADICIONAR
+
+**Nome:** ZFG_Q2C_ASYNC
+**Descrição:** Grupo de funções para chamadas assíncronas CPI
+
+**FM: ZFM_Q2C_CPI_CALL_ASYNC**
+
+| | |
+|---|---|
+| **Descrição** | Wrapper RFC para chamada assíncrona ao CPI |
+| **RFC** | Remote-Enabled Module (RFC obrigatório para STARTING NEW TASK funcionar). Chamado internamente pelo behavior ZBP_I_Q2C_ARQ_MGR via CALL FUNCTION STARTING NEW TASK. |
+| **Parâmetros IMPORTING** | IV_PEDIDO TYPE ztbq2c_arq_mgr-pedido (VALUE), IV_BANDEIRA TYPE ztbq2c_arq_mgr-bandeira (VALUE) |
+| **Exceções** | N/A |
+| **Lógica** | Lê o registro completo da ZTBQ2C_ARQ_MGR pela chave recebida; aguarda 5 segundos (garante liberação do lock RAP e commit antes do callback); instancia ZCL_Q2C_CPI_CALLER e executa CALL_CPI_REPROCESS. O FM não contém lógica de negócio — apenas isola a chamada HTTP do contexto RAP para evitar HTTP 423 causado pelo lock ativo. |
+
+---
+
+## ► Seção 4.3.12 — Parâmetros — ADICIONAR
+
+Adicionar ao texto da seção:
+
+| TVARV | Tabela | Tipo | Campo LOW | Campo HIGH | Utilização |
+|---|---|---|---|---|---|
+| ZZ_GAP014_ARQ_DIAS | ZZ1_TVARVC_Q2C | P | Quantidade de dias (ex.: 090) | — | Retenção de registros — lida pelo job ZCL_Q2C_ARQ_CLEANUP. Fallback 90 dias se ausente. |
+| ZZ_GAP014_BAND_DEPARA | ZZ1_TVARVC_Q2C | S | Código técnico bandeira (ex.: PMDREN) | Nome amigável (ex.: DSH_Renault) | De-para exibido na coluna Bandeira do cockpit Fiori. Lido pela CDS ZI_Q2C_ARQ_MGR via LEFT OUTER JOIN. Fallback exibe a própria bandeira se entrada ausente. |
+
+Carga inicial de ZZ_GAP014_BAND_DEPARA: ver arquivo ENTRADAS_TVARV_ZZ_GAP014_BAND_DEPARA.txt neste pacote.
+
+---
+
+## ► Seção 4.3.7 — CDS Básica — AJUSTAR descrição de ZI_Q2C_ARQ_MGR
+
+| Tipo | Objeto | Descrição |
+|---|---|---|
+| CDS – View Entity (Básica) | ZI_Q2C_ARQ_MGR | Base de dados de arquivos MGR. Inclui campo derivado BandeiraDesc obtido via LEFT OUTER JOIN à ZZ1_TVARVC_Q2C (NAME = ZZ_GAP014_BAND_DEPARA, TYPE = S, LOW = bandeira técnica) — exibido na coluna Bandeira do cockpit via @ObjectModel.text.element + @UI.textArrangement: #TEXT_ONLY. Sem entrada cadastrada exibe a própria bandeira (fallback). |
+
+REMOVER da lista a view ZI_Q2C_LOG_LAST_TIME — foi consolidada dentro de ZI_Q2C_LOG_LAST (max(datum) + max(uzeit) via group by), eliminando a necessidade de view separada.
 
 Comparação realizada em **03/06/2026** entre a ET (CR51 – GAP 014 – Q2C014E010 Reprocessar MGR, versão Inicial 19/05/2026, autor Renato Tiezzi) e o estado atual do repositório (após V11).
 

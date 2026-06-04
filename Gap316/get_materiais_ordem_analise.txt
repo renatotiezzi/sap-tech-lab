@@ -1,0 +1,200 @@
+*&---------------------------------------------------------------------*
+*& Método: GET_MATERIAIS_ORDEM
+*& Classe: (identificar no sistema — chamada pelo virtual field do RAP)
+*& Gap:    316
+*&---------------------------------------------------------------------*
+*&
+*& CONTEXTO RAP
+*& ─────────────────────────────────────────────────────────────────────
+*& - Campo virtual no RAP não exibe valor na tela do Fiori.
+*& - Quando o RAP é chamado (READ), ele dispara esta classe/método.
+*& - O método lê ZI_S2M_MATERIAIS_COMPAT e devolve a tabela
+*&   et_materiais_compat (tipo ZTBS2M_MAT_COMPA) para o campo virtual.
+*&
+*& FLUXO DE DADOS
+*& ─────────────────────────────────────────────────────────────────────
+*& 1. Recebe IR_PLANT (range de plantas) e IR_MATERIAL (range de materiais)
+*& 2. SELECT DISTINCT billofoperationsgroup FROM I_MASTERRECIPEMATERIALASSGMT
+*&    → obtém os grupos de receita para o material/planta informado
+*& 3. SELECT FROM ZI_S2M_MATERIAIS_COMPAT WHERE grupo IN (grupos da receita)
+*&    → retorna N linhas por combinação (material/centro/tipo/grupo/lote/depósito)
+*&      cada linha com um charcinternalid diferente (991, 998, 1031)
+*& 4. Consolidação (pivot manual):
+*&    - Itera lista única de combinações (lt_materiais_aux após dedup)
+*&    - Para cada combinação, agrupa as 3 linhas (WHEN 991/998/1031)
+*&      em um único registro com campos charcinternalid / charcinternalid2 / charcinternalid3
+*&    - SÓ inclui no resultado se lv_ok = 3 (todas as 3 características presentes)
+*&    - Se lv_ok < 3 → DELETE da combinação em lt_materiais (não vai para o output)
+*&
+*& PROBLEMA IDENTIFICADO — DIFERENÇA DE GRUPO
+*& ─────────────────────────────────────────────────────────────────────
+*& ZI_S2M_MATERIAIS_COMPAT  (view base / interface):
+*&   → grupo = 50000087  (print: material 30001500, plant 4815)
+*&
+*& ZC_S2M_MATERIAIS_COMPATIVEIS (view de consumo / Fiori):
+*&   → grupo = 50000066 / 50000060  (print: materiais 30001000 / 31409000)
+*&
+*& Hipótese 1 — DADOS INCORRETOS NA RECEITA
+*&   I_MASTERRECIPEMATERIALASSGMT retorna grupo 50000066/60 para o material
+*&   pesquisado, mas ZI_S2M_MATERIAIS_COMPAT só tem dados para grupo 50000087.
+*&   Resultado: sy-subrc ≠ 0 no SELECT → método não retorna nada → campo virtual vazio.
+*&
+*& Hipótese 2 — MAPEAMENTO AUSENTE
+*&   O grupo retornado pela receita (66/60) é diferente do grupo de compatibilidade
+*&   (87). Seria necessário um de-para ou um critério de agrupamento diferente
+*&   na view ZI_S2M_MATERIAIS_COMPAT para ligar os dois.
+*&
+*& Hipótese 3 — FILTRO NA VIEW DE CONSUMO
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS tem um filtro/join adicional que exclui o
+*&   grupo 87 e só expõe 66/60, mas a view base (ZI) tem todos.
+*&   Nesse caso o método leria dados que a tela não exibe.
+*&
+*& PONTOS A INVESTIGAR NO SISTEMA
+*& ─────────────────────────────────────────────────────────────────────
+*& 1. SE16N → I_MASTERRECIPEMATERIALASSGMT
+*&    Filtrar: MATERIAL = 30001000 (ou 31409000), PLANT = 4815
+*&    Verificar qual BILLOFOPERATIONSGROUP é retornado
+*&    → Esperado: 50000066 ou 50000060
+*&
+*& 2. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: GRUPO = 50000066 E GRUPO = 50000060
+*&    Verificar se existem entradas com CHARCINTERNALID = 991, 998 E 1031
+*&    → Se não existirem as 3 características: método deleta e não retorna nada
+*&
+*& 3. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: GRUPO = 50000087
+*&    Verificar se existem as 3 características (991/998/1031)
+*&    → Se só o 87 tem as 3 → receita está apontando para grupo errado
+*&
+*& 4. ADT → ZC_S2M_MATERIAIS_COMPATIVEIS.ddls
+*&    Verificar se há filtro explícito de grupo ou join que difere da ZI base
+*&
+*& 5. Identificar a classe que contém GET_MATERIAIS_ORDEM (where-used do método)
+*&    e verificar como o campo virtual é declarado no BDEF (tipo %virt ou computed)
+*&
+*& CAUSA RAIZ MAIS PROVÁVEL (baseado nos prints)
+*& ─────────────────────────────────────────────────────────────────────
+*& Os prints mostram materiais DIFERENTES nas duas views (30001000/31409000 vs 30001500).
+*& Isso indica que NÃO é a mesma execução sendo comparada.
+*& A ZI mostra dados de compatibilidade cadastrados para grupo 87 (material 30001500).
+*& A ZC mostra a execução do campo virtual para os materiais 30001000/31409000,
+*& cujos grupos de receita são 66 e 60.
+*&
+*& CENÁRIO DE FALHA:
+*&   Material 30001000 → receita retorna grupo 50000066
+*&   SELECT FROM ZI_S2M_MATERIAIS_COMPAT WHERE grupo = '50000066'
+*&   → Se não há entrada OU não tem as 3 características: campo virtual vazio
+*&
+*& AÇÃO CORRETIVA SUGERIDA
+*& ─────────────────────────────────────────────────────────────────────
+*& Opção A (dados): Cadastrar em ZI_S2M_MATERIAIS_COMPAT (tabela base)
+*&   as 3 linhas (charcinternalid 991, 998, 1031) para os grupos 50000066 e 50000060
+*&   dos materiais 30001000 e 31409000, plant 4815.
+*&
+*& Opção B (lógica): Se a receita usa grupo diferente do grupo de compatibilidade
+*&   por design, criar de-para em tabela Z ou ajustar ZI_S2M_MATERIAIS_COMPAT
+*&   para incluir join com a receita e usar o grupo correto.
+*&
+*& LEMBRETE RAP — CAMPO VIRTUAL
+*& ─────────────────────────────────────────────────────────────────────
+*& Campo virtual não é persistido → sempre recalculado no READ.
+*& Se o método não preenche ET_MATERIAIS_COMPAT, o campo aparece vazio/initial.
+*& Verificar BDEF: virtual field deve estar declarado como:
+*&   virtual NomeCampo : tipo_interno;
+*& E no behavior pool (clas.locals_imp) o método deve preencher result-NomeCampo.
+*&---------------------------------------------------------------------*
+
+
+*&=====================================================================*
+*& MÉTODO ORIGINAL (para referência)
+*&=====================================================================*
+
+  METHOD get_materiais_ordem.
+
+    DATA ls_materiais_compat TYPE ztbs2m_mat_compa.
+    DATA lt_materiais_compat TYPE TABLE OF ztbs2m_mat_compa.
+
+    DATA: lv_ok    TYPE i VALUE 0.
+    DATA: lv_tabix TYPE sy-tabix.
+
+    " 1. Obter grupos de receita para material/planta
+    SELECT DISTINCT billofoperationsgroup
+      FROM i_masterrecipematerialassgmt
+      WHERE plant    IN @ir_plant
+        AND material IN @ir_material
+      INTO TABLE @DATA(lt_grupo_mat).
+
+    IF sy-subrc IS INITIAL.
+
+      SORT lt_grupo_mat BY billofoperationsgroup.
+      DELETE ADJACENT DUPLICATES FROM lt_grupo_mat COMPARING billofoperationsgroup.
+
+      " 2. Buscar dados de compatibilidade pelos grupos da receita
+      SELECT *
+        FROM zi_s2m_materiais_compat
+        FOR ALL ENTRIES IN @lt_grupo_mat
+        WHERE grupo = @lt_grupo_mat-billofoperationsgroup
+        INTO TABLE @DATA(lt_materiais).
+
+      IF sy-subrc IS INITIAL.
+
+        " 3. Dedup para obter combinações únicas (base do pivot)
+        DATA(lt_materiais_aux) = lt_materiais.
+        SORT lt_materiais_aux BY material centro billofoperationstype grupo lote deposito.
+        DELETE ADJACENT DUPLICATES FROM lt_materiais_aux
+          COMPARING material centro billofoperationstype grupo lote deposito.
+        SORT lt_materiais BY material centro billofoperationstype grupo lote deposito.
+
+        " 4. Pivot manual: agrupa as 3 características numa única linha
+        LOOP AT lt_materiais_aux ASSIGNING FIELD-SYMBOL(<fs_materiais_aux>).
+          lv_tabix = sy-tabix.
+          CLEAR lv_ok.
+          ls_materiais_compat = CORRESPONDING #( <fs_materiais_aux> ).
+
+          LOOP AT lt_materiais ASSIGNING FIELD-SYMBOL(<fs_grupo_mat>)
+            WHERE material          = <fs_materiais_aux>-material
+              AND centro            = <fs_materiais_aux>-centro
+              AND billofoperationstype = <fs_materiais_aux>-billofoperationstype
+              AND grupo             = <fs_materiais_aux>-grupo
+              AND lote              = <fs_materiais_aux>-lote
+              AND deposito          = <fs_materiais_aux>-deposito.
+
+            CASE <fs_grupo_mat>-charcinternalid.
+              WHEN '991'.
+                ls_materiais_compat-charcinternalid  = <fs_grupo_mat>-charcinternalid.
+                lv_ok = lv_ok + 1.
+              WHEN '998'.
+                ls_materiais_compat-charcinternalid2 = <fs_grupo_mat>-charcinternalid.
+                lv_ok = lv_ok + 1.
+              WHEN '1031'.
+                ls_materiais_compat-charcinternalid3 = <fs_grupo_mat>-charcinternalid.
+                lv_ok = lv_ok + 1.
+              WHEN OTHERS.
+                lv_ok = lv_ok + 1.
+            ENDCASE.
+
+            IF lv_ok > 3.
+              EXIT.
+            ENDIF.
+
+          ENDLOOP.
+
+          " 5. Só inclui se as 3 características estão presentes
+          IF lv_ok NE 3.
+            DELETE lt_materiais WHERE material             = <fs_materiais_aux>-material
+                                  AND centro              = <fs_materiais_aux>-centro
+                                  AND billofoperationstype = <fs_materiais_aux>-billofoperationstype
+                                  AND grupo               = <fs_materiais_aux>-grupo
+                                  AND lote                = <fs_materiais_aux>-lote
+                                  AND deposito            = <fs_materiais_aux>-deposito.
+          ELSEIF lv_ok EQ 3.
+            APPEND ls_materiais_compat TO et_materiais_compat.
+          ENDIF.
+
+        ENDLOOP.
+
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.

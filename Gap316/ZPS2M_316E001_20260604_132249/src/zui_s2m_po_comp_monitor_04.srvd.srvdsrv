@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service Definition - Process Order'
+define service ZUI_S2M_PO_COMP_MONITOR_04 {
+  expose ZC_S2M_PO_COMP_MONITOR;
+  expose ZC_S2M_MATERIAIS_COMPATIVEIS;
+}

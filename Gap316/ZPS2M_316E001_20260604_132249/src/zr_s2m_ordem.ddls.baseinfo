@@ -1,0 +1,9 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "I_MFGORDERSTATUS",
+      "I_PRODUCT",
+      "ZI_S2M_ORDEM"
+    ]
+  }
+}

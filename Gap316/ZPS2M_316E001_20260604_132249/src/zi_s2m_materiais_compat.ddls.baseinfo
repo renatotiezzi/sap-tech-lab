@@ -1,0 +1,11 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "I_MASTERRECIPEMATERIALASSGMT",
+      "I_PRODUCT",
+      "NSDM_E_MCHB",
+      "R_BATCHCHARACTERISTICVALUETP",
+      "ZI_S2M_PRODUCTIONVERSION"
+    ]
+  }
+}

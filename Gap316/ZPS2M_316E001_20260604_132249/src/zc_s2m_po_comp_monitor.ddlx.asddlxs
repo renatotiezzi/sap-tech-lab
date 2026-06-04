@@ -1,0 +1,120 @@
+@Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Ordem',
+    typeNamePlural: 'Ordens',
+    title: { type: #STANDARD,
+    value: 'ManufacturingOrder'
+   }
+  }
+}
+@UI.presentationVariant: [{
+requestAtLeast: [ 'UpdateTable' ],
+sortOrder: [{ by: 'Reservation', direction: #ASC }]
+}]
+annotate entity ZC_S2M_PO_COMP_MONITOR with
+{
+  @UI.facet: [ {
+       id: 'idOrder',
+       purpose: #STANDARD,
+       type: #IDENTIFICATION_REFERENCE,
+       label: 'Ordem',
+       position: 10
+     },{
+
+        id: 'idMaterial',
+        purpose: #STANDARD,
+        position: 20,
+        label: 'Materiais',
+        type: #LINEITEM_REFERENCE,
+        targetElement: '_Materiais'
+    }]
+
+  @UI:{ lineItem: [{ position: 10
+   }
+           ],
+
+    identification: [{ position: 10 }
+    ]
+    }
+  @Consumption.filter.hidden: true
+  Reservation;
+
+  @UI.lineItem           : [{ position: 20 }]
+  @UI.identification     : [{ position: 20 }]
+  //  @EndUserText.label     : 'Tipo'
+  @Consumption.filter.hidden: true
+  ReservationItem;
+
+  @UI.lineItem           : [{ position: 25 }]
+  @UI.identification     : [{ position: 25 }]
+  //  @EndUserText.label     : 'Tipo'
+  //    @Consumption           : { hidden: true}
+  ReservationRecordType;
+
+  @UI.lineItem           : [{ position: 30 }]
+  @UI.identification     : [{ position: 30 }]
+  //  @EndUserText.label     : 'Tipo'
+  @Consumption.filter.hidden: true
+  MaterialGroup;
+
+  @UI.lineItem           : [{ position: 40 }]
+  @UI.identification     : [{ position: 40 }]
+  @UI.selectionField: [{ position: 40  }]
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_PRODUCT', element: 'Product' },
+        distinctValues       : true, useForValidation: true }] }
+        @EndUserText.label     : 'Produto'
+  material;
+
+  @UI.lineItem           : [{ position: 41 }]
+  @UI.identification     : [{ position: 41 }]
+  @UI.selectionField: [{ position: 41  }]
+  @EndUserText.label     : 'Texto produto'
+  MaterialName;
+
+  @UI.lineItem           : [{ position: 42 }]
+  @UI.identification     : [{ position: 42 }]
+  @UI.selectionField: [{ position: 42  }]
+  MaterialOrdem;
+  
+  @UI.lineItem           : [{ position: 44 }]
+  @UI.identification     : [{ position: 44 }]
+  @UI.selectionField: [{ position: 44  }]
+  MaterialOrdemName;
+
+
+  @UI.lineItem           : [{ position: 50 }]
+  @UI.identification     : [{ position: 50 }]
+  @UI.selectionField: [{ position: 50  }]
+  //  @EndUserText.label     : 'Tipo'
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_Plant', element: 'Plant' },
+        distinctValues       : true, useForValidation: true }] }
+  plant;
+
+  @UI.lineItem           : [{ position: 05 }]
+  @UI.identification     : [{ position: 05 }]
+  @UI.selectionField: [{ position: 05  }]
+  //  @EndUserText.label     : 'Tipo'
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_ManufacturingOrder', element: 'ManufacturingOrder' },
+        distinctValues       : true, useForValidation: true }] }
+  ManufacturingOrder;
+
+  @Consumption.filter.defaultValue: 'X'
+  @UI.hidden: true
+  @Consumption.filter.hidden: true
+  @UI.lineItem: [{ hidden: true }]
+  UpdateTable;
+
+  @UI.lineItem           : [{ position: 60 }]
+  @UI.identification     : [{ position: 60 }]
+
+  @Consumption.filter.hidden: true
+  RequiredQuantity;
+
+}

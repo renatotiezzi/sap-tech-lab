@@ -1,0 +1,14 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZR_S2M_MATERIAIS_COMPATIVEIS"
+    ],
+    "ASSOCIATED": [
+      "ZC_S2M_PO_COMP_MONITOR",
+      "ZR_S2M_PO_COMP_MONITOR"
+    ],
+    "BASE": [
+      "ZR_S2M_MATERIAIS_COMPATIVEIS"
+    ]
+  }
+}

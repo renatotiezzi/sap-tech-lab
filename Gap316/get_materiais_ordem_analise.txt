@@ -8,8 +8,122 @@
 *&---------------------------------------------------------------------*
 *&
 *& =====================================================================*
-*& PROBLEMA REAL — GRUPO ERRADO NO FLUXO DO APP
+*& PROBLEMA REAL — GRUPO ERRADO GRAVADO NO BUFFER
 *& =====================================================================*
+*&
+*& Dado correto em ZI_S2M_MATERIAIS_COMPAT:
+*&   material 30001500 → grupo 50000087   ← FONTE DA VERDADE
+*&
+*& Dado que aparece em ZI_S2M_MATERIAIS_COMPATIVEIS (buffer):
+*&   reservation 4841/6 → grupos 50000066 e 50000060   ← ERRADO
+*&
+*& Conclusão: a SADL exit grava no buffer um grupo diferente do que
+*& está cadastrado na ZI_S2M_MATERIAIS_COMPAT para o mesmo material.
+*&
+*& =====================================================================*
+*& CAUSA RAIZ — ROTA ERRADA PARA CHEGAR AO GRUPO
+*& =====================================================================*
+*&
+*& GET_MATERIAIS_ORDEM NÃO consulta ZI_S2M_MATERIAIS_COMPAT pelo material
+*& para obter o grupo. Ela faz um DESVIO via receita:
+*&
+*&   PASSO 1 — buscar grupo pela receita (CAMINHO ERRADO):
+*&     SELECT billofoperationsgroup
+*&       FROM i_masterrecipematerialassgmt
+*&       WHERE material = 30001500
+*&     → retorna grupos 50000066 e 50000060  (grupos da receita do produto)
+*&
+*&   PASSO 2 — usar esses grupos para filtrar ZI_S2M_MATERIAIS_COMPAT:
+*&     SELECT FROM zi_s2m_materiais_compat
+*&       WHERE grupo IN (50000066, 50000060)
+*&     → encontra materiais 30001000 e 31409000 (que têm esses grupos)
+*&     → o material 30001500 com grupo 87 NUNCA é consultado desta forma
+*&
+*& O grupo 87 existe em ZI_S2M_MATERIAIS_COMPAT para material 30001500,
+*& mas o código nunca pergunta "qual grupo tem o material 30001500 em
+*& ZI_S2M_MATERIAIS_COMPAT?" — ele faz a pergunta errada:
+*& "quais grupos tem o material 30001500 na RECEITA?"
+*&
+*& São dois conceitos diferentes chamados de "grupo":
+*&
+*&   billofoperationsgroup (I_MASTERRECIPEMATERIALASSGMT)
+*&     → grupo da RECEITA de fabricação
+*&     → 30001500 está em receitas dos grupos 66 e 60
+*&
+*&   grupo (ZI_S2M_MATERIAIS_COMPAT)
+*&     → grupo de COMPATIBILIDADE do componente
+*&     → 30001500 pertence ao grupo 87
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& CORREÇÃO — CONSULTAR ZI_S2M_MATERIAIS_COMPAT PELO MATERIAL DIRETAMENTE:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& A query correta é:
+*&
+*&   1. Para cada componente da reserva (material = 30001500):
+*&      SELECT DISTINCT grupo
+*&        FROM zi_s2m_materiais_compat
+*&        WHERE material = 30001500
+*&      → retorna grupo 50000087
+*&
+*&   2. Buscar todos os materiais desse grupo de compatibilidade:
+*&      SELECT FROM zi_s2m_materiais_compat
+*&        WHERE grupo = 50000087
+*&      → retorna os substitutos reais do componente 30001500
+*&
+*& Elimina completamente o passo de I_MASTERRECIPEMATERIALASSGMT.
+*& O vínculo correto é: componente → grupo de compatibilidade → substitutos.
+*& Não: componente → receita de fabricação → grupos da receita → materiais dos grupos.
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& INVESTIGAÇÃO A FAZER PARA CONFIRMAR:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& 1. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: material = 30001500
+*&    → Confirmar grupo = 50000087
+*&    → Confirmar charcinternalid 991/998/1031 existem para esse grupo
+*&
+*& 2. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: grupo = 50000087
+*&    → Ver quais outros materiais estão no grupo 87 (são os substitutos reais)
+*&
+*& 3. SE16N → I_MASTERRECIPEMATERIALASSGMT
+*&    Filtrar: material = 30001500, plant = 4815
+*&    → Confirmar que retorna grupos 66 e 60 (não 87)
+*&    → Isso confirma que a passagem por essa tabela é o desvio errado
+*&
+*& =====================================================================*
+*& ARQUITETURA CDS STACK (contexto)
+*& =====================================================================*
+*&
+*&   [ LISTA / MONITOR ]
+*&   ZC_S2M_PO_COMP_MONITOR (projection)
+*&     ↑ ZR_S2M_PO_COMP_MONITOR (transactional root)
+*&         ↑ ZI_S2M_PO_COMP_MONITOR (interface/base)
+*&         composition [0..*] of ZR_S2M_MATERIAIS_COMPATIVEIS as _Materiais
+*&
+*&   [ OBJECT PAGE — aba Materiais ]
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS (projection on ZR_S2M_MATERIAIS_COMPATIVEIS)
+*&     ↑ ZR_S2M_MATERIAIS_COMPATIVEIS
+*&         select distinct from ZI_S2M_MATERIAIS_COMPATIVEIS   ← lê do BUFFER
+*&         association to parent ZR_S2M_PO_COMP_MONITOR on reservation/item
+*&
+*&   [ BUFFER ]
+*&   ZTBS2M_MAT_COMPA — populado pela SADL exit com grupos ERRADOS (66/60)
+*&                     — deveria ter grupo 87
+*&
+*&   [ SADL EXIT ]
+*&   ZCLS2M_MAT_CARACT_CALC → MAP_ATOM → GET_MATERIAIS_ORDEM
+*&   Rota atual:  material → I_MASTERRECIPEMATERIALASSGMT → grupos receita → ZI_COMPAT
+*&   Rota correta: material → ZI_S2M_MATERIAIS_COMPAT direto → grupo 87 → substitutos
+*&
+*&---------------------------------------------------------------------*
+
+
+*&=====================================================================*
+*& MÉTODO ORIGINAL (para referência)
+*&=====================================================================*
 *&
 *& O que deveria aparecer no app   : grupo final 87 (50000087)
 *& O que aparece no app            : grupos 66 e 60 (50000066 / 50000060)

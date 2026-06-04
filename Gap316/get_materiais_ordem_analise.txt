@@ -8,8 +8,109 @@
 *&---------------------------------------------------------------------*
 *&
 *& =====================================================================*
-*& PROBLEMA REAL — GRUPO ERRADO GRAVADO NO BUFFER
+*& CAUSA RAIZ CONFIRMADA PELOS DADOS — DOIS PROBLEMAS INDEPENDENTES
 *& =====================================================================*
+*&
+*& PROBLEMA 1 — DADO INCOMPLETO: grupo 87 sem as 3 características
+*& ─────────────────────────────────────────────────────────────────────
+*& ZI_S2M_MATERIAIS_COMPAT para material 30001500 + grupo 50000087:
+*&   Todos os lotes têm APENAS charcinternalid = 1031
+*&   Nenhum lote tem charcinternalid 991
+*&   Nenhum lote tem charcinternalid 998
+*&
+*& No pivot do GET_MATERIAIS_ORDEM:
+*&   LOOP AT lt_materiais WHERE grupo = 50000087 AND material = 30001500...
+*&     CASE charcinternalid:
+*&       WHEN '991' → lv_ok + 1   ← NUNCA ocorre
+*&       WHEN '998' → lv_ok + 1   ← NUNCA ocorre
+*&       WHEN '1031'→ lv_ok + 1   ← ocorre, lv_ok = 1
+*&     ENDCASE.
+*&   ENDLOOP.
+*&   → lv_ok = 1, lv_ok NE 3 → DELETE → grupo 87 EXCLUÍDO do buffer
+*&
+*& Material 30001400 + grupo 87: mesmo problema — tem 991 e 1031, falta 998
+*&   → lv_ok = 2 → também excluído
+*&
+*& COMPARAÇÃO com materiais que PASSAM (grupos 66/60):
+*&   30001000 + grp 66 + lote 0001033 (depósito 0201 e Z998): tem 991 + 998 + 1031 → lv_ok=3 ✓
+*&   30001000 + grp 66 + lote 0001034 (depósito 0201)         : tem 991 + 998 + 1031 → lv_ok=3 ✓
+*&   31409000 + grp 60 + lote LOTEGABS                        : tem 991 + 998 + 1031 → lv_ok=3 ✓
+*&   30001000 + grp 66 + lote 0001035 (depósito 0201)         : só 991 + 1031 → lv_ok=2 → excluído
+*&
+*& PROBLEMA 2 — ROTA ERRADA: o código nem chega ao grupo 87
+*& ─────────────────────────────────────────────────────────────────────
+*& GET_MATERIAIS_ORDEM não consulta ZI_S2M_MATERIAIS_COMPAT pelo material
+*& diretamente. Ela passa por I_MASTERRECIPEMATERIALASSGMT primeiro:
+*&
+*&   material 30001500 → I_MASTERRECIPEMATERIALASSGMT → grupos 66 e 60
+*&   → SELECT FROM zi_s2m_materiais_compat WHERE grupo IN (66, 60)
+*&   → grupo 87 nunca é consultado
+*&
+*& Os grupos 66/60 são grupos da RECEITA de fabricação do produto.
+*& O grupo 87 é o grupo de COMPATIBILIDADE do componente 30001500.
+*& São conceitos diferentes. O código confunde os dois.
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& RESUMO — O QUE PRECISA SER CORRIGIDO:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& FIX 1 — DADOS (sem isso nada funciona mesmo que o código seja corrigido):
+*&   Cadastrar em ZI_S2M_MATERIAIS_COMPAT para grupo 50000087:
+*&   → charcinternalid 991 para os materiais do grupo 87
+*&   → charcinternalid 998 para os materiais do grupo 87
+*&   Sem as 3 características, lv_ok nunca chega a 3 → excluído do buffer
+*&
+*& FIX 2 — CÓDIGO (rota errada via receita):
+*&   Substituir a query por I_MASTERRECIPEMATERIALASSGMT por consulta
+*&   direta em ZI_S2M_MATERIAIS_COMPAT pelo material do componente:
+*&
+*&   " ANTES (errado):
+*&   SELECT DISTINCT billofoperationsgroup
+*&     FROM i_masterrecipematerialassgmt
+*&     WHERE material IN @ir_material  " retorna grupos da receita: 66/60
+*&   SELECT FROM zi_s2m_materiais_compat WHERE grupo IN (lt_grupo_mat)
+*&
+*&   " DEPOIS (correto):
+*&   SELECT DISTINCT grupo
+*&     FROM zi_s2m_materiais_compat
+*&     WHERE material IN @ir_material  " retorna grupo de compatibilidade: 87
+*&   SELECT FROM zi_s2m_materiais_compat WHERE grupo IN (lt_grupo_compat)
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& EVIDÊNCIA DOS DADOS (lt_mat.xls — ZI_S2M_MATERIAIS_COMPAT):
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   Material   | Grupo    | CharIntID | Passa lv_ok=3?
+*&   30001500   | 50000087 | 1031 only | NÃO → lv_ok=1 → excluído
+*&   30001400   | 50000087 | 991+1031  | NÃO → lv_ok=2 → excluído
+*&   30001000   | 50000066 | 991+998+1031 | SIM → lv_ok=3 → no buffer
+*&   31409000   | 50000060 | 991+998+1031 | SIM → lv_ok=3 → no buffer
+*&   31240500   | 50000060 | 991+998+1031 | SIM → lv_ok=3 → no buffer
+*&   31401200   | 50000060 | 991+998+1031 | SIM → lv_ok=3 → no buffer
+*&   31236098   | 50000055 | 1031 only | NÃO → lv_ok=1 → excluído
+*&
+*&   lt_mat_fim.xls (et_materiais_compat após pivot — reservation=0 pois
+*&   ainda não foi vinculado pela MAP_ATOM):
+*&   → 30001000 grp 66: 3 lotes confirmados ✓
+*&   → 31409000 grp 60: 1 lote (LOTEGABS) ✓
+*&   → 31240500 grp 60 e 31401200 grp 60: também entram
+*&   → 30001500 grp 87: AUSENTE (lv_ok=1)
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& ORDEM DE CORREÇÃO:
+*& ─────────────────────────────────────────────────────────────────────
+*&   1. Confirmar quais materiais do grupo 87 existem
+*&      (SE16N → ZI_S2M_MATERIAIS_COMPAT, filtro grupo=50000087)
+*&   2. Para cada material do grupo 87: cadastrar charcinternalid 991 e 998
+*&   3. Validar se o Fix 1 resolve o comportamento esperado
+*&   4. Se ainda não mostrar grupo 87: aplicar Fix 2 (rota via ZI direto)
+*&
+*&---------------------------------------------------------------------*
+
+
+*&=====================================================================*
+*& MÉTODO ORIGINAL (para referência)
+*&=====================================================================*
 *&
 *& Dado correto em ZI_S2M_MATERIAIS_COMPAT:
 *&   material 30001500 → grupo 50000087   ← FONTE DA VERDADE

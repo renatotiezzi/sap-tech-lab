@@ -37,30 +37,40 @@
 *&     31409000 | 4815 | Grupo 50000060 | Depósito H401 | Lote LOTEGABS
 *&
 *& =====================================================================*
-*& BUG IDENTIFICADO — LOOP INTERNO SEM FILTRO (CROSS-JOIN)
+*& DESIGN INTENCIONAL — REBUILD TOTAL DO BUFFER A CADA ABERTURA DO APP
 *& =====================================================================*
 *&
-*& No método MAP_ATOM, ao popular ZTBS2M_MAT_COMPA, o loop interno não
-*& filtra os materiais compatíveis pelo material da ordem corrente:
+*& O MAP_ATOM rodar uma vez por abertura do app e reconstruir o buffer
+*& inteiro É O DESIGN CORRETO. Não é um problema.
+*& Propósito: garantir que o buffer está sempre atualizado com o estado
+*& atual das ordens antes do SELECT principal da CDS executar.
+*& O filtro dummy "PLANT IS NOT NULL" força isso na sequência correta.
 *&
-*&   LOOP AT lt_comp_monitor ...          " itera cada ordem
-*&     ...
-*&     LOOP AT lt_materiais_compat ...    " << SEM WHERE → pega TODOS
-*&       ls_mat_compativeis-reservation = ls_ordem-reservation.
-*&       APPEND ls_mat_compativeis TO lt_mat_compativeis.
+*& =====================================================================*
+*& BUG IDENTIFICADO — LOOP INTERNO VINCULA MATERIAIS ERRADOS POR ORDEM
+*& =====================================================================*
+*&
+*& O problema NÃO é quando roda — é O QUE é gravado no buffer.
+*&
+*& GET_MATERIAIS_ORDEM retorna uma lista FLAT de todos os materiais
+*& compatíveis de TODOS os materiais/grupos consultados juntos.
+*& Ex: ordens com material 30001000 (grupo 66) e 31409000 (grupo 60)
+*& → lt_materiais_compat contém compatíveis do grupo 66 E do grupo 60.
+*&
+*& O loop externo itera cada ordem. O loop interno deveria pegar apenas
+*& os compatíveis do material DAQUELA ordem — mas SEM WHERE pega todos:
+*&
+*&   LOOP AT lt_comp_monitor ...              " Ordem A (material 30001000)
+*&     LOOP AT lt_materiais_compat ...        " << pega compatíveis do 30001000 E do 31409000
+*&       ls_mat_compativeis-reservation = ls_ordem-reservation.  " vincula tudo à Ordem A
 *&     ENDLOOP.
 *&   ENDLOOP.
 *&
-*& Resultado: para cada ordem, TODOS os materiais compatíveis de TODOS
-*& os materiais de TODAS as ordens são gravados no buffer com aquela
-*& reserva/item/tipo — independente de serem compatíveis com aquela
-*& ordem específica.
+*& Resultado: Ordem A (material 30001000) recebe no buffer os compatíveis
+*& do 31409000 também — e vice-versa. A tela mostra materiais que não têm
+*& relação com o material daquela ordem específica.
 *&
-*& Exemplo com 3 ordens e 5 materiais compatíveis totais:
-*&   Geração de 3 × 5 = 15 linhas no buffer → 12 incorretas
-*&
-*& CORREÇÃO: adicionar WHERE no loop interno para filtrar pelo material
-*& da ordem corrente (e idealmente pelo grupo da receita):
+*& CORREÇÃO: filtrar lt_materiais_compat pelo material da ordem corrente:
 *&
 *&   LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
 *&     WHERE material = <fs_comp_monitor>-material.   " << FILTRO CORRETO

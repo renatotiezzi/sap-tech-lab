@@ -88,8 +88,11 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
             ls_ordem-orderoperationinternalid = <fs_comp_monitor>-orderoperationinternalid.
             APPEND ls_ordem TO lt_ordem.
 
-            " *** BUG ORIGINAL: sem WHERE → cross-join (todos compatíveis em toda ordem)
-            " *** CORREÇÃO: filtrar pelo material da ordem corrente
+            " *** DESIGN: rebuild total do buffer a cada abertura do app é INTENCIONAL.
+            " *** BUG: sem WHERE, lt_materiais_compat contém compatíveis de TODOS os
+            " ***      materiais juntos. O loop vincula os compatíveis do material 31409000
+            " ***      à reserva do material 30001000 e vice-versa — dados errados por ordem.
+            " *** CORREÇÃO: filtrar pelo material da ordem corrente.
             LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
               WHERE material = <fs_comp_monitor>-material.   "<<< CORREÇÃO
 

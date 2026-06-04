@@ -8,8 +8,92 @@
 *&---------------------------------------------------------------------*
 *&
 *& =====================================================================*
-*& ARQUITETURA COMPLETA — CDS STACK E FLUXO DO APP
+*& PROBLEMA REAL — GRUPO ERRADO NO FLUXO DO APP
 *& =====================================================================*
+*&
+*& O que deveria aparecer no app   : grupo final 87 (50000087)
+*& O que aparece no app            : grupos 66 e 60 (50000066 / 50000060)
+*&
+*& ZI_S2M_MATERIAIS_COMPAT         → tem grupo 87  (dado de compatibilidade correto)
+*& ZI_S2M_MATERIAIS_COMPATIVEIS    → tem grupos 66 e 60 (buffer populado com grupo errado)
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& ONDE O GRUPO SE PERDE — FLUXO GET_MATERIAIS_ORDEM:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& PASSO 1 — MAP_ATOM lê ZR_S2M_ORDEM:
+*&   → lt_comp_monitor: material = 30001500 (ou 30001505?), plant = 4815
+*&   → DÚVIDA: ZR_S2M_ORDEM faz inner join I_Product ON Material = Product
+*&     Isso pode significar que o Material retornado é o PRODUTO da OP,
+*&     não o componente da reserva.
+*&
+*& PASSO 2 — GET_MATERIAIS_ORDEM faz:
+*&   SELECT billofoperationsgroup
+*&     FROM i_masterrecipematerialassgmt
+*&     WHERE material IN @ir_material
+*&   → retorna grupos 50000066 e 50000060  (grupos da RECEITA do produto)
+*&
+*& PASSO 3 — GET_MATERIAIS_ORDEM usa esses grupos para buscar compatíveis:
+*&   SELECT FROM zi_s2m_materiais_compat WHERE grupo IN (50000066, 50000060)
+*&   → encontra materiais 30001000 e 31409000
+*&   → mas o grupo CORRETO deveria ser 50000087
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& HIPÓTESE — DOIS CONCEITOS DIFERENTES DE "GRUPO":
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   billofoperationsgroup (receita / I_MASTERRECIPEMATERIALASSGMT)
+*&     → grupos 50000066 e 50000060
+*&     → representa grupos da receita do produto manufaturado
+*&
+*&   Grupo em ZI_S2M_MATERIAIS_COMPAT (compatibilidade de componentes)
+*&     → grupo 50000087
+*&     → representa o grupo de compatibilidade DO COMPONENTE (30001500)
+*&
+*&   O código assume que são o mesmo campo — NÃO SÃO.
+*&   Grupos 66/60 são da receita do produto → não existem em zi_s2m_materiais_compat
+*&   para o componente 30001500 com os dados esperados.
+*&   Grupo 87 é o grupo de compatibilidade do componente 30001500 → não é retornado
+*&   por i_masterrecipematerialassgmt com o material passado.
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& INVESTIGAÇÃO NECESSÁRIA NO SISTEMA:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& 1. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: grupo = 50000087
+*&    → Ver qual material está associado (deve ser 30001500?)
+*&    → Ver quais charcinternalid existem (991/998/1031?)
+*&
+*& 2. SE16N → I_MASTERRECIPEMATERIALASSGMT (ou tabela base MAPL/MAST)
+*&    Filtrar: material = 30001500, plant = 4815
+*&    → Quais billofoperationsgroup retorna?
+*&    → Retorna 50000087? Ou retorna 66/60?
+*&    → Retorna NADA? (material sem receita própria)
+*&
+*& 3. SE16N → I_MASTERRECIPEMATERIALASSGMT
+*&    Filtrar: billofoperationsgroup = 50000087
+*&    → Ver qual material está vinculado a esse grupo
+*&    → Se for o PRODUTO (30001505) e não o componente (30001500):
+*&      a query deveria passar o produto, não o componente
+*&
+*& 4. ZR_S2M_ORDEM: confirmar qual é o valor de Material para a reserva 4841
+*&    → É 30001500 (componente) ou 30001505 (produto da OP)?
+*&    → O inner join com I_Product sugere que pode ser o produto
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& CORREÇÃO PROVÁVEL:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*& Se I_MASTERRECIPEMATERIALASSGMT com material = 30001505 (PRODUTO) retorna 50000087:
+*&   → MAP_ATOM está passando o material errado (componente 30001500 ao invés do produto)
+*&   → Correção: usar ManufacturingOrder para buscar o produto → buscar receita → grupo 87
+*&
+*& Se I_MASTERRECIPEMATERIALASSGMT não tem 30001500 nem 30001505 com grupo 87:
+*&   → O grupo 87 vem de outra fonte (não de i_masterrecipematerialassgmt)
+*&   → Correção: ZI_S2M_MATERIAIS_COMPAT deve ser consultada diretamente
+*&     pelo material do componente (sem passar pela receita) — JOIN direto
+*&
 *&
 *& O Fiori app usa DOIS caminhos CDS:
 *&

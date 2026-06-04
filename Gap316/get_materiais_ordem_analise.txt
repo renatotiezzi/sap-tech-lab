@@ -7,27 +7,123 @@
 *&                    IF_SADL_EXIT_CALC_ELEMENT_READ (calculate / get_calculation_info)
 *&---------------------------------------------------------------------*
 *&
-*& ARQUITETURA GERAL
+*& =====================================================================*
+*& ARQUITETURA COMPLETA — CDS STACK E FLUXO DO APP
+*& =====================================================================*
+*&
+*& O Fiori app usa DOIS caminhos CDS:
+*&
+*&   [ LISTA / MONITOR ]
+*&   ZC_S2M_PO_COMP_MONITOR (projection)
+*&     ↑ ZR_S2M_PO_COMP_MONITOR (transactional root)
+*&         ↑ ZI_S2M_PO_COMP_MONITOR (interface/base)
+*&         composition [0..*] of ZR_S2M_MATERIAIS_COMPATIVEIS as _Materiais
+*&
+*&   [ OBJECT PAGE — aba Materiais ]
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS (projection)
+*&     ↑ ZR_S2M_MATERIAIS_COMPATIVEIS (transactional)
+*&         select distinct from ZI_S2M_MATERIAIS_COMPATIVEIS   ← lê do BUFFER
+*&         association to parent ZR_S2M_PO_COMP_MONITOR
+*&           on reservation + reservation_item + record_type
+*&
+*&   [ SADL EXIT — dispara na abertura do app ]
+*&   SADL Exit está em: ZI_S2M_ORDEM ou ZI_S2M_PO_COMP_MONITOR
+*&   (campo UPDATETABLE anotado com @ObjectModel.filter.transformedBy)
+*&   MAP_ATOM lê de: ZR_S2M_ORDEM
+*&
 *& ─────────────────────────────────────────────────────────────────────
-*& NÃO é um campo virtual RAP — é uma SADL Exit em uma CDS view.
-*& O campo UPDATETABLE é declarado na CDS como elemento de filtro virtual
-*& anotado com @ObjectModel.filter.transformedBy = 'ZCLS2M_MAT_CARACT_CALC'.
-*&
-*& Fluxo toda vez que o app executa o SELECT da CDS:
-*&
-*&   1. SADL chama MAP_ATOM antes do SELECT principal
-*&   2. MAP_ATOM lê TODOS os pedidos de ZR_S2M_ORDEM (sem filtro de chave)
-*&   3. Extrai listas únicas de PLANT e MATERIAL
-*&   4. Chama ZCLS2M_MATERIAIS_ORDEM->GET_MATERIAIS_ORDEM
-*&   5. Faz INSERT nas tabelas buffer ZTBS2M_ORDEM e ZTBS2M_MAT_COMPA
-*&   6. Retorna filtro dummy "PLANT IS NOT NULL" para evitar DUMP
-*&   → O SELECT principal da CDS então lê os dados das tabelas buffer recém populadas
-*&
-*& TABELAS BUFFER
+*& DISTINÇÃO CRÍTICA — DOIS CDS COM NOMES PARECIDOS:
 *& ─────────────────────────────────────────────────────────────────────
-*&   ZTBS2M_ORDEM       — buffer de ordens (chave: reservation/item/record_type)
-*&   ZTBS2M_MAT_COMPA   — buffer de materiais compatíveis (pivot das 3 características)
 *&
+*&   ZI_S2M_MATERIAIS_COMPAT        (nome curto — sem "IVEIS")
+*&     → usado em GET_MATERIAIS_ORDEM
+*&     → SEM chave reservation/item
+*&     → representa compatibilidade de material/grupo (dado mestre)
+*&
+*&   ZI_S2M_MATERIAIS_COMPATIVEIS   (nome completo — com "IVEIS")
+*&     → usado por ZR_S2M_MATERIAIS_COMPATIVEIS
+*&     → TEM chave reservation/item
+*&     → lê de ZTBS2M_MAT_COMPA (tabela buffer populada pela SADL exit)
+*&
+*&   São CDS DIFERENTES. O buffer conecta os dois mundos:
+*&   GET_MATERIAIS_ORDEM usa ZI_COMPAT (sem chave) →
+*&   MAP_ATOM adiciona a chave manualmente via loop →
+*&   INSERT em ZTBS2M_MAT_COMPA →
+*&   ZI_COMPATIVEIS lê o buffer e "tem" a chave →
+*&   ZR_S2M_MATERIAIS_COMPATIVEIS usa a association ao parent →
+*&   Fiori object page exibe os materiais
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& COMO A CHAVE 4841 + 6 É CONSTRUÍDA NO BUFFER:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   1. MAP_ATOM faz SELECT * FROM zr_s2m_ordem
+*&      → lt_comp_monitor: (reservation=4841, item=6, material=30001500, plant=4815)
+*&
+*&   2. GET_MATERIAIS_ORDEM chamado com:
+*&      ir_material = range( 30001500 )   ← COMPONENTE da reserva
+*&      ir_plant    = range( 4815 )
+*&
+*&   3. Dentro de GET_MATERIAIS_ORDEM:
+*&      SELECT billofoperationsgroup FROM i_masterrecipematerialassgmt
+*&        WHERE material IN (30001500) AND plant IN (4815)
+*&      → grupos: 50000066, 50000060
+*&
+*&      SELECT FROM zi_s2m_materiais_compat WHERE grupo IN (50000066, 50000060)
+*&      → et_materiais_compat: material=30001000(grp66), material=31409000(grp60)
+*&      → NÃO TEM reservation/item nessa lista
+*&
+*&   4. De volta em MAP_ATOM, loop:
+*&      outer: <fs_comp_monitor> = (4841, 6, 30001500)
+*&        inner: ls_mat_compativeis = 30001000
+*&               ls_mat_compativeis-reservation      = 4841   ← ATRIBUIÇÃO MANUAL
+*&               ls_mat_compativeis-reservation_item = 6      ← ATRIBUIÇÃO MANUAL
+*&               APPEND → lt_mat_compativeis
+*&        inner: ls_mat_compativeis = 31409000
+*&               ls_mat_compativeis-reservation      = 4841   ← ATRIBUIÇÃO MANUAL
+*&               ls_mat_compativeis-reservation_item = 6      ← ATRIBUIÇÃO MANUAL
+*&               APPEND → lt_mat_compativeis
+*&
+*&   5. INSERT lt_mat_compativeis INTO ztbs2m_mat_compa
+*&      → buffer contém: (4841, 6, 30001000) e (4841, 6, 31409000)   ✓ CONFIRMADO SE16N
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& MATERIAL vs PRODUTO — ZR_S2M_ORDEM vs ZR_S2M_PO_COMP_MONITOR:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   ZR_S2M_PO_COMP_MONITOR.material = 30001500  ← COMPONENTE da reserva (OLEO HAVOLINE)
+*&   ZR_S2M_PO_COMP_MONITOR.Material (última col SE16N) = 30001505 ← PRODUTO da OP
+*&
+*&   ZR_S2M_ORDEM.Material = 30001500  ← mesmo campo: componente (não produto)
+*&   (ZR_S2M_ORDEM joins I_Product ON Material = Product AND ZZ1_Gr_aproveitamento != '0'
+*&    → filtra apenas componentes que têm o grupo de aproveitamento configurado)
+*&
+*&   A SADL exit passa material=30001500 para GET_MATERIAIS_ORDEM.
+*&   GET_MATERIAIS_ORDEM usa esse material no SELECT de I_MASTERRECIPEMATERIALASSGMT.
+*&
+*&   DÚVIDA EM ABERTO: em I_MASTERRECIPEMATERIALASSGMT, o campo Material
+*&   é o PRODUTO que a receita produz ou o COMPONENTE atribuído à receita?
+*&   → Se for PRODUTO: deveria passar ManufacturingOrder → produto 30001505 → receita → grupos
+*&   → Se for COMPONENTE: atual está correto (30001500 → grupos 50000066/50000060)
+*&   → Os screenshots confirmam que o buffer é populado corretamente para o caso teste
+*&      (os grupos 50000066/50000060 estão corretos), mas a semântica do campo
+*&      precisa ser confirmada para garantir que funciona em todos os cenários
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& DADO CONFIRMADO (SE16N):
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   ZC_S2M_PO_COMP_MONITOR (reserva 4841, item 6):
+*&     Material componente : 30001500  | Produto OP: 30001505
+*&     Item 7: 11000003 | Item 8: 11069799 | Item 9: 14330001
+*&
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS (reserva 4841, item 6):
+*&     30001000 | grp 50000066 | charcinternalid 991/998/1031 ✓
+*&     30001000 | grp 50000066 | charcinternalid 991/998/1031 ✓ (lote diferente)
+*&     31409000 | grp 50000060 | charcinternalid 991/998/1031 ✓
+*&   → Buffer populado corretamente. SADL exit funcionou para este caso.
+*&
+*& ─────────────────────────────────────────────────────────────────────
 *& TELA (print Ordem 2000661)
 *& ─────────────────────────────────────────────────────────────────────
 *&   Produto : 30001500 | Plant : 4815 | Reserva: 4841 | Item: 6

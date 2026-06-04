@@ -37,46 +37,98 @@
 *&     31409000 | 4815 | Grupo 50000060 | Depósito H401 | Lote LOTEGABS
 *&
 *& =====================================================================*
-*& HIPÓTESE RAIZ — CDS ERRADA COMO FONTE DE DADOS
+*& CAUSA RAIZ CONFIRMADA — CONFUSÃO PRODUTO vs MATERIAL COMPATÍVEL
 *& =====================================================================*
 *&
-*& FUNDAMENTAL: as duas CDS têm estruturas DIFERENTES:
+*& DADO REAL DO SISTEMA (SE16N):
 *&
-*&   ZI_S2M_MATERIAIS_COMPAT        — base/interface CDS
-*&     → campos: material, centro, grupo, lote, deposito, charcinternalid...
-*&     → SEM chave de reserva (reservation, reservation_item)
-*&     → representa compatibilidade de MATERIAL/GRUPO — não de ORDEM
+*&   ZC_S2M_PO_COMP_MONITOR — reserva 4841, item 6:
+*&     Material (componente) : 30001500  ← PRODUTO (OLEO HAVOLINE)
+*&     Produto acabado       : 30001505
 *&
-*&   ZC_S2M_MATERIAIS_COMPATIVEIS   — consumption CDS
-*&     → TEM a chave reservation + reservation_item
-*&     → representa compatibilidade já vinculada à ORDEM/RESERVA
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS — reserva 4841, item 6:
+*&     Material compatível   : 30001000  ← SUBSTITUTO do 30001500
+*&     Material compatível   : 31409000  ← SUBSTITUTO do 30001500
 *&
-*& O método GET_MATERIAIS_ORDEM lê de ZI_S2M_MATERIAIS_COMPAT (sem chave).
-*& O retorno et_materiais_compat NÃO traz reservation/reservation_item.
+*& São materiais DIFERENTES com papéis DIFERENTES:
+*&   30001500 = o PRODUTO da reserva (está em ZR_S2M_ORDEM / monitor)
+*&   30001000, 31409000 = SUBSTITUTOS compatíveis (resultado da busca na receita)
 *&
-*& Em MAP_ATOM, o código tenta criar esse vínculo MANUALMENTE via loop:
+*& ─────────────────────────────────────────────────────────────────────
+*& FLUXO REAL DO GET_MATERIAIS_ORDEM:
+*& ─────────────────────────────────────────────────────────────────────
+*&   ir_material = range com 30001500 (vem de ZR_S2M_ORDEM)
 *&
-*&   LOOP AT lt_comp_monitor ...           " cada ordem (tem reservation/item)
-*&     LOOP AT lt_materiais_compat ...     " cada compatível (SEM reservation)
-*&       ls_mat_compativeis-reservation = ls_ordem-reservation.   " montagem manual
-*&     ENDLOOP.
+*&   SELECT DISTINCT billofoperationsgroup
+*&     FROM i_masterrecipematerialassgmt
+*&     WHERE material IN (30001500)          → grupos 50000066, 50000060
+*&
+*&   SELECT * FROM zi_s2m_materiais_compat
+*&     WHERE grupo IN (50000066, 50000060)   → materiais 30001000, 31409000
+*&
+*&   RETURN et_materiais_compat com: material=30001000/31409000, grupo=50000066/50000060
+*&   → SEM 30001500 no retorno, SEM reservation/item
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& BUG CONFIRMADO NO LOOP DE MAP_ATOM:
+*& ─────────────────────────────────────────────────────────────────────
+*&
+*&   LOOP AT lt_comp_monitor ...        " material = 30001500, reserva = 4841/6
+*&     LOOP AT lt_materiais_compat ...  " material = 30001000 ou 31409000
 *&   ENDLOOP.
 *&
-*& PROBLEMA FUNDAMENTAL: se a CDS de origem não tem a chave de reserva,
-*& o vínculo "qual compatível pertence a qual ordem" NÃO está no dado —
-*& está sendo construído por lógica de loop, sujeita a erro.
+*& OPÇÃO A — loop SEM filtro (código original):
+*&   → Cross-join: toda ordem recebe TODOS os compatíveis de TODAS as ordens
+*&   → Dados no buffer com chave reservation/item errada
 *&
-*& ZC_S2M_MATERIAIS_COMPATIVEIS já traz reservation + item como chave.
-*& Isso sugere que ESSA é a fonte correta para popular o buffer — não ZI.
-*& Se lida com os filtros corretos (plant + material), devolve os
-*& compatíveis já atrelados à reserva certa, sem necessidade do loop manual.
+*& OPÇÃO B — loop COM WHERE material = <fs_comp_monitor>-material:
+*&   → WHERE material = 30001500 vs lt_materiais_compat com 30001000/31409000
+*&   → ZERO matches → buffer completamente vazio → tela em branco
+*&   → *** PIOR do que sem filtro ***
+*&
+*& O LINK CORRETO não é pelo material — é pelo GRUPO (billofoperationsgroup):
+*&   30001500 → recipe groups 50000066, 50000060
+*&   grupo 50000066 → compatível 30001000
+*&   grupo 50000060 → compatível 31409000
+*&   Logo: 4841/6 (material 30001500) → compatíveis 30001000 e 31409000
+*&
+*& GET_MATERIAIS_ORDEM descarta esse mapeamento ao montar et_materiais_compat:
+*& retorna os compatíveis MAS não retorna qual material-fonte (30001500) gerou
+*& cada grupo — a informação de vínculo se perde antes do MAP_ATOM.
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& DIFERENÇA ENTRE ZI e ZC:
+*& ─────────────────────────────────────────────────────────────────────
+*&   ZI_S2M_MATERIAIS_COMPAT        → sem chave de reserva (só material/grupo)
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS   → COM chave reservation + reservation_item
+*&
+*& ZC é projection on ZR_S2M_MATERIAIS_COMPATIVEIS com association
+*& _Componente redirected to parent ZC_S2M_PO_COMP_MONITOR.
+*& Isso significa que ZC já sabe a chave da reserva — ela lê de ZTBS2M_MAT_COMPA
+*& (a tabela buffer) usando a chave reservation/item.
+*& Mas o buffer (ZTBS2M_MAT_COMPA) é populado pela SADL exit — círculo vicioso:
+*& se a SADL exit grava a chave errada → ZC lê dados errados → tela vazia.
+*&
+*& ─────────────────────────────────────────────────────────────────────
+*& CORREÇÃO NECESSÁRIA — mapear via GRUPO, não via MATERIAL:
+*& ─────────────────────────────────────────────────────────────────────
+*&   GET_MATERIAIS_ORDEM deve retornar também o campo "material_fonte"
+*&   (o material 30001500 que originou a busca do grupo), para que MAP_ATOM
+*&   possa filtrar: compatíveis do grupo 50000066 → vinculados à ordem
+*&   que tem material_fonte = 30001500.
+*&
+*&   OU: fazer a query dentro do MAP_ATOM em dois passos:
+*&     1. Para cada lt_comp_monitor (material 30001500, reserva 4841/6):
+*&        buscar grupos da receita → grupos 50000066/50000060
+*&     2. Filtrar lt_materiais_compat WHERE grupo IN (50000066, 50000060)
+*&        → vincula 30001000/31409000 à reserva 4841/6
 *&
 *& *** A INVESTIGAR NO SISTEMA: ***
-*&   - Ver definição de ZC_S2M_MATERIAIS_COMPATIVEIS (qual JOIN ela faz para
-*&     trazer reservation/item — provavelmente JOIN com ZTBS2M_ORDEM ou
-*&     com a receita via billofoperations + material)
-*&   - Verificar se substituir ZI por ZC no GET_MATERIAIS_ORDEM resolve
-*&     o vínculo sem precisar do loop manual em MAP_ATOM
+*&   - Ver ZR_S2M_MATERIAIS_COMPATIVEIS: qual join faz para ter reservation/item?
+*&     Provavelmente: join com ZTBS2M_ORDEM por (material, plant) ou
+*&     join via billofoperationsgroup → I_MASTERRECIPEMATERIALASSGMT → reserva
+*&   - Confirmar se ZTBS2M_MAT_COMPA está realmente sendo populada com
+*&     chave 4841/6 corretamente ou se os dados do SE16N são de outra fonte
 *&
 *& =====================================================================*
 *& DESIGN INTENCIONAL — REBUILD TOTAL DO BUFFER A CADA ABERTURA DO APP

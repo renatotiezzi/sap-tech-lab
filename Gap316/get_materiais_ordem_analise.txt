@@ -37,6 +37,48 @@
 *&     31409000 | 4815 | Grupo 50000060 | Depósito H401 | Lote LOTEGABS
 *&
 *& =====================================================================*
+*& HIPÓTESE RAIZ — CDS ERRADA COMO FONTE DE DADOS
+*& =====================================================================*
+*&
+*& FUNDAMENTAL: as duas CDS têm estruturas DIFERENTES:
+*&
+*&   ZI_S2M_MATERIAIS_COMPAT        — base/interface CDS
+*&     → campos: material, centro, grupo, lote, deposito, charcinternalid...
+*&     → SEM chave de reserva (reservation, reservation_item)
+*&     → representa compatibilidade de MATERIAL/GRUPO — não de ORDEM
+*&
+*&   ZC_S2M_MATERIAIS_COMPATIVEIS   — consumption CDS
+*&     → TEM a chave reservation + reservation_item
+*&     → representa compatibilidade já vinculada à ORDEM/RESERVA
+*&
+*& O método GET_MATERIAIS_ORDEM lê de ZI_S2M_MATERIAIS_COMPAT (sem chave).
+*& O retorno et_materiais_compat NÃO traz reservation/reservation_item.
+*&
+*& Em MAP_ATOM, o código tenta criar esse vínculo MANUALMENTE via loop:
+*&
+*&   LOOP AT lt_comp_monitor ...           " cada ordem (tem reservation/item)
+*&     LOOP AT lt_materiais_compat ...     " cada compatível (SEM reservation)
+*&       ls_mat_compativeis-reservation = ls_ordem-reservation.   " montagem manual
+*&     ENDLOOP.
+*&   ENDLOOP.
+*&
+*& PROBLEMA FUNDAMENTAL: se a CDS de origem não tem a chave de reserva,
+*& o vínculo "qual compatível pertence a qual ordem" NÃO está no dado —
+*& está sendo construído por lógica de loop, sujeita a erro.
+*&
+*& ZC_S2M_MATERIAIS_COMPATIVEIS já traz reservation + item como chave.
+*& Isso sugere que ESSA é a fonte correta para popular o buffer — não ZI.
+*& Se lida com os filtros corretos (plant + material), devolve os
+*& compatíveis já atrelados à reserva certa, sem necessidade do loop manual.
+*&
+*& *** A INVESTIGAR NO SISTEMA: ***
+*&   - Ver definição de ZC_S2M_MATERIAIS_COMPATIVEIS (qual JOIN ela faz para
+*&     trazer reservation/item — provavelmente JOIN com ZTBS2M_ORDEM ou
+*&     com a receita via billofoperations + material)
+*&   - Verificar se substituir ZI por ZC no GET_MATERIAIS_ORDEM resolve
+*&     o vínculo sem precisar do loop manual em MAP_ATOM
+*&
+*& =====================================================================*
 *& DESIGN INTENCIONAL — REBUILD TOTAL DO BUFFER A CADA ABERTURA DO APP
 *& =====================================================================*
 *&

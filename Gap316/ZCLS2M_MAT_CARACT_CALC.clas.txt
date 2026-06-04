@@ -1,0 +1,130 @@
+CLASS zcls2m_mat_caract_calc DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_sadl_exit.
+    INTERFACES if_sadl_exit_filter_transform.
+    INTERFACES if_sadl_exit_calc_element_read.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_common_fields,
+        updatetable TYPE string VALUE 'UPDATETABLE',
+      END OF c_common_fields.
+
+ENDCLASS.
+
+CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
+
+  METHOD if_sadl_exit_calc_element_read~calculate.
+  ENDMETHOD.
+
+  METHOD if_sadl_exit_calc_element_read~get_calculation_info.
+  ENDMETHOD.
+
+  METHOD if_sadl_exit_filter_transform~map_atom.
+
+    DATA(lo_cfac) = cl_sadl_cond_prov_factory_pub=>create_simple_cond_factory( ).
+
+    DATA(lo_materiais_ordem) = NEW zcls2m_materiais_ordem( ).
+
+    DATA: ls_ordem           TYPE ztbs2m_ordem.
+    DATA: lt_ordem           TYPE TABLE OF ztbs2m_ordem.
+    DATA: ls_mat_compativeis TYPE ztbs2m_mat_compa.
+    DATA: lt_mat_compativeis TYPE TABLE OF ztbs2m_mat_compa.
+
+    DATA lr_plant    TYPE t_range_werks.
+    DATA lsr_plant   LIKE LINE OF lr_plant.
+
+    CASE iv_element.
+
+      WHEN c_common_fields-updatetable.
+
+        " 1. Ler todas as ordens com reserva
+        SELECT *
+          FROM zr_s2m_ordem
+          WHERE reservation IS NOT INITIAL
+          INTO TABLE @DATA(lt_comp_monitor).
+
+        " 2. Montar range de plantas únicas
+        DATA(lt_plant) = lt_comp_monitor.
+        SORT lt_plant BY plant.
+        DELETE ADJACENT DUPLICATES FROM lt_plant COMPARING plant.
+        lr_plant = VALUE t_range_werks(
+          FOR ls IN lt_plant ( sign = 'I' option = 'EQ' low = ls-plant ) ).
+
+        " 3. Montar range de materiais únicos
+        DATA(lt_material) = lt_comp_monitor.
+        SORT lt_material BY material.
+        DELETE ADJACENT DUPLICATES FROM lt_material COMPARING material.
+        DATA(lr_material) = VALUE surdpt_material_range(
+          FOR ls IN lt_material ( sign = 'I' option = 'EQ' low = ls-material ) ).
+
+        DELETE lt_comp_monitor WHERE reservation IS INITIAL.
+
+        " 4. Obter materiais compatíveis (pivot 991/998/1031)
+        lo_materiais_ordem->get_materiais_ordem(
+          EXPORTING
+            ir_plant    = lr_plant
+            ir_material = lr_material
+          IMPORTING
+            et_materiais_compat = DATA(lt_materiais_compat) ).
+
+        " 5. Montar buffer: cruzar cada ordem com seus materiais compatíveis
+        IF lt_materiais_compat IS NOT INITIAL.
+
+          LOOP AT lt_comp_monitor ASSIGNING FIELD-SYMBOL(<fs_comp_monitor>).
+
+            ls_ordem-reservation              = <fs_comp_monitor>-reservation.
+            ls_ordem-reservation_item         = <fs_comp_monitor>-reservationitem.
+            ls_ordem-reservation_record_type  = <fs_comp_monitor>-reservationrecordtype.
+            ls_ordem-material_group           = <fs_comp_monitor>-materialgroup.
+            ls_ordem-material                 = <fs_comp_monitor>-material.
+            ls_ordem-plant                    = <fs_comp_monitor>-plant.
+            ls_ordem-manufacturing_order      = <fs_comp_monitor>-manufacturingorder.
+            ls_ordem-orderoperationinternalid = <fs_comp_monitor>-orderoperationinternalid.
+            APPEND ls_ordem TO lt_ordem.
+
+            " *** BUG ORIGINAL: sem WHERE → cross-join (todos compatíveis em toda ordem)
+            " *** CORREÇÃO: filtrar pelo material da ordem corrente
+            LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
+              WHERE material = <fs_comp_monitor>-material.   "<<< CORREÇÃO
+
+              ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ).
+              ls_mat_compativeis-reservation             = ls_ordem-reservation.
+              ls_mat_compativeis-reservation_item        = ls_ordem-reservation_item.
+              ls_mat_compativeis-reservation_record_type = ls_ordem-reservation_record_type.
+              APPEND ls_mat_compativeis TO lt_mat_compativeis.
+
+            ENDLOOP.
+
+          ENDLOOP.
+
+        ENDIF.
+
+        " *** MELHORIA: limpar buffer antes de inserir para evitar dados obsoletos
+        "     (opcional — avaliar impacto de concorrência)
+        " DELETE FROM ztbs2m_ordem.
+        " DELETE FROM ztbs2m_mat_compa.
+
+        IF lt_ordem IS NOT INITIAL.
+          lo_materiais_ordem->insert_ordem( EXPORTING it_ordem = lt_ordem ).
+        ENDIF.
+
+        IF lt_mat_compativeis IS NOT INITIAL.
+          lo_materiais_ordem->insert_materiais( EXPORTING it_mat_compativeis = lt_mat_compativeis ).
+        ENDIF.
+
+    ENDCASE.
+
+    " Dummy filter para não gerar DUMP — propósito: forçar execução do MAP_ATOM
+    " antes do SELECT principal (buffer já populado quando CDS executa)
+    DATA(lo_doccomp) = lo_cfac->element( 'PLANT' ).
+    ro_condition = lo_doccomp->is_not_null( ).
+
+  ENDMETHOD.
+
+ENDCLASS.

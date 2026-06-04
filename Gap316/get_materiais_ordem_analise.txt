@@ -1,107 +1,138 @@
 *&---------------------------------------------------------------------*
-*& Método: GET_MATERIAIS_ORDEM
-*& Classe: (identificar no sistema — chamada pelo virtual field do RAP)
-*& Gap:    316
+*& Gap 316 — Análise: SADL Exit + Buffer Update + Campo sem dados
+*&
+*& Classe SADL Exit : ZCLS2M_MAT_CARACT_CALC
+*& Classe de negócio: ZCLS2M_MATERIAIS_ORDEM  (método GET_MATERIAIS_ORDEM)
+*& Interfaces       : IF_SADL_EXIT_FILTER_TRANSFORM (map_atom)
+*&                    IF_SADL_EXIT_CALC_ELEMENT_READ (calculate / get_calculation_info)
 *&---------------------------------------------------------------------*
 *&
-*& CONTEXTO RAP
+*& ARQUITETURA GERAL
 *& ─────────────────────────────────────────────────────────────────────
-*& - Campo virtual no RAP não exibe valor na tela do Fiori.
-*& - Quando o RAP é chamado (READ), ele dispara esta classe/método.
-*& - O método lê ZI_S2M_MATERIAIS_COMPAT e devolve a tabela
-*&   et_materiais_compat (tipo ZTBS2M_MAT_COMPA) para o campo virtual.
+*& NÃO é um campo virtual RAP — é uma SADL Exit em uma CDS view.
+*& O campo UPDATETABLE é declarado na CDS como elemento de filtro virtual
+*& anotado com @ObjectModel.filter.transformedBy = 'ZCLS2M_MAT_CARACT_CALC'.
 *&
-*& FLUXO DE DADOS
+*& Fluxo toda vez que o app executa o SELECT da CDS:
+*&
+*&   1. SADL chama MAP_ATOM antes do SELECT principal
+*&   2. MAP_ATOM lê TODOS os pedidos de ZR_S2M_ORDEM (sem filtro de chave)
+*&   3. Extrai listas únicas de PLANT e MATERIAL
+*&   4. Chama ZCLS2M_MATERIAIS_ORDEM->GET_MATERIAIS_ORDEM
+*&   5. Faz INSERT nas tabelas buffer ZTBS2M_ORDEM e ZTBS2M_MAT_COMPA
+*&   6. Retorna filtro dummy "PLANT IS NOT NULL" para evitar DUMP
+*&   → O SELECT principal da CDS então lê os dados das tabelas buffer recém populadas
+*&
+*& TABELAS BUFFER
 *& ─────────────────────────────────────────────────────────────────────
-*& 1. Recebe IR_PLANT (range de plantas) e IR_MATERIAL (range de materiais)
-*& 2. SELECT DISTINCT billofoperationsgroup FROM I_MASTERRECIPEMATERIALASSGMT
-*&    → obtém os grupos de receita para o material/planta informado
-*& 3. SELECT FROM ZI_S2M_MATERIAIS_COMPAT WHERE grupo IN (grupos da receita)
-*&    → retorna N linhas por combinação (material/centro/tipo/grupo/lote/depósito)
-*&      cada linha com um charcinternalid diferente (991, 998, 1031)
-*& 4. Consolidação (pivot manual):
-*&    - Itera lista única de combinações (lt_materiais_aux após dedup)
-*&    - Para cada combinação, agrupa as 3 linhas (WHEN 991/998/1031)
-*&      em um único registro com campos charcinternalid / charcinternalid2 / charcinternalid3
-*&    - SÓ inclui no resultado se lv_ok = 3 (todas as 3 características presentes)
-*&    - Se lv_ok < 3 → DELETE da combinação em lt_materiais (não vai para o output)
+*&   ZTBS2M_ORDEM       — buffer de ordens (chave: reservation/item/record_type)
+*&   ZTBS2M_MAT_COMPA   — buffer de materiais compatíveis (pivot das 3 características)
 *&
-*& PROBLEMA IDENTIFICADO — DIFERENÇA DE GRUPO
+*& TELA (print Ordem 2000661)
 *& ─────────────────────────────────────────────────────────────────────
-*& ZI_S2M_MATERIAIS_COMPAT  (view base / interface):
-*&   → grupo = 50000087  (print: material 30001500, plant 4815)
+*&   Produto : 30001500 | Plant : 4815 | Reserva: 4841 | Item: 6
+*&   Materiais exibidos na aba "Materiais" (3 linhas):
+*&     30001000 | 4815 | Grupo 50000066 | Depósito 0201 | Lote 0000001033
+*&     30001000 | 4815 | Grupo 50000066 | Depósito 0201 | Lote 0000001034
+*&     31409000 | 4815 | Grupo 50000060 | Depósito H401 | Lote LOTEGABS
 *&
-*& ZC_S2M_MATERIAIS_COMPATIVEIS (view de consumo / Fiori):
-*&   → grupo = 50000066 / 50000060  (print: materiais 30001000 / 31409000)
+*& =====================================================================*
+*& BUG IDENTIFICADO — LOOP INTERNO SEM FILTRO (CROSS-JOIN)
+*& =====================================================================*
 *&
-*& Hipótese 1 — DADOS INCORRETOS NA RECEITA
-*&   I_MASTERRECIPEMATERIALASSGMT retorna grupo 50000066/60 para o material
-*&   pesquisado, mas ZI_S2M_MATERIAIS_COMPAT só tem dados para grupo 50000087.
-*&   Resultado: sy-subrc ≠ 0 no SELECT → método não retorna nada → campo virtual vazio.
+*& No método MAP_ATOM, ao popular ZTBS2M_MAT_COMPA, o loop interno não
+*& filtra os materiais compatíveis pelo material da ordem corrente:
 *&
-*& Hipótese 2 — MAPEAMENTO AUSENTE
-*&   O grupo retornado pela receita (66/60) é diferente do grupo de compatibilidade
-*&   (87). Seria necessário um de-para ou um critério de agrupamento diferente
-*&   na view ZI_S2M_MATERIAIS_COMPAT para ligar os dois.
+*&   LOOP AT lt_comp_monitor ...          " itera cada ordem
+*&     ...
+*&     LOOP AT lt_materiais_compat ...    " << SEM WHERE → pega TODOS
+*&       ls_mat_compativeis-reservation = ls_ordem-reservation.
+*&       APPEND ls_mat_compativeis TO lt_mat_compativeis.
+*&     ENDLOOP.
+*&   ENDLOOP.
 *&
-*& Hipótese 3 — FILTRO NA VIEW DE CONSUMO
-*&   ZC_S2M_MATERIAIS_COMPATIVEIS tem um filtro/join adicional que exclui o
-*&   grupo 87 e só expõe 66/60, mas a view base (ZI) tem todos.
-*&   Nesse caso o método leria dados que a tela não exibe.
+*& Resultado: para cada ordem, TODOS os materiais compatíveis de TODOS
+*& os materiais de TODAS as ordens são gravados no buffer com aquela
+*& reserva/item/tipo — independente de serem compatíveis com aquela
+*& ordem específica.
 *&
-*& PONTOS A INVESTIGAR NO SISTEMA
-*& ─────────────────────────────────────────────────────────────────────
-*& 1. SE16N → I_MASTERRECIPEMATERIALASSGMT
-*&    Filtrar: MATERIAL = 30001000 (ou 31409000), PLANT = 4815
-*&    Verificar qual BILLOFOPERATIONSGROUP é retornado
-*&    → Esperado: 50000066 ou 50000060
+*& Exemplo com 3 ordens e 5 materiais compatíveis totais:
+*&   Geração de 3 × 5 = 15 linhas no buffer → 12 incorretas
 *&
-*& 2. SE16N → ZI_S2M_MATERIAIS_COMPAT
-*&    Filtrar: GRUPO = 50000066 E GRUPO = 50000060
-*&    Verificar se existem entradas com CHARCINTERNALID = 991, 998 E 1031
-*&    → Se não existirem as 3 características: método deleta e não retorna nada
+*& CORREÇÃO: adicionar WHERE no loop interno para filtrar pelo material
+*& da ordem corrente (e idealmente pelo grupo da receita):
 *&
-*& 3. SE16N → ZI_S2M_MATERIAIS_COMPAT
-*&    Filtrar: GRUPO = 50000087
-*&    Verificar se existem as 3 características (991/998/1031)
-*&    → Se só o 87 tem as 3 → receita está apontando para grupo errado
+*&   LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
+*&     WHERE material = <fs_comp_monitor>-material.   " << FILTRO CORRETO
 *&
-*& 4. ADT → ZC_S2M_MATERIAIS_COMPATIVEIS.ddls
-*&    Verificar se há filtro explícito de grupo ou join que difere da ZI base
+*& =====================================================================*
+*& POR QUE O CAMPO FICA VAZIO ÀS VEZES
+*& =====================================================================*
 *&
-*& 5. Identificar a classe que contém GET_MATERIAIS_ORDEM (where-used do método)
-*&    e verificar como o campo virtual é declarado no BDEF (tipo %virt ou computed)
+*& O campo UPDATETABLE em si é dummy/hidden — sua finalidade é APENAS
+*& disparar o MAP_ATOM. O dado real vem das tabelas buffer.
+*& O campo aparece vazio nos seguintes cenários:
 *&
-*& CAUSA RAIZ MAIS PROVÁVEL (baseado nos prints)
-*& ─────────────────────────────────────────────────────────────────────
-*& Os prints mostram materiais DIFERENTES nas duas views (30001000/31409000 vs 30001500).
-*& Isso indica que NÃO é a mesma execução sendo comparada.
-*& A ZI mostra dados de compatibilidade cadastrados para grupo 87 (material 30001500).
-*& A ZC mostra a execução do campo virtual para os materiais 30001000/31409000,
-*& cujos grupos de receita são 66 e 60.
+*& Cenário 1 — GET_MATERIAIS_ORDEM não retorna nada (causa mais provável)
+*&   → Para os materiais 30001000 / 31409000, a receita
+*&     (I_MASTERRECIPEMATERIALASSGMT) retorna grupos 50000066 e 50000060.
+*&   → Se ZI_S2M_MATERIAIS_COMPAT NÃO tem as 3 características
+*&     (charcinternalid 991 + 998 + 1031) para esses grupos,
+*&     lv_ok < 3 → DELETE → ET_MATERIAIS_COMPAT vazia.
+*&   → lt_materiais_compat vazia → nenhum INSERT no buffer → tela em branco.
 *&
-*& CENÁRIO DE FALHA:
-*&   Material 30001000 → receita retorna grupo 50000066
-*&   SELECT FROM ZI_S2M_MATERIAIS_COMPAT WHERE grupo = '50000066'
-*&   → Se não há entrada OU não tem as 3 características: campo virtual vazio
+*& Cenário 2 — Loop interno sem filtro (bug acima)
+*&   → Os dados gravados no buffer podem estar com reservation/item errada
+*&   → O SELECT da CDS não encontra o registro com a chave correta → vazio
 *&
-*& AÇÃO CORRETIVA SUGERIDA
-*& ─────────────────────────────────────────────────────────────────────
-*& Opção A (dados): Cadastrar em ZI_S2M_MATERIAIS_COMPAT (tabela base)
-*&   as 3 linhas (charcinternalid 991, 998, 1031) para os grupos 50000066 e 50000060
-*&   dos materiais 30001000 e 31409000, plant 4815.
+*& Cenário 3 — INSERT sem DELETE prévio do buffer
+*&   → Não há DELETE nas tabelas buffer antes do INSERT
+*&   → Se o job/exit rodar mais de uma vez, pode haver duplicatas ou
+*&     dados obsoletos de ordens antigas, misturando resultados
 *&
-*& Opção B (lógica): Se a receita usa grupo diferente do grupo de compatibilidade
-*&   por design, criar de-para em tabela Z ou ajustar ZI_S2M_MATERIAIS_COMPAT
-*&   para incluir join com a receita e usar o grupo correto.
+*& =====================================================================*
+*& INVESTIGAÇÃO A FAZER NO SISTEMA
+*& =====================================================================*
 *&
-*& LEMBRETE RAP — CAMPO VIRTUAL
-*& ─────────────────────────────────────────────────────────────────────
-*& Campo virtual não é persistido → sempre recalculado no READ.
-*& Se o método não preenche ET_MATERIAIS_COMPAT, o campo aparece vazio/initial.
-*& Verificar BDEF: virtual field deve estar declarado como:
-*&   virtual NomeCampo : tipo_interno;
-*& E no behavior pool (clas.locals_imp) o método deve preencher result-NomeCampo.
+*& 1. SE16N → ZI_S2M_MATERIAIS_COMPAT
+*&    Filtrar: GRUPO = 50000066 e GRUPO = 50000060
+*&    Verificar: existem linhas com charcinternalid = 991, 998 e 1031?
+*&    → Se não: causa raiz confirmada (cenário 1) — cadastrar as 3 linhas
+*&
+*& 2. SE16N → ZTBS2M_MAT_COMPA (buffer)
+*&    Verificar se há entradas para reservation=4841, item=6
+*&    → Se não: MAP_ATOM não populou o buffer → GET_MATERIAIS_ORDEM vazio
+*&    → Se sim com dados errados: bug do loop sem filtro (cenário 2)
+*&
+*& 3. SE16N → ZR_S2M_ORDEM
+*&    Verificar quais materiais e plantas estão sendo passados para GET_MATERIAIS_ORDEM
+*&    → confirmar que 30001000/31409000 e planta 4815 estão na query
+*&
+*& =====================================================================*
+*& AÇÕES CORRETIVAS SUGERIDAS
+*& =====================================================================*
+*&
+*& AÇÃO 1 (dados — pré-requisito):
+*&   Cadastrar em ZI_S2M_MATERIAIS_COMPAT (tabela base) as 3 linhas
+*&   (charcinternalid 991, 998, 1031) para os grupos 50000066 e 50000060,
+*&   materiais 30001000 e 31409000, plant 4815.
+*&   Sem isso, GET_MATERIAIS_ORDEM nunca retorna para esses materiais.
+*&
+*& AÇÃO 2 (código — bug loop):
+*&   Adicionar filtro WHERE no loop interno de lt_materiais_compat
+*&   para evitar o cross-join:
+*&
+*&     LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
+*&       WHERE material = <fs_comp_monitor>-material.
+*&
+*& AÇÃO 3 (código — limpeza buffer):
+*&   Adicionar DELETE nas tabelas buffer antes do INSERT para evitar
+*&   dados obsoletos / duplicatas em execuções repetidas:
+*&
+*&     DELETE FROM ztbs2m_ordem.
+*&     DELETE FROM ztbs2m_mat_compa.
+*&   (ou DELETE WHERE baseado nas reservas do lt_comp_monitor)
+*&
 *&---------------------------------------------------------------------*
 
 

@@ -33,26 +33,23 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
     DATA(lo_cfac) = cl_sadl_cond_prov_factory_pub=>create_simple_cond_factory( ).
 
-    DATA(lo_materiais_ordem) = NEW zcls2m_materiais_ordem(  ).
+    DATA(lo_materiais_ordem) = NEW zcls2m_materiais_ordem( ).
 
-    DATA: ls_ordem TYPE ztbs2m_ordem.
-    DATA: lt_ordem TYPE TABLE OF ztbs2m_ordem.
+    DATA: ls_ordem           TYPE ztbs2m_ordem.
+    DATA: lt_ordem           TYPE TABLE OF ztbs2m_ordem.
     DATA: ls_mat_compativeis TYPE ztbs2m_mat_compa.
     DATA: lt_mat_compativeis TYPE TABLE OF ztbs2m_mat_compa.
 
-    DATA(system_uuid) = cl_uuid_factory=>create_system_uuid( ).
-
     DATA lr_plant TYPE t_range_werks.
-    DATA lsr_plant LIKE LINE OF lr_plant.
 
     CASE iv_element.
 
       WHEN c_common_fields-updatetable.
 
         SELECT *
-        FROM zr_s2m_ordem
-        WHERE reservation IS NOT INITIAL
-        INTO  TABLE @DATA(lt_comp_monitor).
+          FROM zr_s2m_ordem
+          WHERE reservation IS NOT INITIAL
+          INTO TABLE @DATA(lt_comp_monitor).
 
         DATA(lt_plant) = lt_comp_monitor.
         SORT lt_plant BY plant.
@@ -68,31 +65,30 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
         DELETE ADJACENT DUPLICATES FROM lt_material COMPARING material.
 
         DATA(lr_material) = VALUE surdpt_material_range(
-         FOR ls IN lt_material
-         ( sign = 'I' option = 'EQ' low = ls-material )
-       ).
+          FOR ls IN lt_material
+          ( sign = 'I' option = 'EQ' low = ls-material )
+        ).
 
         DELETE lt_comp_monitor WHERE reservation IS INITIAL.
 
         lo_materiais_ordem->get_materiais_ordem(
-        EXPORTING
-            ir_plant = lr_plant
+          EXPORTING
+            ir_plant    = lr_plant
             ir_material = lr_material
-        IMPORTING
+          IMPORTING
             et_materiais_compat = DATA(lt_materiais_compat)
-         ).
+        ).
 
 *&---------------------------------------------------------------------*
-*& Ajuste V1 — FIX 2: Evitar cross-join no loop interno
+*& FIX 2: Evitar cross-join no loop interno
 *&
-*& Problema original: LOOP AT lt_materiais_compat sem filtro por material
-*& vinculava TODOS os compatíveis a TODAS as reservas.
+*& Problema original: LOOP AT lt_materiais_compat sem filtro vinculava
+*& TODOS os compatíveis de TODAS as ordens a CADA reserva.
 *&
-*& Solução: obter o grupo de compatibilidade de cada material componente
-*& (via zi_s2m_materiais_compat) e filtrar o loop interno por esse grupo.
+*& Solução: obter mapeamento material_componente → grupo_compatibilidade
+*& via ZI_S2M_MATERIAIS_COMPAT e usar loop triplo filtrado.
 *& Cada reserva recebe apenas os compatíveis do SEU grupo.
 *&---------------------------------------------------------------------*
-        " FIX 2: Buscar mapeamento material → grupo de compatibilidade
         DATA: BEGIN OF ls_mat_grp,
                 material TYPE ztbs2m_mat_compa-material,
                 grupo    TYPE ztbs2m_mat_compa-grupo,
@@ -100,7 +96,8 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
         DATA lt_mat_grupo_map LIKE TABLE OF ls_mat_grp.
 
         IF lr_material IS NOT INITIAL.
-          SELECT DISTINCT material AS material, grupo AS grupo
+          SELECT DISTINCT material AS material,
+                          grupo    AS grupo
             FROM zi_s2m_materiais_compat
             WHERE material IN @lr_material
             INTO CORRESPONDING FIELDS OF TABLE @lt_mat_grupo_map.
@@ -110,28 +107,28 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
           LOOP AT lt_comp_monitor ASSIGNING FIELD-SYMBOL(<fs_comp_monitor>).
 
-            ls_ordem-reservation = <fs_comp_monitor>-reservation.
-            ls_ordem-reservation_item = <fs_comp_monitor>-reservationitem.
-            ls_ordem-reservation_record_type = <fs_comp_monitor>-reservationrecordtype.
-            ls_ordem-material_group = <fs_comp_monitor>-materialgroup.
-            ls_ordem-material = <fs_comp_monitor>-material.
-            ls_ordem-plant = <fs_comp_monitor>-plant.
-            ls_ordem-manufacturing_order = <fs_comp_monitor>-manufacturingorder.
+            ls_ordem-reservation              = <fs_comp_monitor>-reservation.
+            ls_ordem-reservation_item         = <fs_comp_monitor>-reservationitem.
+            ls_ordem-reservation_record_type  = <fs_comp_monitor>-reservationrecordtype.
+            ls_ordem-material_group           = <fs_comp_monitor>-materialgroup.
+            ls_ordem-material                 = <fs_comp_monitor>-material.
+            ls_ordem-plant                    = <fs_comp_monitor>-plant.
+            ls_ordem-manufacturing_order      = <fs_comp_monitor>-manufacturingorder.
             ls_ordem-orderoperationinternalid = <fs_comp_monitor>-orderoperationinternalid.
 
             APPEND ls_ordem TO lt_ordem.
 
 *           FIX 2: iterar pelos grupos deste material componente
-*           (em vez de pegar todos os lt_materiais_compat sem distinção)
             LOOP AT lt_mat_grupo_map ASSIGNING FIELD-SYMBOL(<fs_mat_grp>)
               WHERE material = <fs_comp_monitor>-material.
 
+*             FIX 2: filtrar compatíveis apenas pelo grupo do material
               LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
-                WHERE grupo = <fs_mat_grp>-grupo.   " << FILTRO CORRETO por grupo
+                WHERE grupo = <fs_mat_grp>-grupo.
 
-                ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ) .
-                ls_mat_compativeis-reservation = ls_ordem-reservation.
-                ls_mat_compativeis-reservation_item = ls_ordem-reservation_item.
+                ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ).
+                ls_mat_compativeis-reservation             = ls_ordem-reservation.
+                ls_mat_compativeis-reservation_item        = ls_ordem-reservation_item.
                 ls_mat_compativeis-reservation_record_type = ls_ordem-reservation_record_type.
 
                 APPEND ls_mat_compativeis TO lt_mat_compativeis.
@@ -154,7 +151,7 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
     ENDCASE.
 
-    " Dummy filter to avoid DUMP. Main goal to call update Buffer update before main Select
+    " Dummy filter para evitar DUMP. Objetivo: disparar update do buffer antes do SELECT principal
     DATA(lo_doccomp) = lo_cfac->element( 'PLANT' ).
     ro_condition = lo_doccomp->is_not_null( ).
 

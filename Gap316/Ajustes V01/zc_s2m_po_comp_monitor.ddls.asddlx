@@ -1,0 +1,72 @@
+/*
+ * REQ2: Metadata Extension — ZC_S2M_PO_COMP_MONITOR (Tela Inicial)
+ *
+ * Os campos MaterialOrdem, MaterialOrdemName e MaterialName já existem no CDS
+ * de projeção mas não eram exibidos no List Report por falta de @UI.lineItem.
+ * Este arquivo cria as anotações necessárias.
+ */
+@Metadata.layer: #CUSTOMER
+annotate entity ZC_S2M_PO_COMP_MONITOR with
+{
+
+  /* ------------------------------------------------------------------ */
+  /* Filtros da barra de seleção                                         */
+  /* ------------------------------------------------------------------ */
+  @UI.selectionField: [{ position: 10 }]
+  ManufacturingOrder;
+
+  @UI.selectionField: [{ position: 20 }]
+  material;
+
+  @UI.selectionField: [{ position: 30 }]
+  plant;
+
+  @UI.selectionField: [{ position: 40 }]
+  MaterialOrdem;
+
+  /* ------------------------------------------------------------------ */
+  /* Colunas do List Report (grid da tela inicial)                       */
+  /* ------------------------------------------------------------------ */
+  @UI.lineItem: [{ position: 10, label: 'Ordem Produção' }]
+  ManufacturingOrder;
+
+  @UI.lineItem: [{ position: 20, label: 'Reserva' }]
+  Reservation;
+
+  @UI.lineItem: [{ position: 30, label: 'Item Res.' }]
+  ReservationItem;
+
+  @UI.lineItem: [{ position: 40, label: 'Tipo Regist.' }]
+  ReservationRecordType;
+
+  /*
+   * REQ2 item 1: código do material da ordem de produção
+   * Fonte: A_ProcessOrder.Material as MaterialOrdem
+   */
+  @UI.lineItem: [{ position: 50, label: 'Cód. Mat. Ordem' }]
+  MaterialOrdem;
+
+  /*
+   * REQ2 item 2: nome do material da ordem de produção
+   * Fonte: A_ProcessOrder.MaterialName as MaterialOrdemName
+   */
+  @UI.lineItem: [{ position: 60, label: 'Desc. Mat. Ordem' }]
+  MaterialOrdemName;
+
+  @UI.lineItem: [{ position: 70, label: 'Cód. Componente' }]
+  material;
+
+  /*
+   * REQ2 item 3: nome do material componente (MAKTX)
+   * Fonte: I_MaterialText.MaterialName (idioma da sessão)
+   */
+  @UI.lineItem: [{ position: 80, label: 'Desc. Componente' }]
+  MaterialName;
+
+  @UI.lineItem: [{ position: 90, label: 'Centro' }]
+  plant;
+
+  @UI.lineItem: [{ position: 100, label: 'Qtd. Necessária' }]
+  RequiredQuantity;
+
+}

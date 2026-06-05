@@ -32,7 +32,7 @@ define view entity ZC_S2M_MATERIAIS_COMPATIVEIS
       Clabs,
       meins,
       LastChangedAt,
-      /* REQ3-6: nome do material substituto (MAKTX) */
+      /* RTiezzi */
       MaterialName,
       /* Associations */
       _Componente : redirected to parent ZC_S2M_PO_COMP_MONITOR

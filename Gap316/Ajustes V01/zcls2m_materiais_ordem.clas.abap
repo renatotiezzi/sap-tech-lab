@@ -25,18 +25,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
 
   METHOD get_materiais_ordem.
 *&---------------------------------------------------------------------*
-*& FIX 1 — Rota correta:
-*&   SELECT direto em ZI_S2M_MATERIAIS_COMPAT pelo material componente.
-*&   Antes: passava por I_MasterRecipeMaterialAssgmt (grupos da RECEITA
-*&   do produto → errado para o componente).
-*&
-*& FIX 3 — Buffer DELETE:
-*&   Implementado em insert_ordem e insert_materiais.
-*&
-*& REQ1 — charcinternalid dinâmico:
-*&   Busca IDs de 'Grp Receita Mestre' via I_ClfnCharcDesc em vez de
-*&   WHEN '991'/'998'/'1031' hardcoded.
-*&   Fail-safe: se não houver IDs ativos → RETURN imediato.
+*& RTiezzi
 *&---------------------------------------------------------------------*
 
     DATA ls_materiais_compat TYPE ztbs2m_mat_compa.
@@ -44,7 +33,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
           lv_charcs_count TYPE i.
     DATA lv_tabix TYPE sy-tabix.
 
-*   REQ1: buscar IDs de 'Grp Receita Mestre' dinamicamente
+*   RTiezzi: buscar IDs de 'Grp Receita Mestre' dinamicamente
     TYPES: BEGIN OF ty_charc,
              charcinternalid TYPE i_clfncharcdesc-charcinternalid,
            END OF ty_charc.
@@ -106,7 +95,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
 
     SORT lt_materiais BY material centro billofoperationstype grupo lote deposito.
 
-*   REQ1: pivot dinâmico — verifica se TODOS os IDs válidos estão presentes no lote
+*   RTiezzi: pivot dinâmico — verifica se TODOS os IDs válidos estão presentes no lote
     LOOP AT lt_materiais_aux ASSIGNING FIELD-SYMBOL(<fs_materiais_aux>).
       lv_tabix = sy-tabix.
       CLEAR lv_ok_count.
@@ -143,7 +132,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
 
 
   METHOD insert_ordem.
-*   FIX 3: DELETE antes do MODIFY para evitar dados obsoletos no buffer
+*   RTiezzi: DELETE antes do MODIFY para evitar dados obsoletos no buffer
     IF it_ordem IS NOT INITIAL.
       DATA lr_reservation_o TYPE RANGE OF rsnum.
       lr_reservation_o = VALUE #(
@@ -159,7 +148,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
 
 
   METHOD insert_materiais.
-*   FIX 3: DELETE antes do MODIFY para evitar dados obsoletos no buffer
+*   RTiezzi: DELETE antes do MODIFY para evitar dados obsoletos no buffer
     IF it_mat_compativeis IS NOT INITIAL.
       DATA lr_reservation_m TYPE RANGE OF rsnum.
       lr_reservation_m = VALUE #(

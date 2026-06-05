@@ -6,11 +6,7 @@ define view entity ZI_S2M_MATERIAIS_COMPATIVEIS
   as select from ztbs2m_mat_compa
     inner join   ZI_S2M_Deposito_tanque as _DepositoTanque on  _DepositoTanque.Lgort = ztbs2m_mat_compa.deposito
                                                            and _DepositoTanque.Werks = ztbs2m_mat_compa.centro
-    /*
-     * REQ3-6: incluir nome do material substituto (MAKTX) via I_MaterialText.
-     * LEFT OUTER JOIN para não excluir linhas de materiais sem texto cadastrado.
-     * Filtro por $session.system_language para exibir no idioma do usuário.
-     */
+    /* RTiezzi */
     left outer join I_MaterialText as _MatText on  _MatText.Material = ztbs2m_mat_compa.material
                                                and _MatText.Language = $session.system_language
   association to I_Product as _Mara on $projection.material = _Mara.Product
@@ -43,6 +39,6 @@ define view entity ZI_S2M_MATERIAIS_COMPATIVEIS
         @Semantics.systemDateTime.lastChangedAt: true
         ztbs2m_mat_compa.last_changed_at            as LastChangedAt,
         _Mara.BaseUnit                              as meins,
-        /* REQ3-6: nome do material substituto (MAKTX) */
+        /* RTiezzi */
         _MatText.MaterialName                       as MaterialName
 }

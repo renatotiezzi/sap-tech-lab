@@ -1,16 +1,4 @@
-/*
- * REQ3-4: Remover botão "Editar" da tela principal
- *
- * Alteração: remover 'use action Edit' e 'use update' de
- * ZC_S2M_MATERIAIS_COMPATIVEIS (itens da segunda tela não são
- * editáveis diretamente — apenas Remarcar).
- *
- * 'use update' da raiz (ZC_S2M_PO_COMP_MONITOR) é MANTIDO:
- * o draft lifecycle (Activate/Discard/Resume/Prepare) ainda precisa
- * dele para funcionar corretamente no framework RAP.
- *
- * Base BDEF (ZR_S2M_PO_COMP_MONITOR) não é alterado.
- */
+/* RTiezzi */
 projection;
 strict ( 2 );
 use draft;
@@ -22,8 +10,6 @@ define behavior for ZC_S2M_PO_COMP_MONITOR
   use association _Materiais { with draft; }
 
   use update;
-
-  /* REQ3-4: 'use action Edit' removido — sem botão Editar na tela principal */
 
   use action Activate;
   use action Discard;
@@ -38,7 +24,5 @@ define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
 
   use action Remarcar;
 
-  /* REQ3-4: 'use update' removido — itens da segunda tela são somente leitura;
-     a Remarcar é executada diretamente pelo handler sem edição de campos */
 
 }

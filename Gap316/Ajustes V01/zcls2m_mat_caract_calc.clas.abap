@@ -80,14 +80,7 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
         ).
 
 *&---------------------------------------------------------------------*
-*& FIX 2: Evitar cross-join no loop interno
-*&
-*& Problema original: LOOP AT lt_materiais_compat sem filtro vinculava
-*& TODOS os compatíveis de TODAS as ordens a CADA reserva.
-*&
-*& Solução: obter mapeamento material_componente → grupo_compatibilidade
-*& via ZI_S2M_MATERIAIS_COMPAT e usar loop triplo filtrado.
-*& Cada reserva recebe apenas os compatíveis do SEU grupo.
+*& RTiezzi
 *&---------------------------------------------------------------------*
         DATA: BEGIN OF ls_mat_grp,
                 material TYPE ztbs2m_mat_compa-material,
@@ -118,11 +111,9 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
             APPEND ls_ordem TO lt_ordem.
 
-*           FIX 2: iterar pelos grupos deste material componente
             LOOP AT lt_mat_grupo_map ASSIGNING FIELD-SYMBOL(<fs_mat_grp>)
               WHERE material = <fs_comp_monitor>-material.
 
-*             FIX 2: filtrar compatíveis apenas pelo grupo do material
               LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
                 WHERE grupo = <fs_mat_grp>-grupo.
 

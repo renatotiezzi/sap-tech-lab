@@ -1,27 +1,12 @@
-/*
- * REQ3-4 / REQ3-6: Metadata Extension — ZC_S2M_MATERIAIS_COMPATIVEIS (Segunda Tela)
- *
- * - Seleção única: @UI.selectionMode: #SINGLE → usuário seleciona uma linha e clica Remarcar
- * - Colunas da tabela incluindo MaterialName (MAKTX do material substituto)
- */
+/* RTiezzi */
 @Metadata.layer: #CUSTOMER
 annotate entity ZC_S2M_MATERIAIS_COMPATIVEIS with
 {
 
-  /* ------------------------------------------------------------------ */
-  /* REQ3-4: seleção de linha única na tabela de materiais               */
-  /* ------------------------------------------------------------------ */
   @UI.selectionMode: #SINGLE
-
-  /* ------------------------------------------------------------------ */
-  /* REQ3-6: colunas da tabela de materiais compatíveis (segunda tela)   */
-  /* ------------------------------------------------------------------ */
   @UI.lineItem: [{ position: 10, label: 'Material' }]
   material;
 
-  /*
-   * REQ3-6: nome do material substituto (MAKTX via I_MaterialText)
-   */
   @UI.lineItem: [{ position: 20, label: 'Descrição' }]
   MaterialName;
 

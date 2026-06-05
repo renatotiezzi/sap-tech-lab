@@ -8,14 +8,7 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
                                               and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
                                               and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
     inner join   R_BatchCharacteristicValueTP on  ZI_S2M_PRODUCTIONVERSION.Material                 = R_BatchCharacteristicValueTP.Material
-    /*
-     * REQ1: substituir OR hardcoded (IDs 991/998/1031) por JOIN dinâmico com I_ClfnCharcDesc.
-     * A CDS passa a aceitar qualquer ID cuja CharcDescription = 'Grp Receita Mestre'
-     * com Language='P', dentro da validade e não deletado.
-     * Antes:
-     *   and ( CharcInternalID = '0000001031' or '0000000991' or '0000000998' )
-     * Depois: o INNER JOIN abaixo garante apenas IDs válidos e dinâmicos.
-     */
+    /* RTiezzi */
     inner join   I_ClfnCharcDesc              on  R_BatchCharacteristicValueTP.CharcInternalID = I_ClfnCharcDesc.CharcInternalID
                                               and I_ClfnCharcDesc.Language                    = 'P'
                                               and I_ClfnCharcDesc.CharcDescription            = 'Grp Receita Mestre'
@@ -57,5 +50,5 @@ where
   and ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked = ''
   and ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and R_BatchCharacteristicValueTP.ClassType             = '023'
-  /* REQ1: filtro por CharcInternalID removido — tratado pelo INNER JOIN com I_ClfnCharcDesc acima */
+  /* RTiezzi: filtro por CharcInternalID tratado pelo INNER JOIN com I_ClfnCharcDesc acima */
   and nsdm_e_mchb.clabs                                  > 0

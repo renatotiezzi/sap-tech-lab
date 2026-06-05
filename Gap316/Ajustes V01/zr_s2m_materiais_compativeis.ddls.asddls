@@ -36,7 +36,7 @@ define view entity ZR_S2M_MATERIAIS_COMPATIVEIS
       meins,
       @Semantics.systemDateTime.lastChangedAt: true
       LastChangedAt,
-      /* REQ3-6: nome do material substituto */
+      /* RTiezzi */
       MaterialName,
       /* Associations */
       _Componente

@@ -8,7 +8,10 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
                                               and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
                                               and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
     inner join   R_BatchCharacteristicValueTP on  ZI_S2M_PRODUCTIONVERSION.Material                 = R_BatchCharacteristicValueTP.Material
-    /* RTiezzi */
+    /* RTiezzi: substituir OR hardcoded (IDs 991/998/1031) por JOIN
+     * com I_ClfnCharcDesc filtrando CharcDescription = 'Grp Receita Mestre',
+     * Language = 'P', dentro da validade e não deletado.
+     * Aceita qualquer ID válido dinamicamente — sem hardcode. */
     inner join   I_ClfnCharcDesc              on  R_BatchCharacteristicValueTP.CharcInternalID = I_ClfnCharcDesc.CharcInternalID
                                               and I_ClfnCharcDesc.Language                    = 'P'
                                               and I_ClfnCharcDesc.CharcDescription            = 'Grp Receita Mestre'
@@ -50,5 +53,5 @@ where
   and ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked = ''
   and ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and R_BatchCharacteristicValueTP.ClassType             = '023'
-  /* RTiezzi: filtro por CharcInternalID tratado pelo INNER JOIN com I_ClfnCharcDesc acima */
+  /* RTiezzi: filtro por CharcInternalID removido daqui — tratado pelo INNER JOIN acima */
   and nsdm_e_mchb.clabs                                  > 0

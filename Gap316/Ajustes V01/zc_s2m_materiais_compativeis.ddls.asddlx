@@ -1,4 +1,5 @@
-/* RTiezzi */
+/* RTiezzi: seleção única na segunda tela (@UI.selectionMode: #SINGLE)
+ * e inclusão do campo MaterialName (MAKTX) nas colunas da tabela. */
 @Metadata.layer: #CUSTOMER
 annotate entity ZC_S2M_MATERIAIS_COMPATIVEIS with
 {

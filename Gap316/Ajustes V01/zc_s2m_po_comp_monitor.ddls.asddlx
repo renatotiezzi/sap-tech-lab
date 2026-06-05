@@ -1,4 +1,6 @@
-/* RTiezzi */
+/* RTiezzi: campos MaterialOrdem, MaterialOrdemName e MaterialName já
+ * existem no CDS de projeção mas não eram visíveis no List Report
+ * por falta de @UI.lineItem. Este arquivo adiciona as anotações de UI. */
 @Metadata.layer: #CUSTOMER
 annotate entity ZC_S2M_PO_COMP_MONITOR with
 {

@@ -81,6 +81,9 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
 *&---------------------------------------------------------------------*
 *& RTiezzi
+*&   Mapear material_componente → grupo antes do loop principal.
+*&   Loop triplo filtrado evita cross-join: cada reserva recebe
+*&   apenas os materiais compatíveis do seu próprio grupo.
 *&---------------------------------------------------------------------*
         DATA: BEGIN OF ls_mat_grp,
                 material TYPE ztbs2m_mat_compa-material,

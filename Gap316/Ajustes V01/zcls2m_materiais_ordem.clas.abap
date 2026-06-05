@@ -26,6 +26,15 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
   METHOD get_materiais_ordem.
 *&---------------------------------------------------------------------*
 *& RTiezzi
+*&   Rota correta: SELECT direto em ZI_S2M_MATERIAIS_COMPAT pelo
+*&   material componente (antes: I_MasterRecipeMaterialAssgmt retornava
+*&   grupos da receita do produto — grupo errado para o componente).
+*&
+*&   Buffer: DELETE antes do MODIFY em insert_ordem/insert_materiais
+*&   para evitar dados obsoletos de execuções anteriores.
+*&
+*&   charcinternalid lido de I_ClfnCharcDesc (Grp Receita Mestre)
+*&   em vez de valores hardcoded. Fail-safe: sem IDs ativos → RETURN.
 *&---------------------------------------------------------------------*
 
     DATA ls_materiais_compat TYPE ztbs2m_mat_compa.
@@ -33,7 +42,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
           lv_charcs_count TYPE i.
     DATA lv_tabix TYPE sy-tabix.
 
-*   RTiezzi: buscar IDs de 'Grp Receita Mestre' dinamicamente
+*   RTiezzi: buscar IDs de 'Grp Receita Mestre' via I_ClfnCharcDesc
     TYPES: BEGIN OF ty_charc,
              charcinternalid TYPE i_clfncharcdesc-charcinternalid,
            END OF ty_charc.
@@ -61,7 +70,7 @@ CLASS zcls2m_materiais_ordem IMPLEMENTATION.
       ( sign = 'I' option = 'EQ' low = lv-charcinternalid )
     ).
 
-*   FIX 1: buscar grupos de compatibilidade direto pelo material componente
+*   RTiezzi: buscar grupos de compatibilidade direto pelo material componente
     SELECT DISTINCT material AS material,
                     grupo    AS grupo
       FROM zi_s2m_materiais_compat

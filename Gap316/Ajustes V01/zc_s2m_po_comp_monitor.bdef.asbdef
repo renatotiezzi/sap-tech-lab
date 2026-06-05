@@ -1,4 +1,9 @@
-/* RTiezzi */
+/* RTiezzi: remover botão Editar da tela principal.
+ * 'use action Edit' removido da projeção ZC_S2M_PO_COMP_MONITOR.
+ * 'use update' de ZC_S2M_MATERIAIS_COMPATIVEIS removido — itens da
+ * segunda tela são somente leitura; Remarcar não depende de update draft.
+ * 'use update' na raiz e draft actions (Activate/Discard/Resume/Prepare)
+ * mantidos — necessários para o lifecycle RAP funcionar. */
 projection;
 strict ( 2 );
 use draft;
@@ -11,6 +16,7 @@ define behavior for ZC_S2M_PO_COMP_MONITOR
 
   use update;
 
+  /* RTiezzi: 'use action Edit' removido — sem botão Editar */
   use action Activate;
   use action Discard;
   use action Resume;
@@ -23,6 +29,6 @@ define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
   use association _Componente { with draft; }
 
   use action Remarcar;
-
+  /* RTiezzi: 'use update' removido — segunda tela somente leitura */
 
 }

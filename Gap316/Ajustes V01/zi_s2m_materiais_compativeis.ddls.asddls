@@ -39,6 +39,6 @@ define view entity ZI_S2M_MATERIAIS_COMPATIVEIS
         @Semantics.systemDateTime.lastChangedAt: true
         ztbs2m_mat_compa.last_changed_at            as LastChangedAt,
         _Mara.BaseUnit                              as meins,
-        /* RTiezzi */
+        /* RTiezzi: nome do material substituto (MAKTX) */
         _MatText.MaterialName                       as MaterialName
 }

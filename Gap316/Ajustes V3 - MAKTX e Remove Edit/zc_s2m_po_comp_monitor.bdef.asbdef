@@ -1,0 +1,48 @@
+/*
+ * V3 — REQ3 item 4: Remover botão "Editar"
+ * Removido: use update; use action Edit;
+ *
+ * A action Remarcar continua funcionando pois é chamada diretamente
+ * pelo RAP handler sem precisar do modo de edição draft.
+ * O modo draft (Activate/Discard/Resume/Prepare) é mantido para
+ * suportar a Remarcar action que usa draft internamente.
+ *
+ * Antes:
+ *   use update;
+ *   use action Edit;
+ *   use action Activate;
+ *   use action Discard;
+ *   use action Resume;
+ *   use action Prepare;
+ *
+ * Depois (sem Edit e sem update na raiz):
+ *   use action Activate;
+ *   use action Discard;
+ *   use action Resume;
+ *   use action Prepare;
+ */
+projection;
+strict ( 2 );
+use draft;
+use side effects;
+define behavior for ZC_S2M_PO_COMP_MONITOR
+{
+
+  use association _Materiais { with draft; }
+
+  /* V3: use update removido — tela principal somente leitura */
+  /* V3: use action Edit removido — sem botão Editar */
+  use action Activate;
+  use action Discard;
+  use action Resume;
+  use action Prepare;
+
+}
+
+define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
+{
+  use association _Componente { with draft; }
+  use action Remarcar;
+  /* V3: use update removido — Remarcar não depende de update draft */
+
+}

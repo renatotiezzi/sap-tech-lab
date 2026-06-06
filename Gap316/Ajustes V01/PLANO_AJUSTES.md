@@ -154,7 +154,9 @@ Ao remover `use action Edit`, o projection BDEF deixa de compilar com erro do fr
 **Solução:**  
 Manter `use action Edit` na projeção `ZC_S2M_PO_COMP_MONITOR` para cumprir a validação RAP.  
 Manter `use update` no item para preservar comportamento baseline.  
-Ocultar o botão `Edit` na UI via metadata extension (`@UI.updateHidden: true`), sem alterar o contrato técnico exigido pelo RAP.
+Ocultar o botão `Edit` via adaptação de UI no FLP (UI Adaptation at Runtime), sem alterar o contrato técnico exigido pelo RAP.
+
+**Observação de compatibilidade:** no release atual, a annotation `@UI.updateHidden` não compila neste objeto.
 
 **Nota:** Base BDEF (`ZR_S2M_PO_COMP_MONITOR`) define `Remarcar` como action sem dependência de update na projeção — não precisa de alteração.
 

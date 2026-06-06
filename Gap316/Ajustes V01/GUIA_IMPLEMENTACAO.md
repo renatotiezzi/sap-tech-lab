@@ -58,7 +58,8 @@ Mantém `use action Edit` explicitamente na projeção RAP.
 ---
 
 ### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto existente, ajustado)*
-Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada de forma mínima para manter os campos da tela e ocultar o botão `Edit` por `@UI.updateHidden: true`.
+Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada de forma mínima para manter os campos da tela.  
+**Nota importante (caminho 1):** no release atual, não usar `@UI.updateHidden` (não compila). Para ocultar o botão `Edit`, fazer adaptação de UI no FLP (UI Adaptation at Runtime) e esconder a ação no Object Page.
 
 ---
 

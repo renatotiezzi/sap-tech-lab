@@ -8,8 +8,6 @@ define behavior for ZC_S2M_PO_COMP_MONITOR
 
   use association _Materiais { with draft; }
 
-  use update;
-
   /* RTiezzi: obrigatório com strict + use draft na projeção */
   use action Edit;
   use action Activate;

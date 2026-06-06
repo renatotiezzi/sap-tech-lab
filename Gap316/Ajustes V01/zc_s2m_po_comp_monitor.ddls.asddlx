@@ -14,12 +14,6 @@ sortOrder: [{ by: 'Reservation', direction: #ASC }]
 }]
 annotate entity ZC_S2M_PO_COMP_MONITOR with
 {
-
-  /* RTiezzi: esconder botão Edit no Object Page sem remover
-   * a ação Edit do BDEF (obrigatória em strict(2)+draft). */
-  @UI.updateHidden: true
-  ManufacturingOrder;
-
   @UI.facet: [ {
        id: 'idOrder',
        purpose: #STANDARD,

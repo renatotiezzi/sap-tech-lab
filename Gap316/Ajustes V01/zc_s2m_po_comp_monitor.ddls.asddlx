@@ -1,56 +1,119 @@
-/* RTiezzi: campos MaterialOrdem, MaterialOrdemName e MaterialName já
- * existem no CDS de projeção mas não eram visíveis no List Report
- * por falta de @UI.lineItem. Este arquivo adiciona as anotações de UI. */
 @Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Ordem',
+    typeNamePlural: 'Ordens',
+    title: { type: #STANDARD,
+    value: 'ManufacturingOrder'
+   }
+  }
+}
+@UI.presentationVariant: [{
+requestAtLeast: [ 'UpdateTable' ],
+sortOrder: [{ by: 'Reservation', direction: #ASC }]
+}]
 annotate entity ZC_S2M_PO_COMP_MONITOR with
 {
 
-  /* ------------------------------------------------------------------ */
-  /* Filtros da barra de seleção                                         */
-  /* ------------------------------------------------------------------ */
-  @UI.selectionField: [{ position: 10 }]
+  /* RTiezzi: esconder botão Edit no Object Page sem remover
+   * a ação Edit do BDEF (obrigatória em strict(2)+draft). */
+  @UI.updateHidden: true
   ManufacturingOrder;
 
-  @UI.selectionField: [{ position: 20 }]
-  material;
+  @UI.facet: [ {
+       id: 'idOrder',
+       purpose: #STANDARD,
+       type: #IDENTIFICATION_REFERENCE,
+       label: 'Ordem',
+       position: 10
+     },{
 
-  @UI.selectionField: [{ position: 30 }]
-  plant;
+        id: 'idMaterial',
+        purpose: #STANDARD,
+        position: 20,
+        label: 'Materiais',
+        type: #LINEITEM_REFERENCE,
+        targetElement: '_Materiais'
+    }]
 
-  @UI.selectionField: [{ position: 40 }]
-  MaterialOrdem;
+  @UI:{ lineItem: [{ position: 10
+   }
+           ],
 
-  /* ------------------------------------------------------------------ */
-  /* Colunas do List Report (grid da tela inicial)                       */
-  /* ------------------------------------------------------------------ */
-  @UI.lineItem: [{ position: 10, label: 'Ordem Produção' }]
-  ManufacturingOrder;
-
-  @UI.lineItem: [{ position: 20, label: 'Reserva' }]
+    identification: [{ position: 10 }
+    ]
+    }
+  @Consumption.filter.hidden: true
   Reservation;
 
-  @UI.lineItem: [{ position: 30, label: 'Item Res.' }]
+  @UI.lineItem           : [{ position: 20 }]
+  @UI.identification     : [{ position: 20 }]
+  @Consumption.filter.hidden: true
   ReservationItem;
 
-  @UI.lineItem: [{ position: 40, label: 'Tipo Regist.' }]
+  @UI.lineItem           : [{ position: 25 }]
+  @UI.identification     : [{ position: 25 }]
   ReservationRecordType;
 
-  @UI.lineItem: [{ position: 50, label: 'Cód. Mat. Ordem' }]
-  MaterialOrdem;
+  @UI.lineItem           : [{ position: 30 }]
+  @UI.identification     : [{ position: 30 }]
+  @Consumption.filter.hidden: true
+  MaterialGroup;
 
-  @UI.lineItem: [{ position: 60, label: 'Desc. Mat. Ordem' }]
-  MaterialOrdemName;
-
-  @UI.lineItem: [{ position: 70, label: 'Cód. Componente' }]
+  @UI.lineItem           : [{ position: 40 }]
+  @UI.identification     : [{ position: 40 }]
+  @UI.selectionField: [{ position: 40  }]
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_PRODUCT', element: 'Product' },
+        distinctValues       : true, useForValidation: true }] }
+        @EndUserText.label     : 'Produto'
   material;
 
-  @UI.lineItem: [{ position: 80, label: 'Desc. Componente' }]
+  @UI.lineItem           : [{ position: 41 }]
+  @UI.identification     : [{ position: 41 }]
+  @UI.selectionField: [{ position: 41  }]
+  @EndUserText.label     : 'Texto produto'
   MaterialName;
 
-  @UI.lineItem: [{ position: 90, label: 'Centro' }]
+  @UI.lineItem           : [{ position: 42 }]
+  @UI.identification     : [{ position: 42 }]
+  @UI.selectionField: [{ position: 42  }]
+  MaterialOrdem;
+
+  @UI.lineItem           : [{ position: 44 }]
+  @UI.identification     : [{ position: 44 }]
+  @UI.selectionField: [{ position: 44  }]
+  MaterialOrdemName;
+
+
+  @UI.lineItem           : [{ position: 50 }]
+  @UI.identification     : [{ position: 50 }]
+  @UI.selectionField: [{ position: 50  }]
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_Plant', element: 'Plant' },
+        distinctValues       : true, useForValidation: true }] }
   plant;
 
-  @UI.lineItem: [{ position: 100, label: 'Qtd. Necessária' }]
+  @UI.identification     : [{ position: 05 }]
+  @UI.selectionField: [{ position: 05  }]
+  @Consumption           : {
+      valueHelpDefinition    : [{
+        entity               : { name: 'I_ManufacturingOrder', element: 'ManufacturingOrder' },
+        distinctValues       : true, useForValidation: true }] }
+  ManufacturingOrder;
+
+  @Consumption.filter.defaultValue: 'X'
+  @UI.hidden: true
+  @Consumption.filter.hidden: true
+  @UI.lineItem: [{ hidden: true }]
+  UpdateTable;
+
+  @UI.lineItem           : [{ position: 60 }]
+  @UI.identification     : [{ position: 60 }]
+
+  @Consumption.filter.hidden: true
   RequiredQuantity;
 
 }

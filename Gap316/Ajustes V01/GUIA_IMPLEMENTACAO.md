@@ -53,12 +53,12 @@ Declara `MaterialName` como `field (readonly)` em `ZR_S2M_MATERIAIS_COMPATIVEIS`
 
 ### 9. `ZC_S2M_PO_COMP_MONITOR.bdef`
 Mantém `use action Edit` explicitamente na projeção RAP.  
-**Por quê:** em `strict(2)` com `use draft`, o framework exige `Edit` na projeção; sem isso o BDEF não compila. O controle de edição da segunda tela continua restrito por ausência de `use update` em `ZC_S2M_MATERIAIS_COMPATIVEIS`.
+**Por quê:** em `strict(2)` com `use draft`, o framework exige `Edit` na projeção; sem isso o BDEF não compila. O comportamento foi mantido próximo ao baseline (incluindo `use update` no item).
 
 ---
 
 ### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto existente, ajustado)*
-Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada para garantir `@UI.lineItem` dos campos de código/nome do produto da ordem e nome do componente.
+Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada de forma mínima para manter os campos da tela e ocultar o botão `Edit` por `@UI.updateHidden: true`.
 
 ---
 

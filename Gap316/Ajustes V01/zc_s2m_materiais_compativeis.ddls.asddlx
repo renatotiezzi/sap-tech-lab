@@ -1,35 +1,124 @@
-/* RTiezzi: seleção única na segunda tela (@UI.selectionMode: #SINGLE)
- * e inclusão do campo MaterialName (MAKTX) nas colunas da tabela. */
 @Metadata.layer: #CUSTOMER
+@UI: {
+  headerInfo: {
+    typeName: 'Material',
+    typeNamePlural: 'Materiais',
+    title: { type: #STANDARD,
+    value: 'Material'
+   }
+  }
+}
 annotate entity ZC_S2M_MATERIAIS_COMPATIVEIS with
 {
 
   @UI.selectionMode: #SINGLE
-  @UI.lineItem: [{ position: 10, label: 'Material' }]
+
+  @UI.facet: [{id: 'idMaterial',
+       purpose: #STANDARD,
+       type: #IDENTIFICATION_REFERENCE,
+       label: 'Material',
+       position: 10 }]
+  @UI:{lineItem: [{  position: 10,importance: #HIGH },
+  { position: 10, type: #FOR_ACTION, dataAction: 'Remarcar', label: 'Remarcar', invocationGrouping: #CHANGE_SET }
+  ],
+
+       identification: [{position: 10 }]
+  }
   material;
 
-  @UI.lineItem: [{ position: 20, label: 'Descrição' }]
+  /* RTiezzi: descrição do material substituto (MAKTX) */
+  @UI:{lineItem: [{position: 15,importance: #HIGH, label: 'Descrição' }],
+    identification: [{position: 15, label: 'Descrição' }]
+  }
   MaterialName;
 
-  @UI.lineItem: [{ position: 30, label: 'Lote' }]
-  Charg;
-
-  @UI.lineItem: [{ position: 40, label: 'Centro' }]
+  @UI:{lineItem: [{position: 20,importance: #HIGH }],
+     identification: [{position: 20 }]
+  }
   Centro;
+  @UI:{lineItem: [{position: 30,importance: #HIGH }],
+     identification: [{position: 30 }]
+  }
 
-  @UI.lineItem: [{ position: 50, label: 'Grupo' }]
   Grupo;
+  @UI:{lineItem: [{position: 40,importance: #HIGH }],
+    identification: [{position: 40 }]
+  }
+  boomatlinternalversioncounter;
+  @UI:{lineItem: [{position: 45,importance: #HIGH }],
+  identification: [{position: 45 }]
+  }
 
-  @UI.lineItem: [{ position: 60, label: 'Versão Prod.' }]
   Productionversion;
 
-  @UI.lineItem: [{ position: 70, label: 'Validade' }]
+  @UI:{lineItem: [{position: 50,importance: #HIGH }],
+    identification: [{position: 50 }]
+  }
+
   Validade;
-
-  @UI.lineItem: [{ position: 80, label: 'Depósito' }]
+  @UI:{lineItem: [{position: 60,importance: #HIGH }],
+    identification: [{position: 60 }]
+  }
   Deposito;
+  @UI:{lineItem: [{position: 70,importance: #HIGH }],
+    identification: [{position: 70 }]
+  }
+  Charg;
+  @UI:{lineItem: [{position: 80,importance: #HIGH }],
+    identification: [{position: 80 }]
+  }
+  billofoperationsvariant;
 
-  @UI.lineItem: [{ position: 90, label: 'Qtd. Util. Livre' }]
+  @UI:{lineItem: [{position: 90,importance: #HIGH, label: 'QTD utiliz.livre'  }],
+    identification: [{position: 90, label: 'QTD utiliz.livre'  }]
+  }
   Clabs;
+  @UI:{lineItem: [{position: 95,importance: #HIGH, label: 'Quantidade'  }],
+    identification: [{position: 95, label: 'Quantidade'  }]
+  }
+  Quantidade;
+
+
+  @UI:{lineItem: [{position: 100,importance: #HIGH, exclude: true }],
+    identification: [{position: 100 }]
+  }
+  billofoperationstype;
+  @UI:{lineItem: [{position: 110,importance: #HIGH, exclude: true }],
+     identification: [{position: 110 }]
+  }
+
+  bootomaterialinternalid;
+
+  @UI:{lineItem: [{position: 130,importance: #HIGH, exclude: true }],
+    identification: [{position: 130 }]
+  }
+  Billofmaterialvariant;
+  @UI:{lineItem: [{position: 140,importance: #HIGH, exclude: true }],
+    identification: [{position: 140 }]
+  }
+  Billofmaterialvariantusage;
+  @UI:{lineItem: [{position: 150,importance: #HIGH, exclude: true }],
+    identification: [{position: 160 }]
+  }
+  Charcinternalid;
+  @UI:{lineItem: [{position: 170,importance: #HIGH, exclude: true }],
+    identification: [{position: 170 }]
+  }
+  Charcinternalid2;
+  @UI:{lineItem: [{position: 180,importance: #HIGH, exclude: true }],
+    identification: [{position: 180 }]
+  }
+  Charcinternalid3;
+  @UI:{lineItem: [{position: 190,importance: #HIGH, exclude: true }],
+    identification: [{position:190 }]
+  }
+  Charcvalue;
+  @UI:{lineItem: [{position: 200,importance: #HIGH, exclude: true }],
+    identification: [{position: 200 }]
+  }
+
+  ChargD;
+  @UI.hidden: true
+  meins;
 
 }

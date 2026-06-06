@@ -1,9 +1,3 @@
-/* RTiezzi: projeção RAP em strict(2)+draft exige 'use action Edit'.
- * Mantido para cumprir validação do framework.
- * 'use update' de ZC_S2M_MATERIAIS_COMPATIVEIS removido — itens da
- * segunda tela são somente leitura; Remarcar não depende de update draft.
- * 'use update' na raiz e draft actions (Activate/Discard/Resume/Prepare)
- * mantidos — necessários para o lifecycle RAP funcionar. */
 projection;
 strict ( 2 );
 use draft;
@@ -30,6 +24,6 @@ define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
   use association _Componente { with draft; }
 
   use action Remarcar;
-  /* RTiezzi: 'use update' removido — segunda tela somente leitura */
+  use update;
 
 }

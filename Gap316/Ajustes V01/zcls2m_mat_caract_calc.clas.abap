@@ -118,7 +118,12 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
               WHERE material = <fs_comp_monitor>-material.
 
               LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
-                WHERE grupo = <fs_mat_grp>-grupo.
+                WHERE grupo    = <fs_mat_grp>-grupo
+                  AND material <> <fs_comp_monitor>-material.
+
+*               RTiezzi: não listar o próprio material da reserva como candidato
+*               de remarcação. Ex.: componente 30001500 não deve retornar lotes
+*               do próprio 30001500, apenas materiais substitutos do mesmo grupo.
 
                 ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ).
                 ls_mat_compativeis-reservation             = ls_ordem-reservation.

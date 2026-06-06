@@ -1,3 +1,7 @@
+/* RTiezzi: projeção definida sem draft para que o Object Page não
+ * exponha o botão Edit por contrato de backend.
+ * Requisito funcional: tela sem edição direta, mantendo apenas
+ * a ação de negócio Remarcar na entidade de materiais. */
 projection;
 strict ( 2 );
 use side effects;
@@ -5,15 +9,20 @@ use side effects;
 define behavior for ZC_S2M_PO_COMP_MONITOR
 {
 
+  /* RTiezzi: associação sem draft acompanha a remoção de use draft
+   * da projeção raiz. */
   use association _Materiais;
 
 }
 
 define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
 {
+  /* RTiezzi: manter navegação para o pai sem draft na projeção. */
   use association _Componente;
 
+  /* RTiezzi: ação funcional do processo de remarcação permanece ativa. */
   use action Remarcar;
+  /* RTiezzi: update do item mantido para o fluxo já existente da app. */
   use update;
 
 }

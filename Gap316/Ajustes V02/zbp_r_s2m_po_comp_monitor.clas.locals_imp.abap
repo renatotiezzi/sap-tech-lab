@@ -59,6 +59,8 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 
     DATA lv_soma_quantidade TYPE nsdm_stock_qty_l1 VALUE 0.
 
+    DATA(lv_selected_count) = lines( keys ).
+
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key>). ##EML_IN_LOOP_OK
 
       READ ENTITIES OF zr_s2m_po_comp_monitor IN LOCAL MODE ##EML_IN_LOOP_OK
@@ -124,7 +126,38 @@ WITH VALUE #( (
 
 
 
-        lv_soma_quantidade += ls_material_comp-quantidade.
+*       RTiezzi: quantidade efetiva para executar a remarcação.
+*       - 1 linha selecionada sem quantidade: assume troca total (requiredquantity).
+*       - múltiplas linhas sem quantidade: bloquear para evitar BAPI com zero.
+        DATA(lv_quantidade_exec) = ls_material_comp-quantidade.
+
+        IF lv_quantidade_exec IS INITIAL OR lv_quantidade_exec <= 0.
+          IF lv_selected_count = 1.
+            lv_quantidade_exec = ls_po_comp_monitor-requiredquantity.
+          ELSE.
+            APPEND VALUE #( %key =  ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
+            APPEND VALUE #(
+              %tky = ls_material_comp-%tky
+              %msg = new_message_with_text(
+                severity = if_abap_behv_message=>severity-error
+                text     = 'Informe quantidade > 0 para cada item selecionado em Remarcar.' ) )
+              TO reported-zr_s2m_materiais_compativeis.
+            RETURN.
+          ENDIF.
+        ENDIF.
+
+        lv_soma_quantidade += lv_quantidade_exec.
+
+        IF lv_soma_quantidade > ls_po_comp_monitor-requiredquantity.
+          APPEND VALUE #( %key =  ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
+          APPEND VALUE #(
+            %tky = ls_material_comp-%tky
+            %msg = new_message_with_text(
+              severity = if_abap_behv_message=>severity-error
+              text     = 'Quantidade total selecionada ultrapassa a quantidade necessária da ordem.' ) )
+            TO reported-zr_s2m_materiais_compativeis.
+          RETURN.
+        ENDIF.
 
     *       RTiezzi: usar material/quantidade da linha atual selecionada.
     *       Antes estava fixo em lt_material_comp[ 1 ], causando troca de valores
@@ -132,7 +165,7 @@ WITH VALUE #( (
         lo_remarcacao_parallel->executar_bapi( EXPORTING
            iv_order_key = ls_po_comp_monitor-manufacturingorder
             iv_material = ls_material_comp-material
-            is_requ_quan = VALUE coxt_s_quantity( quantity = ls_material_comp-quantidade )
+           is_requ_quan = VALUE coxt_s_quantity( quantity = lv_quantidade_exec )
            iv_operation = ls_po_comp_monitor-orderoperationinternalid
            iv_sequence = lv_manufacturingordersequence
            is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-werks lgort = ls_mchb-lgort  )

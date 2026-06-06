@@ -16,7 +16,7 @@
 | 4 | `ZI_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — MAKTX segunda tela |
 | 5 | `ZR_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
 | 6 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
-| 7 | `ZC_S2M_PO_COMP_MONITOR` | BDEF | REQ3-4 — manter `Edit` (exigência RAP strict+draft) |
+| 7 | `ZC_S2M_PO_COMP_MONITOR` | BDEF | REQ3-4 — remover draft/edit na projeção |
 | 8 | `ZC_S2M_PO_COMP_MONITOR` | Metadata Ext. (existente, ajustada) | REQ2 — campos visíveis tela inicial |
 | 9 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | Metadata Ext. (existente, ajustada) | REQ3-4 — seleção única |
 
@@ -149,14 +149,12 @@ Criar `zc_s2m_po_comp_monitor.ddls.asddlx` com anotações `@UI.lineItem` e `@UI
 **Objeto:** `ZC_S2M_PO_COMP_MONITOR.bdef`
 
 **Problema:**  
-Ao remover `use action Edit`, o projection BDEF deixa de compilar com erro do framework: em `strict(2)` com `use draft`, a draft action `Edit` precisa estar explicitamente incluída na projeção.
+Com `use draft` ativo na projeção, o FE passa a oferecer o botão `Edit` no Object Page por contrato de backend.
 
 **Solução:**  
-Manter `use action Edit` na projeção `ZC_S2M_PO_COMP_MONITOR` para cumprir a validação RAP.  
-Manter `use update` no item para preservar comportamento baseline.  
-Ocultar o botão `Edit` via adaptação de UI no FLP (UI Adaptation at Runtime), sem alterar o contrato técnico exigido pelo RAP.
-
-**Observação de compatibilidade:** no release atual, a annotation `@UI.updateHidden` não compila neste objeto.
+Remover `use draft` da projeção `ZC_S2M_PO_COMP_MONITOR`.  
+Remover as ações de draft (`Edit`, `Activate`, `Discard`, `Resume`, `Prepare`) da projeção.  
+Manter somente a capacidade necessária para o processo (`Remarcar` na entidade de materiais).
 
 **Nota:** Base BDEF (`ZR_S2M_PO_COMP_MONITOR`) define `Remarcar` como action sem dependência de update na projeção — não precisa de alteração.
 
@@ -198,7 +196,7 @@ Criar `zc_s2m_materiais_compativeis.ddls.asddlx` com anotação `@UI.selectionMo
 4. ZC_S2M_MATERIAIS_COMPATIVEIS     (CDS projeção)
 5. ZCLS2M_MATERIAIS_ORDEM           (ABAP - FIX1+FIX3+REQ1)
 6. ZCLS2M_MAT_CARACT_CALC           (ABAP - FIX2)
-7. ZC_S2M_PO_COMP_MONITOR.bdef      (BDEF - manter Edit por regra RAP strict+draft)
+7. ZC_S2M_PO_COMP_MONITOR.bdef      (BDEF - remover draft/edit na projeção)
 8. ZC_S2M_PO_COMP_MONITOR.asddlx    (META - existente, ajustada para campos da tela inicial)
 9. ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx  (META - existente, ajustada para seleção única + MAKTX)
 ```

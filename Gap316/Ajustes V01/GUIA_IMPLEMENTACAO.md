@@ -52,14 +52,13 @@ Declara `MaterialName` como `field (readonly)` em `ZR_S2M_MATERIAIS_COMPATIVEIS`
 ---
 
 ### 9. `ZC_S2M_PO_COMP_MONITOR.bdef`
-Mantém `use action Edit` explicitamente na projeção RAP.  
-**Por quê:** em `strict(2)` com `use draft`, o framework exige `Edit` na projeção; sem isso o BDEF não compila. O comportamento foi mantido próximo ao baseline (incluindo `use update` no item).
+Remove o modo draft da projeção e não expõe ações de draft (`Edit/Activate/Discard/Resume/Prepare`).  
+**Por quê:** assim o Object Page deixa de oferecer o botão `Edit` por contrato de backend, sem depender de Adapt UI.
 
 ---
 
 ### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto existente, ajustado)*
-Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada de forma mínima para manter os campos da tela.  
-**Nota importante (caminho 1):** no release atual, não usar `@UI.updateHidden` (não compila). Para ocultar o botão `Edit`, fazer adaptação de UI no FLP (UI Adaptation at Runtime) e esconder a ação no Object Page.
+Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada de forma mínima para manter os campos da tela.
 
 ---
 

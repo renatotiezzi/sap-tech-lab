@@ -1,25 +1,17 @@
 projection;
 strict ( 2 );
-use draft;
 use side effects;
 
 define behavior for ZC_S2M_PO_COMP_MONITOR
 {
 
-  use association _Materiais { with draft; }
-
-  /* RTiezzi: obrigatório com strict + use draft na projeção */
-  use action Edit;
-  use action Activate;
-  use action Discard;
-  use action Resume;
-  use action Prepare;
+  use association _Materiais;
 
 }
 
 define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
 {
-  use association _Componente { with draft; }
+  use association _Componente;
 
   use action Remarcar;
   use update;

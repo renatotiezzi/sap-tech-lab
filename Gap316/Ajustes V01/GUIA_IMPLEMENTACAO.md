@@ -38,24 +38,31 @@ SADL Exit (MAP_ATOM). Corrige o loop triplo para filtrar compatíveis pelo grupo
 
 ---
 
-### 7. `ZR_S2M_PO_COMP_MONITOR.bdef`
-Declara `MaterialName` como `field (readonly)` em `ZR_S2M_MATERIAIS_COMPATIVEIS`.  
-**Por quê:** em RAP `strict(2)` com draft, qualquer campo da CDS que não existe na tabela persistente precisa estar declarado no BDEF. `MaterialName` vem do JOIN com `I_MaterialText` — não existe em `ztbs2m_mat_compa` nem em `ztbs2m_mat_compd`.
+### 7. `ZTBS2M_MAT_COMPD` — SE11 (tabela DDIC)
+Adicionar campo `MATERIALNAME` com rollname `MAKTX` antes do `.INCLUDE` de administração de draft.  
+**Por quê:** em RAP `strict(2)`, o framework valida que TODOS os campos da CDS transacional existam fisicamente na draft table — mesmo os declarados `field (readonly)` no BDEF. Sem este campo na tabela, o BDEF não compila.  
+**Como:** SE11 → `ZTBS2M_MAT_COMPD` → inserir campo `MATERIALNAME` (rollname `MAKTX`) → salvar e ativar com ajuste de tabela.
 
 ---
 
-### 8. `ZC_S2M_PO_COMP_MONITOR.bdef`
+### 8. `ZR_S2M_PO_COMP_MONITOR.bdef`
+Declara `MaterialName` como `field (readonly)` em `ZR_S2M_MATERIAIS_COMPATIVEIS`.  
+**Por quê:** o campo vem de JOIN externo com `I_MaterialText` — não é gravado pelo handler MODIFY. O `field (readonly)` informa ao framework RAP que este campo não é editável pelo usuário.
+
+---
+
+### 9. `ZC_S2M_PO_COMP_MONITOR.bdef`
 Remove `use action Edit` da projeção RAP.  
 **Por quê:** desabilita o botão "Editar" na tela principal — tela passa a ser somente leitura + Remarcar.
 
 ---
 
-### 9. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto NOVO)*
+### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto NOVO)*
 Metadata Extension da tela inicial. Adiciona `@UI.lineItem` para os campos que já existiam no CDS mas não apareciam na grid: código/nome do produto da ordem e nome do componente.
 
 ---
 
-### 10. `ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx` *(objeto NOVO)*
+### 11. `ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx` *(objeto NOVO)*
 Metadata Extension da segunda tela. Define seleção única (`@UI.selectionMode: #SINGLE`) e inclui `MaterialName` nas colunas.
 
 ---

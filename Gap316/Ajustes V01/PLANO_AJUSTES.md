@@ -17,8 +17,8 @@
 | 5 | `ZR_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
 | 6 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
 | 7 | `ZC_S2M_PO_COMP_MONITOR` | BDEF | REQ3-4 — manter `Edit` (exigência RAP strict+draft) |
-| 8 | `ZC_S2M_PO_COMP_MONITOR` | Metadata Ext. (NEW) | REQ2 — campos visíveis tela inicial |
-| 9 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | Metadata Ext. (NEW) | REQ3-4 — seleção única |
+| 8 | `ZC_S2M_PO_COMP_MONITOR` | Metadata Ext. (existente, ajustada) | REQ2 — campos visíveis tela inicial |
+| 9 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | Metadata Ext. (existente, ajustada) | REQ3-4 — seleção única |
 
 ---
 
@@ -134,7 +134,7 @@ Substituir o OR hardcoded no WHERE por INNER JOIN com `I_ClfnCharcDesc` usando o
 
 ## Ponto 5 — REQ2: Campos da tela inicial não visíveis no Fiori
 
-**Objeto:** `ZC_S2M_PO_COMP_MONITOR` (Metadata Extension — arquivo NOVO)
+**Objeto:** `ZC_S2M_PO_COMP_MONITOR` (Metadata Extension — objeto existente, ajustado)
 
 **Problema:**  
 Os campos `MaterialOrdem`, `MaterialOrdemName` e `MaterialName` (MAKTX componente) JÁ EXISTEM no CDS de projeção. Porém sem `@UI.lineItem` annotation, o Fiori Elements não os exibe na grid do List Report.
@@ -177,7 +177,7 @@ Propagar o campo por `ZR_` e `ZC_`.
 
 ## Ponto 8 — REQ3-4: Seleção única na segunda tela
 
-**Objeto:** `ZC_S2M_MATERIAIS_COMPATIVEIS` (Metadata Extension — arquivo NOVO)
+**Objeto:** `ZC_S2M_MATERIAIS_COMPATIVEIS` (Metadata Extension — objeto existente, ajustado)
 
 **Problema:**  
 A tabela de materiais compatíveis permite seleção múltipla. O funcional quer selecionar apenas uma linha antes de clicar em Remarcar.
@@ -197,8 +197,8 @@ Criar `zc_s2m_materiais_compativeis.ddls.asddlx` com anotação `@UI.selectionMo
 5. ZCLS2M_MATERIAIS_ORDEM           (ABAP - FIX1+FIX3+REQ1)
 6. ZCLS2M_MAT_CARACT_CALC           (ABAP - FIX2)
 7. ZC_S2M_PO_COMP_MONITOR.bdef      (BDEF - manter Edit por regra RAP strict+draft)
-8. ZC_S2M_PO_COMP_MONITOR.asddlx    (META - campos tela inicial) [NOVO]
-9. ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx  (META - seleção única + MAKTX) [NOVO]
+8. ZC_S2M_PO_COMP_MONITOR.asddlx    (META - existente, ajustada para campos da tela inicial)
+9. ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx  (META - existente, ajustada para seleção única + MAKTX)
 ```
 
 ---

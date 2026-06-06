@@ -57,13 +57,13 @@ Mantém `use action Edit` explicitamente na projeção RAP.
 
 ---
 
-### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto NOVO)*
-Metadata Extension da tela inicial. Adiciona `@UI.lineItem` para os campos que já existiam no CDS mas não apareciam na grid: código/nome do produto da ordem e nome do componente.
+### 10. `ZC_S2M_PO_COMP_MONITOR.asddlx` *(objeto existente, ajustado)*
+Metadata Extension da tela inicial já existente no baseline. Nesta CR, foi ajustada para garantir `@UI.lineItem` dos campos de código/nome do produto da ordem e nome do componente.
 
 ---
 
-### 11. `ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx` *(objeto NOVO)*
-Metadata Extension da segunda tela. Define seleção única (`@UI.selectionMode: #SINGLE`) e inclui `MaterialName` nas colunas.
+### 11. `ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx` *(objeto existente, ajustado)*
+Metadata Extension da segunda tela já existente no baseline. Nesta CR, foi ajustada para seleção única (`@UI.selectionMode: #SINGLE`) e inclusão de `MaterialName` nas colunas.
 
 ---
 

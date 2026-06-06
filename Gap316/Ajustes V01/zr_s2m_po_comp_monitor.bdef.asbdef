@@ -1,0 +1,64 @@
+unmanaged implementation in class zbp_r_s2m_po_comp_monitor unique;
+strict ( 2 );
+with draft;
+define behavior for ZR_S2M_PO_COMP_MONITOR //alias <alias_name>
+//persistent table <???>
+draft table ztbs2m_ordemd
+lock master total etag LastChangedAt
+authorization master ( instance )
+etag master LastChangedAt
+{
+
+  field ( readonly )
+  //  uuid,
+  ReservationItem,
+  Reservation,
+  ReservationRecordType,
+  MaterialGroup,
+  material,
+  plant,
+  ManufacturingOrder,
+  orderoperationinternalid,
+  BaseUnit,
+  RequiredQuantity, LastChangedAt;
+
+
+  association _Materiais { internal create; with draft; }
+
+
+  internal create;
+  update;
+  internal delete;
+
+  draft determine action Prepare { }
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+
+
+}
+
+
+define behavior for ZR_S2M_MATERIAIS_COMPATIVEIS
+lock dependent by _Componente
+authorization dependent by _Componente
+draft table ztbs2m_mat_compd
+{
+
+  field ( readonly ) ReservationItem, Reservation, ReservationRecordType, material, Centro, billofoperationstype,
+  grupo, billofoperationsvariant, bootomaterialinternalid, boomatlinternalversioncounter, Deposito,
+  Productionversion, Billofmaterialvariant, Billofmaterialvariantusage, Charcinternalid, Charcinternalid2, Charcinternalid3,
+  ChargD, Clabs, meins, LastChangedAt, Validade,
+  /* RTiezzi: MaterialName vem de JOIN com I_MaterialText, não existe em ztbs2m_mat_compa/ztbs2m_mat_compd */
+  Charg, MaterialName;
+
+  update;
+  internal delete;
+
+  association _Componente { with draft; }
+
+  action Remarcar;
+
+
+}

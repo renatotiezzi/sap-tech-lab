@@ -52,8 +52,8 @@ Declara `MaterialName` como `field (readonly)` em `ZR_S2M_MATERIAIS_COMPATIVEIS`
 ---
 
 ### 9. `ZC_S2M_PO_COMP_MONITOR.bdef`
-Remove `use action Edit` da projeção RAP.  
-**Por quê:** desabilita o botão "Editar" na tela principal — tela passa a ser somente leitura + Remarcar.
+Mantém `use action Edit` explicitamente na projeção RAP.  
+**Por quê:** em `strict(2)` com `use draft`, o framework exige `Edit` na projeção; sem isso o BDEF não compila. O controle de edição da segunda tela continua restrito por ausência de `use update` em `ZC_S2M_MATERIAIS_COMPATIVEIS`.
 
 ---
 

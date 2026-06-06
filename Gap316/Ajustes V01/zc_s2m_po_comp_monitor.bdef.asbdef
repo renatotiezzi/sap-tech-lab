@@ -1,5 +1,5 @@
-/* RTiezzi: remover botão Editar da tela principal.
- * 'use action Edit' removido da projeção ZC_S2M_PO_COMP_MONITOR.
+/* RTiezzi: projeção RAP em strict(2)+draft exige 'use action Edit'.
+ * Mantido para cumprir validação do framework.
  * 'use update' de ZC_S2M_MATERIAIS_COMPATIVEIS removido — itens da
  * segunda tela são somente leitura; Remarcar não depende de update draft.
  * 'use update' na raiz e draft actions (Activate/Discard/Resume/Prepare)
@@ -16,7 +16,8 @@ define behavior for ZC_S2M_PO_COMP_MONITOR
 
   use update;
 
-  /* RTiezzi: 'use action Edit' removido — sem botão Editar */
+  /* RTiezzi: obrigatório com strict + use draft na projeção */
+  use action Edit;
   use action Activate;
   use action Discard;
   use action Resume;

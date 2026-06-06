@@ -16,7 +16,7 @@
 | 4 | `ZI_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — MAKTX segunda tela |
 | 5 | `ZR_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
 | 6 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | CDS DDL | REQ3-6 — expor MaterialName |
-| 7 | `ZC_S2M_PO_COMP_MONITOR` | BDEF | REQ3-4 — remover botão Editar |
+| 7 | `ZC_S2M_PO_COMP_MONITOR` | BDEF | REQ3-4 — manter `Edit` (exigência RAP strict+draft) |
 | 8 | `ZC_S2M_PO_COMP_MONITOR` | Metadata Ext. (NEW) | REQ2 — campos visíveis tela inicial |
 | 9 | `ZC_S2M_MATERIAIS_COMPATIVEIS` | Metadata Ext. (NEW) | REQ3-4 — seleção única |
 
@@ -144,15 +144,15 @@ Criar `zc_s2m_po_comp_monitor.ddls.asddlx` com anotações `@UI.lineItem` e `@UI
 
 ---
 
-## Ponto 6 — REQ3-4: Remover botão "Editar"
+## Ponto 6 — REQ3-4: Ajuste de Edit no projection BDEF
 
 **Objeto:** `ZC_S2M_PO_COMP_MONITOR.bdef`
 
 **Problema:**  
-`use action Edit` expõe o EditDocument action → botão "Editar" aparece na tela. O funcional quer que a tela seja somente leitura com seleção de linha + Remarcar.
+Ao remover `use action Edit`, o projection BDEF deixa de compilar com erro do framework: em `strict(2)` com `use draft`, a draft action `Edit` precisa estar explicitamente incluída na projeção.
 
 **Solução:**  
-Remover `use action Edit` da projeção `ZC_S2M_PO_COMP_MONITOR`.  
+Manter `use action Edit` na projeção `ZC_S2M_PO_COMP_MONITOR` para cumprir a validação RAP.  
 Remover `use update` de `ZC_S2M_MATERIAIS_COMPATIVEIS` (itens não são editáveis diretamente).  
 `use update` na raiz é mantido (necessário para o draft lifecycle Activate/Discard funcionar).
 
@@ -196,7 +196,7 @@ Criar `zc_s2m_materiais_compativeis.ddls.asddlx` com anotação `@UI.selectionMo
 4. ZC_S2M_MATERIAIS_COMPATIVEIS     (CDS projeção)
 5. ZCLS2M_MATERIAIS_ORDEM           (ABAP - FIX1+FIX3+REQ1)
 6. ZCLS2M_MAT_CARACT_CALC           (ABAP - FIX2)
-7. ZC_S2M_PO_COMP_MONITOR.bdef      (BDEF - remove Edit)
+7. ZC_S2M_PO_COMP_MONITOR.bdef      (BDEF - manter Edit por regra RAP strict+draft)
 8. ZC_S2M_PO_COMP_MONITOR.asddlx    (META - campos tela inicial) [NOVO]
 9. ZC_S2M_MATERIAIS_COMPATIVEIS.asddlx  (META - seleção única + MAKTX) [NOVO]
 ```

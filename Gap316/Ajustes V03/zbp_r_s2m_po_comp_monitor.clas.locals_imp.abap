@@ -64,8 +64,11 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
     DATA lv_text2 TYPE string.
     DATA lv_text3 TYPE string.
 
+  *   RTiezzi: 'Selecione apenas uma linha para executar Remarcar.'
     lv_text1 = text-001.
+  *   RTiezzi: 'Informe quantidade > 0 para cada item selecionado em Remarcar.'
     lv_text2 = text-002.
+  *   RTiezzi: 'Quantidade total selecionada ultrapassa a quantidade necessária da ordem.'
     lv_text3 = text-003.
 
 *   RTiezzi: V03 foca no requisito funcional de permitir apenas

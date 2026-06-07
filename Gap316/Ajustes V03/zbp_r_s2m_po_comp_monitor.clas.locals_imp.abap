@@ -74,14 +74,17 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 *   RTiezzi: V03 foca no requisito funcional de permitir apenas
 *   uma linha por execução da ação Remarcar.
     IF lv_selected_count > 1.
+*     RTiezzi: associar mensagem por item selecionado evita popup genérico
+*     sem detalhe ('An error blocked processing for all selected items').
       LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key_fail>). ##EML_IN_LOOP_OK
         APPEND VALUE #( %key = <fs_key_fail>-%key ) TO failed-zr_s2m_materiais_compativeis.
+        APPEND VALUE #(
+          %key = <fs_key_fail>-%key
+          %msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = lv_text1 ) )
+          TO reported-zr_s2m_materiais_compativeis.
       ENDLOOP.
-      APPEND VALUE #(
-        %msg = new_message_with_text(
-          severity = if_abap_behv_message=>severity-error
-          text     = lv_text1 ) )
-        TO reported-zr_s2m_materiais_compativeis.
       RETURN.
     ENDIF.
 

@@ -60,16 +60,16 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
     DATA lv_soma_quantidade TYPE nsdm_stock_qty_l1 VALUE 0.
 
     DATA(lv_selected_count) = lines( keys ).
-    DATA lv_text1 TYPE string.
-    DATA lv_text2 TYPE string.
-    DATA lv_text3 TYPE string.
+    DATA lv_text_single_line TYPE string.
+    DATA lv_text_quantity_required TYPE string.
+    DATA lv_text_quantity_exceeded TYPE string.
 
-  *   RTiezzi: 'Selecione apenas uma linha para executar Remarcar.'
-    lv_text1 = text-001.
-  *   RTiezzi: 'Informe quantidade > 0 para cada item selecionado em Remarcar.'
-    lv_text2 = text-002.
-  *   RTiezzi: 'Quantidade total selecionada ultrapassa a quantidade necessária da ordem.'
-    lv_text3 = text-003.
+*   RTiezzi: 'Selecione apenas uma linha para executar Remarcar.'
+    lv_text_single_line = text-002.
+*   RTiezzi: 'Informe quantidade > 0 para cada item selecionado em Remarcar.'
+    lv_text_quantity_required = text-003.
+*   RTiezzi: 'Quantidade total selecionada ultrapassa a quantidade necessária da ordem.'
+    lv_text_quantity_exceeded = text-004.
 
 *   RTiezzi: V03 foca no requisito funcional de permitir apenas
 *   uma linha por execução da ação Remarcar.
@@ -82,7 +82,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
           %key = <fs_key_fail>-%key
           %msg = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
-            text     = lv_text1 ) )
+            text     = lv_text_single_line ) )
           TO reported-zr_s2m_materiais_compativeis.
       ENDLOOP.
       RETURN.
@@ -167,7 +167,7 @@ WITH VALUE #( (
               %tky = ls_material_comp-%tky
               %msg = new_message_with_text(
                 severity = if_abap_behv_message=>severity-error
-                text     = lv_text2 ) )
+                text     = lv_text_quantity_required ) )
               TO reported-zr_s2m_materiais_compativeis.
             RETURN.
           ENDIF.
@@ -181,7 +181,7 @@ WITH VALUE #( (
             %tky = ls_material_comp-%tky
             %msg = new_message_with_text(
               severity = if_abap_behv_message=>severity-error
-              text     = lv_text3 ) )
+              text     = lv_text_quantity_exceeded ) )
             TO reported-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.

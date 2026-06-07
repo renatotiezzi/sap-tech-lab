@@ -61,6 +61,17 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 
     DATA(lv_selected_count) = lines( keys ).
 
+*   RTiezzi: V03 foca no requisito funcional de permitir apenas
+*   uma linha por execução da ação Remarcar.
+    IF lv_selected_count > 1.
+      APPEND VALUE #(
+        %msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = 'Selecione apenas uma linha para executar Remarcar.' ) )
+        TO reported-zr_s2m_materiais_compativeis.
+      RETURN.
+    ENDIF.
+
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key>). ##EML_IN_LOOP_OK
 
       READ ENTITIES OF zr_s2m_po_comp_monitor IN LOCAL MODE ##EML_IN_LOOP_OK

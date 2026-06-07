@@ -60,14 +60,24 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
     DATA lv_soma_quantidade TYPE nsdm_stock_qty_l1 VALUE 0.
 
     DATA(lv_selected_count) = lines( keys ).
+    DATA lv_text1 TYPE string.
+    DATA lv_text2 TYPE string.
+    DATA lv_text3 TYPE string.
+
+    lv_text1 = text-001.
+    lv_text2 = text-002.
+    lv_text3 = text-003.
 
 *   RTiezzi: V03 foca no requisito funcional de permitir apenas
 *   uma linha por execução da ação Remarcar.
     IF lv_selected_count > 1.
+      LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key_fail>). ##EML_IN_LOOP_OK
+        APPEND VALUE #( %key = <fs_key_fail>-%key ) TO failed-zr_s2m_materiais_compativeis.
+      ENDLOOP.
       APPEND VALUE #(
         %msg = new_message_with_text(
           severity = if_abap_behv_message=>severity-error
-          text     = 'Selecione apenas uma linha para executar Remarcar.' ) )
+          text     = lv_text1 ) )
         TO reported-zr_s2m_materiais_compativeis.
       RETURN.
     ENDIF.
@@ -151,7 +161,7 @@ WITH VALUE #( (
               %tky = ls_material_comp-%tky
               %msg = new_message_with_text(
                 severity = if_abap_behv_message=>severity-error
-                text     = 'Informe quantidade > 0 para cada item selecionado em Remarcar.' ) )
+                text     = lv_text2 ) )
               TO reported-zr_s2m_materiais_compativeis.
             RETURN.
           ENDIF.
@@ -165,7 +175,7 @@ WITH VALUE #( (
             %tky = ls_material_comp-%tky
             %msg = new_message_with_text(
               severity = if_abap_behv_message=>severity-error
-              text     = 'Quantidade total selecionada ultrapassa a quantidade necessária da ordem.' ) )
+              text     = lv_text3 ) )
             TO reported-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.

@@ -57,6 +57,36 @@ Objeto: `ZBP_R_S2M_PO_COMP_MONITOR` (V03, linha ~148).
 Status V04: acredito que seja impossivel sem quebrar.
 Motivo: essa leitura define lote/deposito usados na remarcacao.
 
+## Equivalentes encontrados na pesquisa (real)
+
+Importante: pesquisa em SAP nao foi executada porque nao ha conexao ABAP ativa no VS Code neste momento. Abaixo, somente achados reais no codigo local.
+
+1. Para `A_ProcessOrder` (item 5)
+- Candidato encontrado: `I_ManufacturingOrder`.
+- Evidencia: value help ja usa `I_ManufacturingOrder` em `ZC_S2M_PO_COMP_MONITOR` (`ddlx`, linha ~104).
+- Uso sugerido: tentar substituir campos de cabecalho da ordem (`MaterialOrdem*`) por leitura derivada de `I_ManufacturingOrder`.
+
+2. Para `I_MfgOrderStatus` (item 10)
+- Candidato encontrado: `I_MfgOrderComponentWithStatus`.
+- Evidencia: `ZI_S2M_ORDEM` ja nasce de `I_MfgOrderComponentWithStatus` (linha ~5).
+- Uso sugerido: avaliar se o filtro de status pode sair do join separado com `I_MfgOrderStatus` e vir direto da view base.
+
+3. Para acesso de reserva (apoio ao item 11)
+- Equivalente ja aplicado e encontrado: `I_ReservationDocumentItem` (no lugar de `RESB`).
+- Evidencia: `ZBP_R_S2M_PO_COMP_MONITOR` (V03, linha ~126) ja faz SELECT em `I_ReservationDocumentItem` para `StorageLocation/Batch`.
+
+4. Para `I_MaterialText` (item 6)
+- Candidato local encontrado: nenhum confirmado no repositorio.
+- Proximo passo: pesquisar no SAP conectado qual view released de texto de produto/material esta disponivel no release.
+
+5. Para `MCHB`/`NSDM_E_MCHB` (itens 9 e 11)
+- Candidato local encontrado: nenhum confirmado no repositorio.
+- Proximo passo: pesquisar no SAP conectado uma CDS released de estoque por lote com campos `Material/Plant/StorageLocation/Batch/UnrestrictedStock`.
+
+6. Para `T001L` com `oib_tnkassign` (item 1)
+- Candidato local encontrado: nenhum confirmado no repositorio.
+- Observacao: por envolver campo IS-OIL especifico, a chance de equivalencia released direta e baixa.
+
 ## Fechamento V04
 1. Para esta versao: sem mudanca de fonte (somente justificativa ATC), para nao gerar regressao funcional.
 2. Para proxima versao (V04.1): fazer tentativa controlada item a item, via POC e teste regressivo.

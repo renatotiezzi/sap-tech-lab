@@ -1,46 +1,49 @@
 # GAP316 - Ajustes V04 (ATC)
 
 ## Objetivo
-Fechar a demanda ATC sem quebrar o processo de remarcacao.
+Listar, ponto a ponto, o que mudar em cada objeto ATC e o que nao e seguro mudar agora.
 
-## Resultado da triagem
-Pela lista enviada, os achados sao majoritariamente de categoria "Usage of internal API" e "Usage of DDIC tables in CDS".
-
-Decisao tecnica para V04:
-- Nao fazer substituicoes arriscadas de API neste ciclo, porque pode quebrar comportamento funcional ja estabilizado no V03.
-- Tratar por justificativa tecnica formal onde nao ha alternativa publica viavel no escopo curto.
-- Registrar backlog de refatoracao clean-core para ciclo dedicado.
+## Regra de decisao usada
+- Aplicar somente alteracao de baixo risco e sem impacto funcional no fluxo Remarcar.
+- Quando a troca exigir redesenho funcional/tecnico, marcar como "SEM ACAO SEGURA AGORA" e justificar.
 
 ---
 
-## Matriz ATC (corrigir vs justificar)
+## Plano por achado ATC (programa por programa)
 
-| Item ATC | Objeto | Acao V04 | Motivo |
-|---|---|---|---|
-| DDIC table OILT001L em CDS | ZI_S2M_DEPOSITO_TANQUE | JUSTIFICAR | Dependencia IS-OIL especifica; sem substituto publico direto no escopo atual |
-| DDIC table T001L em CDS | ZI_S2M_DEPOSITO_TANQUE | JUSTIFICAR | Troca para API released exigiria redesenho de join e reteste funcional |
-| Internal API CO_XT_COMPONENT_ADD | ZCLS2M_REMARCACAO_PARALLEL | JUSTIFICAR | API de processo de ordem usada no core da remarcacao; troca exige redesenho completo |
-| Internal API CO_XT_COMPONENTS_DELETE | ZCLS2M_REMARCACAO_PARALLEL | JUSTIFICAR | Mesmo motivo acima |
-| Internal API CO_ZV_ORDER_POST | ZCLS2M_REMARCACAO_PARALLEL | JUSTIFICAR | Mesmo motivo acima |
-| Internal API A_PROCESSORDER | ZC_S2M_PO_COMP_MONITOR / ZR_S2M_PO_COMP_MONITOR | JUSTIFICAR | Substituicao demanda revisao de campos Material/MaterialName e comportamento da OP |
-| Internal API I_MATERIALTEXT | ZC/ZR/ZI *_PO_COMP_MONITOR / *_MATERIAIS_COMPATIVEIS | JUSTIFICAR | Campo de descricao ja estabilizado; troca para outra VDM exige reteste amplo |
-| Internal API NSDM_DDL_MCHB | ZI_S2M_MATERIAIS_COMPAT | JUSTIFICAR | Fonte de estoque por lote com filtros especificos do processo |
-| Internal API R_BATCHCHARACTERISTICVALUETP | ZI_S2M_MATERIAIS_COMPAT | JUSTIFICAR | Dependencia de caracteristicas de lote para regra de compatibilidade |
-| Internal API I_MASTERRECIPEMATERIALASSGMT | ZI_S2M_MATERIAIS_COMPAT | JUSTIFICAR | Parte do criterio de compatibilidade no desenho atual |
-| Internal API I_MFGORDERSTATUS | ZR_S2M_ORDEM | JUSTIFICAR | Filtro de ordem criada no monitor atual |
-| DDIC table MCHB em classe | ZBP_R_S2M_PO_COMP_MONITOR | JUSTIFICAR | Mudanca para API released precisa garantia de mesmos campos lote/deposito para BAPI |
-
----
-
-## O que foi efetivamente corrigido no fluxo (fora ATC clean-core)
-- V03 corrigiu o bug de quantidade/material na acao Remarcar.
-- V03 adicionou validacoes de quantidade e selecao unica para a acao.
-
-Esses pontos reduzem risco funcional imediato, mas nao removem os alertas de API interna no ATC.
+| Item ATC | Objeto e trecho atual | Mudar de -> para (acao tecnica) | Aplicar em V04? | Decisao |
+|---|---|---|---|---|
+| Usage of DDIC table T001L/OILT001L in CDS | ZI_S2M_DEPOSITO_TANQUE: `as select from t001l` | De: tabela DDIC `T001L` com campo IS-OIL `oib_tnkassign` -> Para: view released equivalente (se existir no seu release) contendo `Plant/StorageLocation` e flag de tanque; se nao houver view released com esse campo, manter como esta | Nao | SEM ACAO SEGURA AGORA. O campo `oib_tnkassign` e especifico e normalmente nao existe em view released padrao |
+| Usage of internal API CO_XT_COMPONENT_ADD | ZCLS2M_REMARCACAO_PARALLEL: `CALL FUNCTION 'CO_XT_COMPONENT_ADD'` | De: FMs CO_XT* -> Para: API released de alteracao de componente de ordem (quando disponivel no release), com mapeamento de `material/quantity/operation/sequence/storage/batch` | Nao | SEM ACAO SEGURA AGORA. Troca exige redesenho completo da remarcacao |
+| Usage of internal API CO_XT_COMPONENTS_DELETE | ZCLS2M_REMARCACAO_PARALLEL: `CALL FUNCTION 'CO_XT_COMPONENTS_DELETE'` | De: delete por FM interno -> Para: operacao released de remocao de componente com mesma chave `RESB` | Nao | SEM ACAO SEGURA AGORA. Alto risco de regressao operacional |
+| Usage of internal API CO_ZV_ORDER_POST | ZCLS2M_REMARCACAO_PARALLEL: `CALL FUNCTION 'CO_ZV_ORDER_POST'` | De: post interno de ordem -> Para: commit/post via API released de ordem de processo | Nao | SEM ACAO SEGURA AGORA. Mudanca mexe no commit transacional do processo |
+| Usage of internal API A_PROCESSORDER | ZR_S2M_PO_COMP_MONITOR e ZC_S2M_PO_COMP_MONITOR: associacao/uso de `A_ProcessOrder` | De: consumo direto de `A_ProcessOrder` para `Material/MaterialName` -> Para: entidade released de Manufacturing Order para leitura (se disponivel no release) + ajuste de aliases `MaterialOrdem/MaterialOrdemName` | Nao | SEM ACAO SEGURA AGORA. Troca exige revisao de campos expostos no monitor |
+| Usage of internal API I_MATERIALTEXT | ZR_S2M_PO_COMP_MONITOR e ZC_S2M_PO_COMP_MONITOR: associacao/uso de `I_MaterialText.MaterialName` | De: `I_MaterialText` -> Para: view de texto de produto released no release alvo (ex.: texto de produto) mantendo filtro por idioma da sessao | Nao | SEM ACAO SEGURA AGORA. Sem confirmacao de substituto released identico no release atual |
+| Usage of internal API I_MASTERRECIPEMATERIALASSGMT | ZI_S2M_MATERIAIS_COMPAT: `as select from I_MasterRecipeMaterialAssgmt` | De: consumo direto da VDM interna de receita -> Para: fonte released equivalente para vinculo material x grupo de receita | Nao | SEM ACAO SEGURA AGORA. Sem substituto direto confirmado sem alterar regra de compatibilidade |
+| Usage of internal API R_BATCHCHARACTERISTICVALUETP | ZI_S2M_MATERIAIS_COMPAT: join com `R_BatchCharacteristicValueTP` | De: leitura direta de caracteristica de lote -> Para: API released para classificacao/lote que preserve `ClassType 023` e caracteristicas 1031/991/998 | Nao | SEM ACAO SEGURA AGORA. Alto risco de mudar resultado de compatibilidade |
+| Usage of internal API NSDM_DDL_MCHB | ZI_S2M_MATERIAIS_COMPAT: join com `nsdm_e_mchb` | De: estoque por lote via NSDM -> Para: entidade released de estoque por lote com mesmos campos `matnr/werks/lgort/charg/clabs` | Nao | SEM ACAO SEGURA AGORA. Mudanca afeta saldo e filtro principal do monitor |
+| Usage of internal API I_MFGORDERSTATUS | ZR_S2M_ORDEM: join e filtro `OrderIsCreated = 'X'` | De: `I_MfgOrderStatus` -> Para: status released equivalente de ordem de fabricacao com mesmo filtro funcional | Nao | SEM ACAO SEGURA AGORA. Precisa confirmar semantica de status no release |
+| Usage of DDIC table MCHB em classe ABAP | ZBP_R_S2M_PO_COMP_MONITOR (V03): `SELECT SINGLE ... FROM mchb` | De: leitura direta MCHB para localizar lote/deposito -> Para: CDS/API released de estoque por lote e ajuste de SELECT para leitura equivalente | Nao | SEM ACAO SEGURA AGORA. Pode alterar selecao de lote usada na remarcacao |
 
 ---
 
-## Recomendacao para gate
-- Aprovar V04 com justificativas ATC registradas (waiver/exemption por objeto).
-- Abrir iniciativa separada "Clean Core Refactor" para migrar APIs internas com teste regressivo completo.
+## O que da para fazer agora, sem quebrar
+- Acao V04 executavel: registrar justificativa tecnica formal item a item (este documento) para waiver de ATC.
+- Acao de codigo em V04: nenhuma alteracao de fonte, porque nao ha troca de baixo risco validada no release atual.
+
+---
+
+## Backlog de refatoracao (V04.1 ou trilha clean-core)
+1. Levantar APIs/views released disponiveis no seu release para: ordem de processo, status de ordem, texto de material/produto e estoque por lote.
+2. Fazer POC isolada por objeto CDS (um por vez), comparando contagem/resultado com baseline atual.
+3. So depois migrar a classe de remarcacao (CO_XT* e CO_ZV_ORDER_POST), com testes de regressao ponta a ponta.
+
+---
+
+## Conclusao objetiva para o ATC atual
+Para os itens listados, hoje o correto e:
+- dizer exatamente onde estao;
+- documentar qual seria a troca tecnica esperada;
+- assumir "nao tem o que fazer com seguranca agora" nos pontos criticos;
+- seguir com waiver ATC nesta versao e refatoracao dedicada na proxima.
 

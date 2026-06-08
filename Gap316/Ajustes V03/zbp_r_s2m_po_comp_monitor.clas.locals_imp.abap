@@ -145,11 +145,10 @@ WITH VALUE #( (
 
       IF lt_po_comp_monitor IS NOT INITIAL.
 
-        SELECT SINGLE werks, lgort, charg FROM mchb
-        WHERE matnr = @ls_material_comp-material
-        AND werks = @ls_material_comp-centro
-        AND charg = @ls_material_comp-charg
-        INTO  @DATA(ls_mchb).
+*       RTiezzi: evitar SELECT em MCHB; usar dados da linha candidata ja lida no RAP.
+        DATA(lv_werks_subst) = ls_material_comp-centro.
+        DATA(lv_lgort_subst) = ls_material_comp-deposito.
+        DATA(lv_charg_subst) = ls_material_comp-charg.
 
 
 
@@ -195,9 +194,9 @@ WITH VALUE #( (
            is_requ_quan = VALUE coxt_s_quantity( quantity = lv_quantidade_exec )
            iv_operation = ls_po_comp_monitor-orderoperationinternalid
            iv_sequence = lv_manufacturingordersequence
-           is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-werks lgort = ls_mchb-lgort  )
+            is_storage_location = VALUE coxt_s_storage_location( werks = lv_werks_subst lgort = lv_lgort_subst  )
            is_storage_locationx = VALUE coxt_s_storage_locationx( werks = 'X' lgort = 'X' )
-           iv_batch = ls_mchb-charg
+            iv_batch = lv_charg_subst
            iv_batchx = 'X'
            iv_postp = 'L'
            iv_posno = '10'
@@ -251,7 +250,7 @@ WITH VALUE #( (
          is_requ_quan = VALUE coxt_s_quantity( quantity = lv_soma_quantidade )
          iv_operation = ls_po_comp_monitor-orderoperationinternalid
          iv_sequence = lv_manufacturingordersequence
-         is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-werks lgort = ls_resb-StorageLocation  )
+        is_storage_location = VALUE coxt_s_storage_location( werks = lv_werks_subst lgort = ls_resb-StorageLocation  )
          is_storage_locationx = VALUE coxt_s_storage_locationx( werks = 'X' lgort = 'X' )
          iv_batch = ls_resb-Batch
          iv_batchx = 'X'

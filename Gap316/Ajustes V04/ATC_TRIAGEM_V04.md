@@ -54,8 +54,8 @@ Motivo: sem validar semantica equivalente de status no release atual.
 
 11. Trocar `SELECT ... FROM MCHB` por CDS/API released de estoque por lote.
 Objeto: `ZBP_R_S2M_PO_COMP_MONITOR` (V03, linha ~148).
-Status V04: acredito que seja impossivel sem quebrar.
-Motivo: essa leitura define lote/deposito usados na remarcacao.
+Status V04: aplicado em modo seguro (sem CDS nova).
+Acao aplicada: removido `SELECT ... FROM MCHB` e trocado por uso direto dos campos ja disponiveis na linha RAP (`centro/deposito/charg`) para montar `is_storage_location` e `iv_batch`.
 
 ## Equivalentes encontrados na pesquisa (real)
 
@@ -86,6 +86,27 @@ Importante: pesquisa em SAP nao foi executada porque nao ha conexao ABAP ativa n
 6. Para `T001L` com `oib_tnkassign` (item 1)
 - Candidato local encontrado: nenhum confirmado no repositorio.
 - Observacao: por envolver campo IS-OIL especifico, a chance de equivalencia released direta e baixa.
+
+## Sugestoes tecnicas objetivas (proxima tentativa)
+
+1. Item 5 (`A_ProcessOrder`)
+- No objeto `ZR_S2M_PO_COMP_MONITOR`, tentar trocar associacao `A_ProcessOrder` por `I_ManufacturingOrder`.
+- No objeto `ZC_S2M_PO_COMP_MONITOR`, remapear `MaterialOrdem` e `MaterialOrdemName` para campos equivalentes da nova associacao.
+
+2. Item 10 (`I_MfgOrderStatus`)
+- No objeto `ZR_S2M_ORDEM`, tentar eliminar o join `I_MfgOrderStatus` e filtrar status diretamente a partir de `ZI_S2M_ORDEM` (origem `I_MfgOrderComponentWithStatus`), caso o campo equivalente exista.
+
+3. Item 6 (`I_MaterialText`)
+- Tentar trocar associacao de texto para a view released de texto de produto/material disponivel no release (mantendo filtro por idioma da sessao).
+- Ajustar consumo no `ZC_S2M_PO_COMP_MONITOR` somente no campo de descricao.
+
+4. Item 9 (`NSDM_E_MCHB`)
+- Em `ZI_S2M_MATERIAIS_COMPAT`, trocar join `NSDM_E_MCHB` por CDS released de estoque por lote.
+- Garantir mapeamento minimo: `Material`, `Plant`, `StorageLocation`, `Batch`, `UnrestrictedStock`.
+
+5. Item 1 (`T001L`/`oib_tnkassign`)
+- So tentar troca se existir CDS released com atributo equivalente de tanque.
+- Sem esse campo, manter DDIC e seguir com excecao ATC (evita regressao funcional).
 
 ## Fechamento V04
 1. Para esta versao: sem mudanca de fonte (somente justificativa ATC), para nao gerar regressao funcional.

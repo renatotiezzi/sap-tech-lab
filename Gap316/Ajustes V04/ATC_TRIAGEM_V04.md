@@ -61,3 +61,38 @@ Motivo: essa leitura define lote/deposito usados na remarcacao.
 1. Para esta versao: sem mudanca de fonte (somente justificativa ATC), para nao gerar regressao funcional.
 2. Para proxima versao (V04.1): fazer tentativa controlada item a item, via POC e teste regressivo.
 
+## Justificativas para Excecao ATC (copiar/colar)
+
+1. T001L/OILT001L em `ZI_S2M_DEPOSITO_TANQUE`
+Justificativa: o objeto utiliza o campo `oib_tnkassign`, de natureza especifica IS-OIL, sem equivalencia released comprovada no release atual com a mesma semantica funcional. A substituicao neste momento pode alterar a identificacao de depositos tanque e gerar regressao no processo. Solicitada excecao ATC temporaria ate validacao de alternativa released em trilha dedicada.
+
+2. `CO_XT_COMPONENT_ADD` em `ZCLS2M_REMARCACAO_PARALLEL`
+Justificativa: a chamada e parte do nucleo transacional da remarcacao de componentes em ordem de processo. A troca imediata por API alternativa sem POC homologada pode alterar inclusao de componente, quantidade e lote, com risco de impacto produtivo. Solicitada excecao temporaria com plano de migracao controlada.
+
+3. `CO_XT_COMPONENTS_DELETE` em `ZCLS2M_REMARCACAO_PARALLEL`
+Justificativa: a rotina de exclusao esta acoplada ao mesmo fluxo transacional da adicao/remarcacao. Substituicao sem desenho de equivalencia de chaves RESB e testes de regressao pode causar inconsistencias de componentes na ordem. Solicitada excecao ATC temporaria.
+
+4. `CO_ZV_ORDER_POST` em `ZCLS2M_REMARCACAO_PARALLEL`
+Justificativa: o post e commit da ordem dependem desse ponto tecnico para consolidacao das alteracoes. A troca imediata pode comprometer fechamento transacional e consistencia dos dados. Solicitada excecao temporaria, com acao futura em iniciativa clean-core.
+
+5. `A_ProcessOrder` em `ZR_S2M_PO_COMP_MONITOR`/`ZC_S2M_PO_COMP_MONITOR`
+Justificativa: o consumo atual abastece campos exibidos no monitor (`MaterialOrdem`, `MaterialOrdemName`) e suporta o comportamento funcional validado. Alteracao sem mapeamento release-equivalente confirmado pode quebrar exibicao e filtros de tela. Solicitada excecao ATC temporaria.
+
+6. `I_MaterialText` em `ZR_S2M_PO_COMP_MONITOR`/`ZC_S2M_PO_COMP_MONITOR`
+Justificativa: o texto de material esta estabilizado com filtro por idioma da sessao e usado na experiencia do usuario. Sem validacao de substituto released com mesma cobertura de dados no release atual, a troca pode gerar perda de descricao ou inconsistencias de idioma. Solicitada excecao temporaria.
+
+7. `I_MasterRecipeMaterialAssgmt` em `ZI_S2M_MATERIAIS_COMPAT`
+Justificativa: a fonte participa da regra central de compatibilidade material x receita. Substituicao sem reconfirmacao funcional completa pode alterar o conjunto de materiais candidatos e impactar a remarcacao. Solicitada excecao ATC temporaria com refatoracao planejada.
+
+8. `R_BatchCharacteristicValueTP` em `ZI_S2M_MATERIAIS_COMPAT`
+Justificativa: a regra atual depende de caracteristicas de lote (classe 023 e IDs especificos) para elegibilidade. Mudanca de fonte sem equivalencia tecnica comprovada pode alterar criterios de compatibilidade em producao. Solicitada excecao temporaria.
+
+9. `NSDM_E_MCHB` em `ZI_S2M_MATERIAIS_COMPAT`
+Justificativa: a leitura de estoque por lote/deposito e parte do filtro principal do monitor de materiais compativeis. Troca sem validacao de paridade de campos e semantica pode alterar saldo elegivel e resultado funcional. Solicitada excecao ATC temporaria.
+
+10. `I_MfgOrderStatus` em `ZR_S2M_ORDEM`
+Justificativa: o filtro `OrderIsCreated = 'X'` e requisito funcional do monitor atual. Sem comprovacao de entidade released com semantica identica no release em uso, a substituicao pode incluir/excluir ordens indevidamente. Solicitada excecao temporaria.
+
+11. `MCHB` em `ZBP_R_S2M_PO_COMP_MONITOR` (V03)
+Justificativa: a busca em `MCHB` define lote/deposito consumidos na execucao da remarcacao. Mudanca imediata de fonte de dados sem paridade funcional validada pode impactar diretamente a operacao de remarcacao ja estabilizada. Solicitada excecao ATC temporaria.
+

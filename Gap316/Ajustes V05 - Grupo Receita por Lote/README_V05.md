@@ -8,16 +8,19 @@ Exemplo reportado:
 - O mesmo lote aparece novamente com grupo `5000107` (indevido)
 
 ## Causa tecnica
-No CDS base `ZI_S2M_MATERIAIS_COMPAT`, a combinacao de versoes ativas + caracteristicas de lote permitia associar o mesmo lote a grupo divergente da caracteristica de lote usada para grupo de receita (char. `1031`).
+No CDS base `ZI_S2M_MATERIAIS_COMPAT`, a combinacao de versoes ativas + caracteristicas de lote permitia associar o mesmo lote a grupo divergente da caracteristica de lote usada para grupo de receita.
 
 ## Correcao V05
 Foi adicionada validacao no `WHERE` para forcar consistencia:
-- Para linhas da caracteristica `1031`, o `CharcValue` deve ser igual ao `BillOfOperationsGroup`.
-- Para as demais caracteristicas (`991` e `998`), mantem comportamento atual.
+- O `CharcValue` deve ser igual ao `BillOfOperationsGroup` para manter o lote no grupo correto.
+
+Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
+- Mantido o join com `I_ClfnCharcDesc` (remocao de hardcode de IDs), evitando evolucao em objeto desatualizado.
+- Regra: toda nova versao deste objeto deve partir da ultima baseline consolidada na base.
 
 Resultado esperado:
 - O lote permanece somente no grupo de receita coerente com o proprio lote.
-- Nao altera logica funcional de filtro de estoque, deposito, lote, centro e validacao de caracteristicas.
+- Nao altera logica funcional de filtro de estoque, deposito, lote, centro e validacao por descricao de caracteristica (baseline V1).
 
 ## Arquivo alterado
 - `zi_s2m_materiais_compat.ddls.asddls`

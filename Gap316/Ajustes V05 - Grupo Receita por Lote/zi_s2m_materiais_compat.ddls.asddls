@@ -7,7 +7,14 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
     inner join   ZI_S2M_PRODUCTIONVERSION     on  I_MasterRecipeMaterialAssgmt.Material              = ZI_S2M_PRODUCTIONVERSION.Material
                                               and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
                                               and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
-    inner join   R_BatchCharacteristicValueTP on ZI_S2M_PRODUCTIONVERSION.Material = R_BatchCharacteristicValueTP.Material
+    inner join   R_BatchCharacteristicValueTP on  ZI_S2M_PRODUCTIONVERSION.Material                 = R_BatchCharacteristicValueTP.Material
+    /* V1 baseline - remover hardcode de IDs via descricao da caracteristica */
+    inner join   I_ClfnCharcDesc              on  R_BatchCharacteristicValueTP.CharcInternalID = I_ClfnCharcDesc.CharcInternalID
+                                              and I_ClfnCharcDesc.Language                    = 'P'
+                                              and I_ClfnCharcDesc.CharcDescription            = 'Grp Receita Mestre'
+                                              and I_ClfnCharcDesc.ValidityStartDate           <= $session.system_date
+                                              and I_ClfnCharcDesc.ValidityEndDate             >= $session.system_date
+                                              and I_ClfnCharcDesc.IsDeleted                   = ''
     inner join   nsdm_e_mchb                  on  I_MasterRecipeMaterialAssgmt.Material = nsdm_e_mchb.matnr
                                               and I_MasterRecipeMaterialAssgmt.Plant    = nsdm_e_mchb.werks
                                               and R_BatchCharacteristicValueTP.Batch    = nsdm_e_mchb.charg
@@ -43,14 +50,6 @@ where
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
-  and(
-        R_BatchCharacteristicValueTP.CharcInternalID       =  '0000001031'
-    or  R_BatchCharacteristicValueTP.CharcInternalID       =  '0000000991'
-    or  R_BatchCharacteristicValueTP.CharcInternalID       =  '0000000998'
-  )
-  /* V05 - Garantir grupo de receita do lote (char. 1031), evitando lote duplicado em grupo divergente */
-  and (
-        R_BatchCharacteristicValueTP.CharcInternalID       <> '0000001031'
-    or  R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
-  )
+  /* V05 - Garantir grupo de receita do lote, evitando lote duplicado em grupo divergente */
+  and   R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
   and   nsdm_e_mchb.clabs                                  >  0

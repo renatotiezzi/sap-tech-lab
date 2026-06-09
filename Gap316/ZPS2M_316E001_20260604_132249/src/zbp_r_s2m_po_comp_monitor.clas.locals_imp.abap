@@ -116,11 +116,13 @@ WITH VALUE #( (
 
       IF lt_po_comp_monitor IS NOT INITIAL.
 
-        SELECT SINGLE werks, lgort, charg FROM mchb
-        WHERE matnr = @ls_material_comp-material
-        AND werks = @ls_material_comp-centro
-        AND charg = @ls_material_comp-charg
-        INTO  @DATA(ls_mchb).
+        " ATC - Change MCHB -> wrapper ZI_S2M_WRP_MCHB_LOTE
+        SELECT SINGLE Plant, StorageLocation, Batch
+          FROM zi_s2m_wrp_mchb_lote
+          WHERE Material = @ls_material_comp-material
+            AND Plant = @ls_material_comp-centro
+            AND Batch = @ls_material_comp-charg
+          INTO @DATA(ls_mchb).
 
 
 
@@ -132,9 +134,9 @@ WITH VALUE #( (
            is_requ_quan = VALUE coxt_s_quantity( quantity = lt_material_comp[ 1 ]-quantidade )
            iv_operation = ls_po_comp_monitor-orderoperationinternalid
            iv_sequence = lv_manufacturingordersequence
-           is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-werks lgort = ls_mchb-lgort  )
+           is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-Plant lgort = ls_mchb-StorageLocation )
            is_storage_locationx = VALUE coxt_s_storage_locationx( werks = 'X' lgort = 'X' )
-           iv_batch = ls_mchb-charg
+           iv_batch = ls_mchb-Batch
            iv_batchx = 'X'
            iv_postp = 'L'
            iv_posno = '10'
@@ -188,7 +190,7 @@ WITH VALUE #( (
          is_requ_quan = VALUE coxt_s_quantity( quantity = lv_soma_quantidade )
          iv_operation = ls_po_comp_monitor-orderoperationinternalid
          iv_sequence = lv_manufacturingordersequence
-         is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-werks lgort = ls_resb-StorageLocation  )
+         is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-Plant lgort = ls_resb-StorageLocation )
          is_storage_locationx = VALUE coxt_s_storage_locationx( werks = 'X' lgort = 'X' )
          iv_batch = ls_resb-Batch
          iv_batchx = 'X'

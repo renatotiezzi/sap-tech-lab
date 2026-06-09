@@ -3,10 +3,11 @@
 @EndUserText.label: 'Basic View - Deposito Tanque'
 @Metadata.ignorePropagatedAnnotations: true
 define view entity ZI_S2M_Deposito_tanque
-  as select from t001l
+  /* ATC - Change T001L -> wrapper ZI_S2M_WRP_T001L_TANQUE */
+  as select from ZI_S2M_WRP_T001L_TANQUE
 {
   key werks         as Werks,
   key lgort         as Lgort,
-      oib_tnkassign as Tanque
+      Tanque
 }
-where oib_tnkassign = 'T'
+where Tanque = 'T'

@@ -13,8 +13,12 @@ Regra aplicada neste ciclo:
 - Se nao existir alternativa released com semantica equivalente no release alvo, manter wrapper + justificativa de excecao ATC temporaria.
 
 Objetos wrapper criados no V04:
-- `ZI_S2M_WRP_T001L_TANQUE` -> [Ajustes V04] leitura de `T001L` para atributo funcional de tanque.
-- `ZI_S2M_WRP_MCHB_LOTE` -> [Ajustes V04] wrapper minimo de `MCHB` para material/centro/deposito/lote, aderente ao uso real do fluxo.
+- `ZI_S2M_WRP_T001L_TANQUE` -> wrapper Z para `T001L`, com contrato minimo `Werks`, `Lgort`, `Tanque`.
+- `ZI_S2M_WRP_MCHB_LOTE` -> wrapper Z para `MCHB`, com contrato minimo `Material`, `Plant`, `StorageLocation`, `Batch`.
+
+Objetos consumidores ajustados no V04:
+- `ZI_S2M_DEPOSITO_TANQUE` -> passou a consumir `ZI_S2M_WRP_T001L_TANQUE`.
+- `ZBP_R_S2M_PO_COMP_MONITOR` -> passou a ler `ZI_S2M_WRP_MCHB_LOTE` em vez de `MCHB` direto.
 
 ## 1. DDIC `T001L` / campo `oib_tnkassign`
 Objeto: `ZI_S2M_DEPOSITO_TANQUE` (linha ~6, `as select from t001l`).
@@ -23,10 +27,10 @@ Motivo de estar no ATC:
 Leitura direta de tabela DDIC em CDS, com dependencia de campo IS-OIL (`oib_tnkassign`) sem equivalente released confirmado no ambiente.
 
 Ajuste / se possivel:
-Aplicar wrapper local no V04: substituir consumo direto de `T001L` por `ZI_S2M_WRP_T001L_TANQUE`, mantendo mesma semantica funcional. Em trilha futura, tentar trocar o wrapper por fonte released equivalente.
+Aplicado no V04. Foi criado o wrapper `ZI_S2M_WRP_T001L_TANQUE` e o objeto `ZI_S2M_DEPOSITO_TANQUE` foi ajustado para consumir o wrapper, preservando a mesma semantica funcional do filtro de tanque.
 
 Justificativa para excecao ATC:
-A regra funcional de identificacao de deposito tanque depende de `oib_tnkassign`. Sem evidencia de objeto released com semantica equivalente no release atual, a troca direta para outra fonte pode alterar elegibilidade de depositos. Excecao ATC temporaria mantida, com mitigacao tecnica por wrapper Z local no V04.
+A regra funcional de identificacao de deposito tanque depende de `oib_tnkassign`. Nao foi identificada alternativa standard/released que exponha a mesma semantica no release atual. Por isso, o consumo direto de `T001L` foi encapsulado no wrapper `ZI_S2M_WRP_T001L_TANQUE`, mantendo o comportamento funcional e isolando o acesso tecnico em um unico objeto Z. Caso o ATC continue apontando o tema, a justificativa deve ser concentrada no wrapper, e nao mais no consumidor `ZI_S2M_DEPOSITO_TANQUE`.
 
 ## 2. FM interno `CO_XT_COMPONENT_ADD`
 Objeto: `ZCLS2M_REMARCACAO_PARALLEL` (linha ~139).
@@ -143,7 +147,7 @@ Motivo de estar no ATC:
 Historico de leitura direta DDIC em ABAP (`SELECT ... FROM MCHB`).
 
 Ajuste / se possivel:
-No V03, o `SELECT` direto foi removido e substituido por dados RAP da propria linha. Para eventual reintroducao controlada em outro ponto, usar wrapper V04 `ZI_S2M_WRP_MCHB_LOTE` em vez de acesso direto. O wrapper foi mantido no formato minimo efetivamente usado pelo fluxo historico: `Material`, `Plant`, `StorageLocation` e `Batch`.
+Aplicado no V04. O acesso direto a `MCHB` no handler foi substituido por leitura do wrapper `ZI_S2M_WRP_MCHB_LOTE`. O wrapper foi mantido no formato minimo efetivamente usado pelo fluxo: `Material`, `Plant`, `StorageLocation` e `Batch`.
 
 Justificativa para excecao ATC:
-Nao aplicavel ao trecho ja corrigido em V03. Se houver novo apontamento em ponto distinto, aplicar wrapper Z e justificar transitoriamente ate migracao para fonte released equivalente.
+Nao ha mais justificativa de excecao para o handler neste ponto, porque o `SELECT` DDIC direto foi removido do consumidor. Se o tema permanecer em ATC, a justificativa deve ficar concentrada no wrapper `ZI_S2M_WRP_MCHB_LOTE`, por inexistencia de alternativa standard/released validada no ciclo atual.

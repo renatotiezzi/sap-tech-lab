@@ -8,12 +8,12 @@ Garantir que os pontos de leitura direta de tabela no escopo V04 estao cobertos 
 1. `ZI_S2M_DEPOSITO_TANQUE`
 - Fonte atual encontrada: `as select from t001l`
 - Risco ATC: DDIC direto + campo IS-OIL `oib_tnkassign`
-- Acao V04: criado wrapper `ZI_S2M_WRP_T001L_TANQUE`
+- Acao V04: criado wrapper `ZI_S2M_WRP_T001L_TANQUE` e ajustado o consumidor `ZI_S2M_DEPOSITO_TANQUE`
 
 2. `ZBP_R_S2M_PO_COMP_MONITOR` (historico V03)
 - Fonte historica encontrada: `SELECT SINGLE werks, lgort, charg FROM mchb`
-- Estado atual: trecho apontado como removido em V03
-- Acao V04: criado wrapper de contingencia `ZI_S2M_WRP_MCHB_LOTE` com os mesmos campos efetivamente usados pelo fluxo, evitando ampliar desnecessariamente o contrato do objeto
+- Estado atual: no fonte real, o acesso direto ainda existia e foi substituido no V04
+- Acao V04: criado wrapper `ZI_S2M_WRP_MCHB_LOTE` com os mesmos campos efetivamente usados pelo fluxo e ajustado o handler consumidor
 
 ## 2) Wrappers criados no V04
 
@@ -30,6 +30,7 @@ Garantir que os pontos de leitura direta de tabela no escopo V04 estao cobertos 
 ## 3) Criterios de aderencia (checklist)
 
 - [x] Todo `SELECT` direto em tabela DDIC mapeado no escopo foi tratado com wrapper Z no V04.
+- [x] Todo consumidor real dos wrappers foi ajustado no fonte principal do GAP316.
 - [x] Triagem ATC V04 atualizada com orientacao explicita de wrapper para tabela.
 - [x] Justificativa de excecao mantida como temporaria e condicionada a alternativa released.
 - [x] Wrapper `MCHB` reduzido ao contrato minimo do uso real para evitar erro de compilacao por campos nao necessarios.
@@ -37,4 +38,4 @@ Garantir que os pontos de leitura direta de tabela no escopo V04 estao cobertos 
 
 ## 4) Proximo passo tecnico recomendado
 
-No proximo chunk, alterar o fonte CDS consumidor para usar o wrapper `ZI_S2M_WRP_T001L_TANQUE` em vez de `T001L` direto e rodar ATC novamente para verificar reducao do achado neste item.
+Proximo passo de validacao funcional: ativar wrappers e consumidores no ADT e reprocessar o ATC para confirmar que os achados migraram dos consumidores para os wrappers, onde cabera a justificativa por inexistencia de alternativa standard/released.

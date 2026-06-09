@@ -8,8 +8,5 @@ define view entity ZI_S2M_WRP_MCHB_LOTE
   key matnr as Material,
   key werks as Plant,
   key lgort as StorageLocation,
-  key charg as Batch,
-      meins as BaseUnit,
-      @Semantics.quantity.unitOfMeasure: 'BaseUnit'
-      clabs as SaldoLivre
+  key charg as Batch
 }

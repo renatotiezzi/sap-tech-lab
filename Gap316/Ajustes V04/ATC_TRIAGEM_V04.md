@@ -14,7 +14,7 @@ Regra aplicada neste ciclo:
 
 Objetos wrapper criados no V04:
 - `ZI_S2M_WRP_T001L_TANQUE` -> [Ajustes V04] leitura de `T001L` para atributo funcional de tanque.
-- `ZI_S2M_WRP_MCHB_LOTE` -> [Ajustes V04] fallback tecnico para leitura de `MCHB` por material/centro/deposito/lote.
+- `ZI_S2M_WRP_MCHB_LOTE` -> [Ajustes V04] wrapper minimo de `MCHB` para material/centro/deposito/lote, aderente ao uso real do fluxo.
 
 ## 1. DDIC `T001L` / campo `oib_tnkassign`
 Objeto: `ZI_S2M_DEPOSITO_TANQUE` (linha ~6, `as select from t001l`).
@@ -143,7 +143,7 @@ Motivo de estar no ATC:
 Historico de leitura direta DDIC em ABAP (`SELECT ... FROM MCHB`).
 
 Ajuste / se possivel:
-No V03, o `SELECT` direto foi removido e substituido por dados RAP da propria linha. Para eventual reintroducao controlada em outro ponto, usar wrapper V04 `ZI_S2M_WRP_MCHB_LOTE` em vez de acesso direto.
+No V03, o `SELECT` direto foi removido e substituido por dados RAP da propria linha. Para eventual reintroducao controlada em outro ponto, usar wrapper V04 `ZI_S2M_WRP_MCHB_LOTE` em vez de acesso direto. O wrapper foi mantido no formato minimo efetivamente usado pelo fluxo historico: `Material`, `Plant`, `StorageLocation` e `Batch`.
 
 Justificativa para excecao ATC:
 Nao aplicavel ao trecho ja corrigido em V03. Se houver novo apontamento em ponto distinto, aplicar wrapper Z e justificar transitoriamente ate migracao para fonte released equivalente.

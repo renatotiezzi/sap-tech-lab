@@ -11,27 +11,28 @@ Garantir que os pontos de leitura direta de tabela no escopo V04 estao cobertos 
 - Acao V04: criado wrapper `ZI_S2M_WRP_T001L_TANQUE`
 
 2. `ZBP_R_S2M_PO_COMP_MONITOR` (historico V03)
-- Fonte historica encontrada: `SELECT SINGLE ... FROM mchb`
+- Fonte historica encontrada: `SELECT SINGLE werks, lgort, charg FROM mchb`
 - Estado atual: trecho apontado como removido em V03
-- Acao V04: criado wrapper de contingencia `ZI_S2M_WRP_MCHB_LOTE` para evitar retorno a acesso direto, caso surja novo ponto
+- Acao V04: criado wrapper de contingencia `ZI_S2M_WRP_MCHB_LOTE` com os mesmos campos efetivamente usados pelo fluxo, evitando ampliar desnecessariamente o contrato do objeto
 
 ## 2) Wrappers criados no V04
 
 1. `ZI_S2M_WRP_T001L_TANQUE.ddls.asddls`
 - Le da `T001L`
-- Expoe `Werks`, `Lgort`, `TankAssignment`
+- Expoe `Werks`, `Lgort`, `Tanque`
 - Uso esperado: ser consumida por `ZI_S2M_DEPOSITO_TANQUE` no lugar do `select from t001l`
 
 2. `ZI_S2M_WRP_MCHB_LOTE.ddls.asddls`
 - Le da `MCHB`
-- Expoe `Material`, `Plant`, `StorageLocation`, `Batch`, `UnrestrictedUseStock`
-- Uso esperado: consumo controlado em eventual necessidade futura de saldo/lote, sem `SELECT` direto no handler
+- Expoe `Material`, `Plant`, `StorageLocation`, `Batch`
+- Uso esperado: consumo controlado em eventual necessidade futura do mesmo lookup tecnico do handler historico, sem `SELECT` direto no handler
 
 ## 3) Criterios de aderencia (checklist)
 
 - [x] Todo `SELECT` direto em tabela DDIC mapeado no escopo foi tratado com wrapper Z no V04.
 - [x] Triagem ATC V04 atualizada com orientacao explicita de wrapper para tabela.
 - [x] Justificativa de excecao mantida como temporaria e condicionada a alternativa released.
+- [x] Wrapper `MCHB` reduzido ao contrato minimo do uso real para evitar erro de compilacao por campos nao necessarios.
 - [x] Sem mudanca de logica funcional no ciclo (somente mitigacao estrutural e documentacao).
 
 ## 4) Proximo passo tecnico recomendado

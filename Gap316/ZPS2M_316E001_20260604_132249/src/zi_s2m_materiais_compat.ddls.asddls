@@ -48,4 +48,9 @@ where
     or  R_BatchCharacteristicValueTP.CharcInternalID       =  '0000000991'
     or  R_BatchCharacteristicValueTP.CharcInternalID       =  '0000000998'
   )
+  /* V05 - Garantir grupo de receita do lote (char. 1031), evitando lote duplicado em grupo divergente */
+  and (
+        R_BatchCharacteristicValueTP.CharcInternalID       <> '0000001031'
+    or  R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+  )
   and   nsdm_e_mchb.clabs                                  >  0

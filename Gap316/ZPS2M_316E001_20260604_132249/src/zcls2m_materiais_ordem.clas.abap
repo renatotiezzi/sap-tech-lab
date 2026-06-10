@@ -151,6 +151,28 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
     ENDLOOP.
 
+    " V05 - Eliminar duplicidade de lotes com multiplos grupos
+    " Manter apenas a primeira ocorrencia de cada material/centro/lote/deposito
+    IF et_materiais_compat IS NOT INITIAL.
+      DATA lt_dedup_lote TYPE TABLE OF ztbs2m_mat_compa.
+      DATA ls_last_lote TYPE ztbs2m_mat_compa.
+      
+      SORT et_materiais_compat BY material centro lote deposito grupo.
+      
+      CLEAR ls_last_lote.
+      LOOP AT et_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_compat>).
+        IF ls_last_lote-material    <> <fs_compat>-material
+        OR ls_last_lote-centro      <> <fs_compat>-centro
+        OR ls_last_lote-lote        <> <fs_compat>-lote
+        OR ls_last_lote-deposito    <> <fs_compat>-deposito.
+          APPEND <fs_compat> TO lt_dedup_lote.
+          ls_last_lote = <fs_compat>.
+        ENDIF.
+      ENDLOOP.
+      
+      et_materiais_compat = lt_dedup_lote.
+    ENDIF.
+
   ENDMETHOD.
 
 

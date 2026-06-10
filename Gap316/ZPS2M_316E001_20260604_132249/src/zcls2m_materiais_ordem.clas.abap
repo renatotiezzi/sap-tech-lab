@@ -99,6 +99,13 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Excluir material original da ordem da lista de substitutos elegiveis
+    DELETE lt_materiais WHERE material IN ir_material.
+
+    IF lt_materiais IS INITIAL.
+      RETURN.
+    ENDIF.
+
     " Base para pivot: dedup por combinacao chave
     DATA(lt_materiais_aux) = lt_materiais.
     SORT lt_materiais_aux BY material centro billofoperationstype grupo lote deposito.

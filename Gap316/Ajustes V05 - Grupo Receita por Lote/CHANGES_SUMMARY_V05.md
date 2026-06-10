@@ -10,15 +10,28 @@
 
 ## Ajustes Implementados
 
-### 1. Limpeza da Tela (CDS Projection)
-**Arquivo**: `ZC_S2M_MATERIAIS_COMPATIVEIS.ddls.asddls`  
-**O que mudou**:
-- ❌ Removido: `Grupo` (campo técnico)
-- ❌ Removido: `Productionversion` (Versão de Produção)
-- ❌ Removido: `Validade` (Data Fim da Validade)
-- ❌ Removido: `boomatlinternalversioncounter` (Contador)
-- ✅ Renomeado: `Charcvalue` → `GrupoReceitaMestre` (mais legível)
-- ✅ Posição: Agora após `Centro` na exibição
+### 1. Customização de UI via MDE (Metadata Extensions)
+**Arquivo Principal**: `ZC_S2M_MATERIAIS_COMPATIVEIS.ddls.asddls` (restaurado ao original)  
+**Arquivo de Customização**: `ZC_S2M_MATERIAIS_COMPATIVEIS.mdext.asddls` (NOVO)
+
+**Campos Ocultos (UI.hidden)**:
+- ❌ Grupo (técnico)
+- ❌ Productionversion (Versão de Produção)
+- ❌ Validade (Data Fim da Validade)
+- ❌ boomatlinternalversioncounter (Contador)
+- ❌ Charcinternalid, Charcinternalid2, Charcinternalid3 (IDs internos)
+- ❌ Billofmaterialvariant, Billofmaterialvariantusage (campos técnicos)
+- ❌ bootomaterialinternalid (ID técnico)
+- ❌ LastChangedAt (auditoria)
+
+**Campo Renomeado**:
+- ✅ `Charcvalue` → Exibido como "Grupo de Receita Mestre" (Semantics.label)
+
+**Abordagem MDE**:
+- ✅ Projection mantém todos os campos (sem alterações de estrutura)
+- ✅ MDE aplica anotações de UI (UI.hidden, Semantics.label) em layer CUSTOMER
+- ✅ Maior flexibilidade: customizações podem ser modificadas sem recompilar CDS
+- ✅ Padrão SAP para customizações Fiori (não invasivo)
 
 **Resultado**: UI simplificada, mostrando apenas campos essenciais ao usuário final.
 
@@ -70,11 +83,20 @@ Todos os ajustes foram sincronizados em ambos os locais:
 - Base: `Gap316/ZPS2M_316E001_20260604_132249/src/`
 - V05: `Gap316/Ajustes V05 - Grupo Receita por Lote/`
 
+**Arquivos sincronizados**:
+- `zc_s2m_materiais_compativeis.ddls.asddls` (Projection original)
+- `zc_s2m_materiais_compativeis.mdext.asddls` (MDE com customizações UI)
+- `zcls2m_materiais_ordem.clas.abap` (deduplication logic)
+
 ## Commits Associados
 
-1. `5c665ec` - Remove UI technical fields and rename Charcvalue
-2. `289073b` - Add V05 copy of UI Projection view
-3. `eae866b` - Eliminate duplicate lots with multiple groups
+1. `5c665ec` - Remove UI technical fields and rename Charcvalue (REVERTIDO)
+2. `289073b` - Add V05 copy of UI Projection view (REVERTIDO)
+3. `eae866b` - Eliminate duplicate lots with multiple groups (✅ MANTIDO)
+4. `075c1df` - Refactor UI customization to MDE (NOVO)
+   - Restore Projection to original structure
+   - Add Metadata Extensions for UI hiding/renaming
+   - Synchronize to V05 folder
 
 ## Validação
 

@@ -50,6 +50,4 @@ where
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
-  /* V05 - Sem hardcode: garantir consistencia do grupo pela semantica da caracteristica */
-  and   R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
   and   nsdm_e_mchb.clabs                                  >  0

@@ -47,7 +47,6 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     DATA ls_materiais_compat TYPE ztbs2m_mat_compa.
     DATA: lv_ok_count     TYPE i,
           lv_charcs_count TYPE i.
-        DATA lv_grupo_char_ok TYPE abap_bool.
     DATA lv_tabix TYPE sy-tabix.
 
 *   RTiezzi: buscar IDs de 'Grp Receita Mestre' via I_ClfnCharcDesc
@@ -123,12 +122,7 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     LOOP AT lt_materiais_aux ASSIGNING FIELD-SYMBOL(<fs_materiais_aux>).
       lv_tabix = sy-tabix.
       CLEAR lv_ok_count.
-      CLEAR lv_grupo_char_ok.
       ls_materiais_compat = CORRESPONDING #( <fs_materiais_aux> ).
-
-      DATA(lv_grupo_norm) = |{ <fs_materiais_aux>-grupo }|.
-      SHIFT lv_grupo_norm LEFT DELETING LEADING space.
-      SHIFT lv_grupo_norm LEFT DELETING LEADING '0'.
 
       LOOP AT lt_materiais ASSIGNING FIELD-SYMBOL(<fs_grupo_mat>)
         WHERE material             = <fs_materiais_aux>-material
@@ -140,15 +134,6 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
         IF <fs_grupo_mat>-charcinternalid IN lr_valid_charc.
           lv_ok_count = lv_ok_count + 1.
-
-          DATA(lv_charcvalue_norm) = |{ <fs_grupo_mat>-charcvalue }|.
-          SHIFT lv_charcvalue_norm LEFT DELETING LEADING space.
-          SHIFT lv_charcvalue_norm LEFT DELETING LEADING '0'.
-          IF lv_charcvalue_norm = lv_grupo_norm.
-            lv_grupo_char_ok = abap_true.
-            ls_materiais_compat-charcvalue = <fs_grupo_mat>-charcvalue.
-          ENDIF.
-
           " Armazena nos 3 campos do buffer conforme posicao sequencial
           CASE lv_ok_count.
             WHEN 1. ls_materiais_compat-charcinternalid  = <fs_grupo_mat>-charcinternalid.
@@ -159,19 +144,34 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
       ENDLOOP.
 
-      " V05 - Inclui apenas lotes com TODOS os IDs validos
-      " e grupo coerente com o valor da caracteristica (charcvalue = grupo)
-      IF lv_ok_count = lv_charcs_count
-         AND lv_grupo_char_ok = abap_true.
+      " Inclui apenas se TODOS os IDs validos foram encontrados
+      IF lv_ok_count = lv_charcs_count.
         APPEND ls_materiais_compat TO et_materiais_compat.
       ENDIF.
 
     ENDLOOP.
 
-    " V05 - Dedup final por chave completa do lote/grupo valido
-    SORT et_materiais_compat BY material centro lote deposito grupo.
-    DELETE ADJACENT DUPLICATES FROM et_materiais_compat
-      COMPARING material centro lote deposito grupo.
+    " V05 - Eliminar duplicidade de lotes com multiplos grupos
+    " Manter apenas a primeira ocorrencia de cada material/centro/lote/deposito
+    IF et_materiais_compat IS NOT INITIAL.
+      DATA lt_dedup_lote TYPE TABLE OF ztbs2m_mat_compa.
+      DATA ls_last_lote TYPE ztbs2m_mat_compa.
+      
+      SORT et_materiais_compat BY material centro lote deposito grupo.
+      
+      CLEAR ls_last_lote.
+      LOOP AT et_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_compat>).
+        IF ls_last_lote-material    <> <fs_compat>-material
+        OR ls_last_lote-centro      <> <fs_compat>-centro
+        OR ls_last_lote-lote        <> <fs_compat>-lote
+        OR ls_last_lote-deposito    <> <fs_compat>-deposito.
+          APPEND <fs_compat> TO lt_dedup_lote.
+          ls_last_lote = <fs_compat>.
+        ENDIF.
+      ENDLOOP.
+      
+      et_materiais_compat = lt_dedup_lote.
+    ENDIF.
 
   ENDMETHOD.
 
@@ -212,4 +212,3 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-

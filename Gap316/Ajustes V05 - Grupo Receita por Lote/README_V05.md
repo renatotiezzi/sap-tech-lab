@@ -1,5 +1,24 @@
 # GAP316 - Ajustes V05 (Grupo da receita pelo lote)
 
+## Pedido funcional atual (congelado para analise)
+- Regra: todos os materiais/lotes com o mesmo grupo de receita sao elegiveis para remarcacao.
+- Cenario de referencia: Reservation `4917` item `1` grupo `50000087`.
+- Evidencia em tabela buffer `ZTBS2M_MAT_COMPA`: existem 8 lotes elegiveis gravados.
+
+### Lotes exibidos na tela
+- `0000002798`
+- `0000002956`
+- `0000002961`
+
+### Lotes faltantes na tela (presentes na Z)
+- `0000003153`
+- `0000003155`
+- `0000003157`
+- `0000003186`
+- `0000003187`
+
+Observacao: esta lista e a base oficial para validacao dos proximos ajustes V05.
+
 ## Estado restaurado
 Este diretório foi retornado ao baseline anterior ao V5.
 ## Observacao

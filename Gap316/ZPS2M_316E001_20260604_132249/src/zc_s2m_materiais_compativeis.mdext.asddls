@@ -18,8 +18,10 @@ annotate entity ZC_S2M_MATERIAIS_COMPATIVEIS
   @UI.hidden: true
   boomatlinternalversioncounter;
 
-  /* Renomear e posicionar campo de característica */
+  /* Renomear e posicionar campo de característica - exibir em detalhe */
+  @EndUserText.label: 'Grupo de Receita Mestre'
   @Semantics.label: 'Grupo de Receita Mestre'
+  @UI.identification: [ { position: 40 } ]
   Charcvalue;
 
   /* Ocultar IDs internos de características */

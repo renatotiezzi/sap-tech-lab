@@ -1,5 +1,19 @@
 # GAP316 - Ajustes V05 (Grupo da receita pelo lote)
 
+## Novo pedido funcional (09/06/2026)
+- Material: `30001600`.
+- Centro/Deposito: `4815` / `0708M`.
+- Regra funcional: lotes com mesmo grupo de receita gravado na caracteristica do lote (`5000087`) devem aparecer como elegiveis para remarcacao.
+- Lotes reportados como faltantes na consulta: `0000002963` e `0000002964`.
+
+### Regra de diagnostico acordada
+- Se os lotes `2963/2964` estiverem na `ZTBS2M_MAT_COMPA` e nao aparecerem na tela: problema na camada de consumo (CDS/view de exibicao).
+- Se os lotes `2963/2964` NAO estiverem na `ZTBS2M_MAT_COMPA`: problema na etapa de carga/salvamento do buffer (SADL exit / classe de populacao).
+
+Status atual de evidencia:
+- O print da MB52 confirma que `2963/2964` existem com estoque livre no `0708M`.
+- O print anterior da `ZTBS2M_MAT_COMPA` mostrava apenas material `30001500`; para `30001600`, ainda precisa confirmacao explicita na Z para fechar o ponto.
+
 ## Pedido funcional atual (congelado para analise)
 - Regra: todos os materiais/lotes com o mesmo grupo de receita sao elegiveis para remarcacao.
 - Cenario de referencia: Reservation `4917` item `1` grupo `50000087`.

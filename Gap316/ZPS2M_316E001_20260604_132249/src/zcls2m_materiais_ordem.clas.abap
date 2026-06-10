@@ -83,11 +83,9 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
               WHEN '1031'.
                 ls_materiais_compat-charcinternalid3 = <fs_grupo_mat>-charcinternalid.
                 lv_ok = lv_ok + 1.
-              WHEN OTHERS.
-                lv_ok = lv_ok + 1.
             ENDCASE.
 
-            IF lv_ok > 3.
+            IF lv_ok = 3.
               EXIT.
             ENDIF.
 

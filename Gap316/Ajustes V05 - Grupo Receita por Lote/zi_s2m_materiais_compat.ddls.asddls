@@ -50,6 +50,10 @@ where
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
-  /* V05 - Regra funcional: garantir coerencia do grupo de receita pela caracteristica do lote */
-  and   R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+    /* V05 - Regra funcional: coerencia de grupo com tolerancia a formatacao (zeros a esquerda) */
+    and (
+      R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+       or ltrim( R_BatchCharacteristicValueTP.CharcValue,            '0' )
+      = ltrim( I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup, '0' )
+    )
   and   nsdm_e_mchb.clabs                                  >  0

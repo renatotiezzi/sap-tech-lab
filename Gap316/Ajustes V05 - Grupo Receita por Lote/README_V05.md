@@ -16,6 +16,7 @@ Foi adicionada validacao no `WHERE` para forcar consistencia:
 - Regra funcional mantida: `CharcValue = BillOfOperationsGroup`.
 - Essa regra foi introduzida no V05 para impedir combinacoes inconsistentes de grupo de receita x lote.
 - Nao remover essa linha sem validacao funcional explicita, pois e ponto central da correcao.
+- Refinamento V05: comparacao com tolerancia a zeros a esquerda para evitar perda de lotes validos por diferenca de formatacao do valor da caracteristica.
 
 Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
 - Mantido o join com `I_ClfnCharcDesc` (remocao de hardcode de IDs), evitando evolucao em objeto desatualizado.

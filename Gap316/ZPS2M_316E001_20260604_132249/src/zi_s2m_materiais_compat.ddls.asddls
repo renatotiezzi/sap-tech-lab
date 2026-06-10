@@ -50,5 +50,6 @@ where
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
-  /* V05 - Removido filtro restritivo CharcValue=BillOfOperationsGroup para nao excluir lotes validos */
+  /* V05 - Regra funcional: garantir coerencia do grupo de receita pela caracteristica do lote */
+  and   R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
   and   nsdm_e_mchb.clabs                                  >  0

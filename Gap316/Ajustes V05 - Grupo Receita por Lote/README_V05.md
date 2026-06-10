@@ -13,7 +13,9 @@ No CDS base `ZI_S2M_MATERIAIS_COMPAT`, a combinacao de versoes ativas + caracter
 ## Correcao V05
 Foi adicionada validacao no `WHERE` para forcar consistencia:
 - Sem hardcode de `CharcInternalID`.
-- Removido o filtro restritivo por igualdade direta de `CharcValue` com `BillOfOperationsGroup`, pois estava excluindo lotes validos.
+- Regra funcional mantida: `CharcValue = BillOfOperationsGroup`.
+- Essa regra foi introduzida no V05 para impedir combinacoes inconsistentes de grupo de receita x lote.
+- Nao remover essa linha sem validacao funcional explicita, pois e ponto central da correcao.
 
 Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
 - Mantido o join com `I_ClfnCharcDesc` (remocao de hardcode de IDs), evitando evolucao em objeto desatualizado.

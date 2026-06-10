@@ -103,10 +103,13 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " V05 - Nao excluir globalmente por ir_material aqui.
-    " A exclusao do material original e feita por ordem no map_atom
-    " (material <> <fs_comp_monitor>-material), evitando remover
-    " substitutos validos de outras ordens na mesma execucao.
+    " V05 - IMPORTANTE:
+    " Foi removida a exclusao global por ir_material neste ponto, pois ela
+    " removia substitutos validos de outras ordens na mesma execucao.
+    " Linha antiga (desativada propositalmente):
+  *   DELETE lt_materiais WHERE material IN ir_material.
+    " A exclusao do material original agora e feita por ordem no map_atom
+    " (AND material <> <fs_comp_monitor>-material).
 
     IF lt_materiais IS INITIAL.
       RETURN.

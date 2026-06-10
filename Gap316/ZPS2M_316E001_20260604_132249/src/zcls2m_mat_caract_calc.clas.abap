@@ -117,6 +117,8 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
               LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
                 WHERE grupo    = <fs_mat_grp>-grupo
                   AND material <> <fs_comp_monitor>-material.
+*               V05 - Exclusao correta do material original da ordem:
+*               manter no buffer apenas materiais substitutos.
                 ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ) .
                 ls_mat_compativeis-reservation = ls_ordem-reservation.
                 ls_mat_compativeis-reservation_item = ls_ordem-reservation_item.

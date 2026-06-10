@@ -82,6 +82,20 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
             et_materiais_compat = DATA(lt_materiais_compat)
          ).
 
+        TYPES: BEGIN OF ls_mat_grp,
+                 material TYPE ztbs2m_mat_compa-material,
+                 grupo    TYPE ztbs2m_mat_compa-grupo,
+               END OF ls_mat_grp.
+        DATA lt_mat_grupo_map LIKE TABLE OF ls_mat_grp.
+
+        IF lr_material IS NOT INITIAL.
+          SELECT DISTINCT material AS material,
+                          grupo    AS grupo
+            FROM zi_s2m_materiais_compat
+            WHERE material IN @lr_material
+            INTO CORRESPONDING FIELDS OF TABLE @lt_mat_grupo_map.
+        ENDIF.
+
         IF lt_materiais_compat IS NOT INITIAL.
 
           LOOP AT lt_comp_monitor ASSIGNING FIELD-SYMBOL(<fs_comp_monitor>).
@@ -97,16 +111,20 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
             APPEND ls_ordem TO lt_ordem.
 
-            LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
-              WHERE centro   = <fs_comp_monitor>-plant
-                AND grupo    = <fs_comp_monitor>-materialgroup
-                AND material <> <fs_comp_monitor>-material.
-              ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ) .
-              ls_mat_compativeis-reservation = ls_ordem-reservation.
-              ls_mat_compativeis-reservation_item = ls_ordem-reservation_item.
-              ls_mat_compativeis-reservation_record_type = ls_ordem-reservation_record_type.
+            LOOP AT lt_mat_grupo_map ASSIGNING FIELD-SYMBOL(<fs_mat_grp>)
+              WHERE material = <fs_comp_monitor>-material.
 
-              APPEND ls_mat_compativeis TO lt_mat_compativeis.
+              LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
+                WHERE grupo    = <fs_mat_grp>-grupo
+                  AND material <> <fs_comp_monitor>-material.
+                ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ) .
+                ls_mat_compativeis-reservation = ls_ordem-reservation.
+                ls_mat_compativeis-reservation_item = ls_ordem-reservation_item.
+                ls_mat_compativeis-reservation_record_type = ls_ordem-reservation_record_type.
+
+                APPEND ls_mat_compativeis TO lt_mat_compativeis.
+
+              ENDLOOP.
 
             ENDLOOP.
 

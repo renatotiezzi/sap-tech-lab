@@ -47,6 +47,7 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     DATA ls_materiais_compat TYPE ztbs2m_mat_compa.
     DATA: lv_ok_count     TYPE i,
           lv_charcs_count TYPE i.
+        DATA lv_grupo_char_ok TYPE abap_bool.
     DATA lv_tabix TYPE sy-tabix.
 
 *   RTiezzi: buscar IDs de 'Grp Receita Mestre' via I_ClfnCharcDesc
@@ -122,7 +123,12 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     LOOP AT lt_materiais_aux ASSIGNING FIELD-SYMBOL(<fs_materiais_aux>).
       lv_tabix = sy-tabix.
       CLEAR lv_ok_count.
+      CLEAR lv_grupo_char_ok.
       ls_materiais_compat = CORRESPONDING #( <fs_materiais_aux> ).
+
+      DATA(lv_grupo_norm) = |{ <fs_materiais_aux>-grupo }|.
+      SHIFT lv_grupo_norm LEFT DELETING LEADING space.
+      SHIFT lv_grupo_norm LEFT DELETING LEADING '0'.
 
       LOOP AT lt_materiais ASSIGNING FIELD-SYMBOL(<fs_grupo_mat>)
         WHERE material             = <fs_materiais_aux>-material
@@ -134,6 +140,15 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
         IF <fs_grupo_mat>-charcinternalid IN lr_valid_charc.
           lv_ok_count = lv_ok_count + 1.
+
+          DATA(lv_charcvalue_norm) = |{ <fs_grupo_mat>-charcvalue }|.
+          SHIFT lv_charcvalue_norm LEFT DELETING LEADING space.
+          SHIFT lv_charcvalue_norm LEFT DELETING LEADING '0'.
+          IF lv_charcvalue_norm = lv_grupo_norm.
+            lv_grupo_char_ok = abap_true.
+            ls_materiais_compat-charcvalue = <fs_grupo_mat>-charcvalue.
+          ENDIF.
+
           " Armazena nos 3 campos do buffer conforme posicao sequencial
           CASE lv_ok_count.
             WHEN 1. ls_materiais_compat-charcinternalid  = <fs_grupo_mat>-charcinternalid.
@@ -146,15 +161,9 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
       " V05 - Inclui apenas lotes com TODOS os IDs validos
       " e grupo coerente com o valor da caracteristica (charcvalue = grupo)
-      IF lv_ok_count = lv_charcs_count.
-        DATA(lv_charcvalue_norm) = |{ ls_materiais_compat-charcvalue }|.
-        DATA(lv_grupo_norm)      = |{ ls_materiais_compat-grupo }|.
-        SHIFT lv_charcvalue_norm LEFT DELETING LEADING '0'.
-        SHIFT lv_grupo_norm      LEFT DELETING LEADING '0'.
-
-        IF lv_charcvalue_norm = lv_grupo_norm.
-          APPEND ls_materiais_compat TO et_materiais_compat.
-        ENDIF.
+      IF lv_ok_count = lv_charcs_count
+         AND lv_grupo_char_ok = abap_true.
+        APPEND ls_materiais_compat TO et_materiais_compat.
       ENDIF.
 
     ENDLOOP.

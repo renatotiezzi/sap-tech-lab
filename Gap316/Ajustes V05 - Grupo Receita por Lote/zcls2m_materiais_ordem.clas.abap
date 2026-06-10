@@ -33,23 +33,23 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
     DATA: lv_ok TYPE i VALUE 0.
     DATA: lv_tabix TYPE sy-tabix.
 
-    SELECT DISTINCT billofoperationsgroup
-          FROM i_masterrecipematerialassgmt
-          WHERE plant IN @ir_plant
-          AND material IN @ir_material
+    " V5 - o grupo correto vem da base de materiais compativeis, nao da receita
+    SELECT DISTINCT grupo
+          FROM zi_s2m_materiais_compat
+          WHERE material IN @ir_material
             INTO TABLE @DATA(lt_grupo_mat).
 
 
     IF sy-subrc IS INITIAL.
 
-      SORT lt_grupo_mat BY billofoperationsgroup.
-      DELETE ADJACENT DUPLICATES FROM lt_grupo_mat COMPARING billofoperationsgroup.
+      SORT lt_grupo_mat BY grupo.
+      DELETE ADJACENT DUPLICATES FROM lt_grupo_mat COMPARING grupo.
 
 *Materiais do standard
       SELECT *
       FROM zi_s2m_materiais_compat
       FOR ALL ENTRIES IN @lt_grupo_mat
-      WHERE grupo = @lt_grupo_mat-billofoperationsgroup
+      WHERE grupo = @lt_grupo_mat-grupo
         INTO TABLE @DATA(lt_materiais).
 
       IF sy-subrc IS INITIAL.
@@ -83,11 +83,9 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
               WHEN '1031'.
                 ls_materiais_compat-charcinternalid3 = <fs_grupo_mat>-charcinternalid.
                 lv_ok = lv_ok + 1.
-              WHEN OTHERS.
-                lv_ok = lv_ok + 1.
             ENDCASE.
 
-            IF lv_ok > 3.
+            IF lv_ok = 3.
               EXIT.
             ENDIF.
 

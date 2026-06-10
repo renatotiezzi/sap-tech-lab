@@ -88,15 +88,10 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
             ls_ordem-orderoperationinternalid = <fs_comp_monitor>-orderoperationinternalid.
             APPEND ls_ordem TO lt_ordem.
 
-            " *** CAUSA RAIZ: lt_comp_monitor tem material=30001500 (PRODUTO da reserva)
-            " ***             lt_materiais_compat tem material=30001000/31409000 (SUBSTITUTOS)
-            " ***             São materiais DIFERENTES — o link correto é pelo GRUPO da receita,
-            " ***             não pelo material. WHERE material = <fs_comp_monitor>-material
-            " ***             resultaria em ZERO matches (30001500 ≠ 30001000/31409000).
-            " *** SEM WHERE (código original): cross-join — todos os substitutos em toda ordem.
-            " *** CORREÇÃO: filtrar lt_materiais_compat WHERE grupo IN (grupos da ordem corrente)
             LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
-              WHERE material = <fs_comp_monitor>-material.   "<<< PLACEHOLDER — ver analise
+              WHERE centro   = <fs_comp_monitor>-plant
+                AND grupo    = <fs_comp_monitor>-materialgroup
+                AND material <> <fs_comp_monitor>-material.
 
               ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ).
               ls_mat_compativeis-reservation             = ls_ordem-reservation.
@@ -120,6 +115,11 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
         ENDIF.
 
         IF lt_mat_compativeis IS NOT INITIAL.
+          SORT lt_mat_compativeis BY reservation reservation_item reservation_record_type
+                                    material centro grupo lote deposito.
+          DELETE ADJACENT DUPLICATES FROM lt_mat_compativeis
+            COMPARING reservation reservation_item reservation_record_type
+                      material centro grupo lote deposito.
           lo_materiais_ordem->insert_materiais( EXPORTING it_mat_compativeis = lt_mat_compativeis ).
         ENDIF.
 

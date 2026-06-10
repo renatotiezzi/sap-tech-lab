@@ -97,7 +97,10 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
 
             APPEND ls_ordem TO lt_ordem.
 
-            LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>).
+            LOOP AT lt_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_materiais_compat>)
+              WHERE centro   = <fs_comp_monitor>-plant
+                AND grupo    = <fs_comp_monitor>-materialgroup
+                AND material <> <fs_comp_monitor>-material.
               ls_mat_compativeis = CORRESPONDING #( <fs_materiais_compat> ) .
               ls_mat_compativeis-reservation = ls_ordem-reservation.
               ls_mat_compativeis-reservation_item = ls_ordem-reservation_item.
@@ -116,6 +119,11 @@ CLASS zcls2m_mat_caract_calc IMPLEMENTATION.
         ENDIF.
 
         IF lt_mat_compativeis IS NOT INITIAL.
+          SORT lt_mat_compativeis BY reservation reservation_item reservation_record_type
+                                    material centro grupo lote deposito.
+          DELETE ADJACENT DUPLICATES FROM lt_mat_compativeis
+            COMPARING reservation reservation_item reservation_record_type
+                      material centro grupo lote deposito.
           lo_materiais_ordem->insert_materiais( EXPORTING it_mat_compativeis = lt_mat_compativeis ).
         ENDIF.
 

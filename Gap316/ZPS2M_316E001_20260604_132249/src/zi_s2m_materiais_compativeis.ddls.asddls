@@ -4,8 +4,6 @@
 @Metadata.ignorePropagatedAnnotations: true
 define view entity ZI_S2M_MATERIAIS_COMPATIVEIS
   as select from ztbs2m_mat_compa
-    inner join   ZI_S2M_Deposito_tanque as _DepositoTanque on  _DepositoTanque.Lgort = ztbs2m_mat_compa.deposito
-                                                           and _DepositoTanque.Werks = ztbs2m_mat_compa.centro
   association to I_Product as _Mara on $projection.material = _Mara.Product
 {
   key   ztbs2m_mat_compa.reservation,

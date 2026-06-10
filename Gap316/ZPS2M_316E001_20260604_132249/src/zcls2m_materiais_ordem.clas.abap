@@ -29,6 +29,10 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
 *&---------------------------------------------------------------------*
 *& RTiezzi
+*&   V05 - Ajuste funcional de elegibilidade para remarcacao:
+*&   - nao listar o material original da reserva como candidato.
+*&   - manter somente materiais substitutos no resultado final.
+*&
 *&   Rota correta: SELECT direto em ZI_S2M_MATERIAIS_COMPAT pelo
 *&   material componente (antes: I_MasterRecipeMaterialAssgmt retornava
 *&   grupos da receita do produto - grupo errado para o componente).
@@ -99,7 +103,7 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " Excluir material original da ordem da lista de substitutos elegiveis
+    " V05 - Excluir material original da ordem da lista de substitutos elegiveis
     DELETE lt_materiais WHERE material IN ir_material.
 
     IF lt_materiais IS INITIAL.

@@ -50,6 +50,9 @@ where
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
-  /* V05 - Garantir grupo de receita do lote, evitando lote duplicado em grupo divergente */
-  and   R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+  /* V05 - Garantir grupo de receita do lote somente para a caracteristica de grupo (1031) */
+  and (
+        R_BatchCharacteristicValueTP.CharcInternalID       <> '0000001031'
+    or  R_BatchCharacteristicValueTP.CharcValue            =  I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+  )
   and   nsdm_e_mchb.clabs                                  >  0

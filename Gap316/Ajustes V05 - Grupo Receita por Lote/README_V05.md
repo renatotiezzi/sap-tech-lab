@@ -12,7 +12,8 @@ No CDS base `ZI_S2M_MATERIAIS_COMPAT`, a combinacao de versoes ativas + caracter
 
 ## Correcao V05
 Foi adicionada validacao no `WHERE` para forcar consistencia:
-- O `CharcValue` deve ser igual ao `BillOfOperationsGroup` para manter o lote no grupo correto.
+- Para a caracteristica de grupo (`1031`), o `CharcValue` deve ser igual ao `BillOfOperationsGroup`.
+- Para as demais caracteristicas, mantem o comportamento atual (nao elimina lote valido por criterio nao relacionado ao grupo).
 
 Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
 - Mantido o join com `I_ClfnCharcDesc` (remocao de hardcode de IDs), evitando evolucao em objeto desatualizado.
@@ -20,6 +21,7 @@ Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
 
 Resultado esperado:
 - O lote permanece somente no grupo de receita coerente com o proprio lote.
+- Lotes validos com mesmo grupo de receita nao sao indevidamente filtrados.
 - Nao altera logica funcional de filtro de estoque, deposito, lote, centro e validacao por descricao de caracteristica (baseline V1).
 
 ## Arquivo alterado

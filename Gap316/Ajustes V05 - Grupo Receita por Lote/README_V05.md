@@ -18,6 +18,13 @@ Foi adicionada validacao no `WHERE` para forcar consistencia:
 - Nao remover essa linha sem validacao funcional explicita, pois e ponto central da correcao.
 - Refinamento V05: comparacao com tolerancia a zeros a esquerda para evitar perda de lotes validos por diferenca de formatacao do valor da caracteristica.
 
+## Correcao complementar V05
+O ponto que ainda fazia o app trazer grupo pela receita estava em `ZCLS2M_MATERIAIS_ORDEM`.
+- Antes: `SELECT DISTINCT billofoperationsgroup FROM I_MasterRecipeMaterialAssgmt`
+- Agora: `SELECT DISTINCT grupo FROM ZI_S2M_MATERIAIS_COMPAT`
+
+Isso corrige o comportamento que deixava de listar lotes validos como 2963/2964 quando o grupo correto ja estava cadastrado na base de materiais compativeis.
+
 Adicionalmente, este V05 foi sincronizado com a baseline de V1 do mesmo objeto:
 - Mantido o join com `I_ClfnCharcDesc` (remocao de hardcode de IDs), evitando evolucao em objeto desatualizado.
 - Regra: toda nova versao deste objeto deve partir da ultima baseline consolidada na base.

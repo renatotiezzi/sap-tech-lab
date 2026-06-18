@@ -1,0 +1,11 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_Q2C_MONI_DESCARGA alias Descarga
+{
+  use action registrarChegadaCompra;
+  use action registrarChegadaRetorno;
+  use action registrarChegadaTransferencia;
+  use action realizarEstorno;
+  use action registrarAmostra;
+}

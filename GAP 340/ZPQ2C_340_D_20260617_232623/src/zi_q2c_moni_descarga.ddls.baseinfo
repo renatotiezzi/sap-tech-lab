@@ -1,0 +1,17 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "I_BULKSHIPMENTVEHICLE",
+      "I_DELIVERYDOCUMENT",
+      "I_DELIVERYDOCUMENTITEM",
+      "ZI_CA_DOMAIN_VALUE_HELP",
+      "ZI_Q2C_ALLOCATEDMAT",
+      "ZI_Q2C_DESCARGA",
+      "ZI_Q2C_DRIVER_NAME",
+      "ZR_Q2C_MONI_BASE"
+    ],
+    "ASSOCIATED": [
+      "ZI_Q2C_DESCARGA"
+    ]
+  }
+}

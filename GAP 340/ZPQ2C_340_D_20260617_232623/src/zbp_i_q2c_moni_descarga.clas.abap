@@ -1,0 +1,5 @@
+CLASS zbp_i_q2c_moni_descarga DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_q2c_moni_descarga.
+ENDCLASS.
+
+CLASS zbp_i_q2c_moni_descarga IMPLEMENTATION.
+ENDCLASS.

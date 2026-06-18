@@ -1,0 +1,15 @@
+unmanaged implementation in class zbp_i_q2c_moni_descarga unique;
+strict ( 2 );
+
+define behavior for ZI_Q2C_MONI_DESCARGA alias Descarga
+lock master
+authorization master ( instance )
+{
+  action ( features : instance ) registrarChegadaCompra  result [1] $self;
+  action ( features : instance ) registrarChegadaRetorno parameter ZI_Q2C_PAR_CHEGADA result [1] $self;
+  action ( features : instance ) registrarChegadaTransferencia result [1] $self;
+  action ( features : instance ) realizarEstorno result [1] $self;
+  action ( features : instance ) registrarAmostra parameter ZI_Q2C_PAR_AMOSTRA result [1] $self;
+
+  field ( readonly ) Shnumber, DeliveryNumber, DeliveryItem;
+}

@@ -1,0 +1,103 @@
+managed implementation in class zbp_i_q2c_descarga unique;
+strict ( 2 );
+
+define behavior for ZI_Q2C_DESCARGA alias Descarga
+persistent table ztbq2c_descarga
+lock master
+authorization master ( instance )
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly : update ) Shnumber, Remessa, ItemRemessa;
+  field ( readonly )          Ernam, Erdat, Aenam, Aedat;
+
+  determination setAdminFields on save { create; update; }
+
+  mapping for ztbq2c_descarga
+    {
+      Shnumber                  = shnumber;
+      Remessa                   = remessa;
+      ItemRemessa               = item_remessa;
+      TipoProcesso              = tipo_processo;
+      Status                    = status;
+      DtChegada                 = dt_chegada;
+      HrChegada                 = hr_chegada;
+      ChaveNfe                  = chave_nfe;
+      Nfnum                     = nfnum;
+      Lifnr                     = lifnr;
+      LifnrName                 = lifnr_name;
+      Matnr                     = matnr;
+      Werks                     = werks;
+      PedidoCompra              = pedido_compra;
+      ItemPedidoCompra          = item_pedido_compra;
+      QtdeNfe                   = qtde_nfe;
+      UmNfe                     = um_nfe;
+      QtdeRemessa               = qtde_remessa;
+      UniMedRemessa             = uni_med_remessa;
+      CentroDescarregamento     = centro_descarregamento;
+      QtdAmostra                = qtd_amostra;
+      UmAmostra                 = um_amostra;
+      LgortAmostra              = lgort_amostra;
+      Compartimento             = compartimento;
+      PontoAmostragem           = ponto_amostragem;
+      DocMaterialAmostra        = doc_material_amostra;
+      LoteMaterialAmostra       = lote_material_amostra;
+      DtAmostra                 = dt_amostra;
+      HrAmostra                 = hr_amostra;
+      UsuarioAmostra            = usuario_amostra;
+      LoteQm                    = lote_qm;
+      DuQm                      = du_qm;
+      MblnrEm                   = mblnr_em;
+      MjahrEm                   = mjahr_em;
+      LoteMaterialEm            = lote_material_em;
+      StatusTd                  = status_td;
+      TdichConf                 = tdich_conf;
+      TstmpConf                 = tstmp_conf;
+      DocPerdasSobras           = doc_perdas_sobras;
+      DtConf                    = dt_conf;
+      HrConf                    = hr_conf;
+      DtEm                      = dt_em;
+      HrEm                      = hr_em;
+      VolumeExtraDrenado        = volume_extra_drenado;
+      DocMaterialExtraDrenado   = doc_material_extra_drenado;
+      LoteMaterialExtraDrenado  = lote_material_extra_drenado;
+      QtdeEntradaMercadoria     = qtde_entrada_mercadoria;
+      LgortDestino              = lgort_destino;
+      MaterialCompativel        = material_compativel;
+      LinhaDescarga             = linha_descarga;
+      Plataforma                = plataforma;
+      Mangote                   = mangote;
+      QtdeSerDescarregada       = qtde_ser_descarregada;
+      QtdeMedida                = qtde_medida;
+      UmMedida                  = um_medida;
+      DtMedicao                 = dt_medicao;
+      HrMedicao                 = hr_medicao;
+      PesoInicial               = peso_inicial;
+      PesoFinal                 = peso_final;
+      Densidade                 = densidade;
+      DensidadeNfe              = densidade_nfe;
+      VolumeDescarregado        = volume_descarregado;
+      VolumeAmostra             = volume_amostra;
+      UsuarioMedicao            = usuario_medicao;
+      Mblnr311                  = mblnr_311;
+      DtTransf                  = dt_transf;
+      HrTransf                  = hr_transf;
+      MblnrPg                   = mblnr_pg;
+      TipoAjuste                = tipo_ajuste;
+      QtdeAjuste                = qtde_ajuste;
+      DtFim                     = dt_fim;
+      HrFim                     = hr_fim;
+      Ernam                     = ernam;
+      Erdat                     = erdat;
+      Aenam                     = aenam;
+      Aedat                     = aedat;
+      PesoBrutoNfe              = peso_bruto_nfe;
+      CorLacreFornecedor        = cor_lacre_fornecedor;
+      CodeLacreFornecedor       = code_lacre_fornecedor;
+      QuantidadeLacreFornecedor = quantidade_lacre_fornecedor;
+      PcsOrdernum               = pcs_ordernum;
+      UsuarioChegada            = usuario_chegada;
+    }
+}

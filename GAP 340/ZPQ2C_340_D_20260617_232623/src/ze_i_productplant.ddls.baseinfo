@@ -1,0 +1,8 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "I_PRODUCT",
+      "NSDM_E_MARC"
+    ]
+  }
+}

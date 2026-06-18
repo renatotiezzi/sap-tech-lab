@@ -1,0 +1,4 @@
+@EndUserText.label: 'Service Def - Monitoramento Descarga OIL'
+define service ZUI_Q2C_MONI_DESCARGA {
+  expose ZC_Q2C_MONI_DESCARGA as MoniDescarga;
+}

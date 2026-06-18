@@ -1,0 +1,13 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_Q2C_MONI_DESCARGA"
+    ],
+    "ASSOCIATED": [
+      "ZI_Q2C_DESCARGA"
+    ],
+    "BASE": [
+      "ZI_Q2C_MONI_DESCARGA"
+    ]
+  }
+}

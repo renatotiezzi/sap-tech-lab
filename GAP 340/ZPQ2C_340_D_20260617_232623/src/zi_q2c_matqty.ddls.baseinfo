@@ -1,0 +1,7 @@
+{
+  "BASEINFO": {
+    "FROM": [
+      "ZI_Q2C_COMPARTMENT"
+    ]
+  }
+}

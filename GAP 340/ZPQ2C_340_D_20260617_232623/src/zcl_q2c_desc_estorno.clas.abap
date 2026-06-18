@@ -250,31 +250,31 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
-    DATA: lv_mblnr_amostra TYPE mblnr,
+    DATA: lv_budat_amostra TYPE budat,
+          lv_mblnr_amostra TYPE mblnr,
           lv_mjahr_amostra TYPE mjahr,
           lt_ret_bapi      TYPE bapiret2_t.
 
     lv_mblnr_amostra = is_descarga-DocMaterialAmostra.
 
     IF lv_mblnr_amostra IS INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Documento da amostra nao informado para estorno.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = 'Documento da amostra nao informado para estorno.'(001) ) TO et_return.
       RETURN.
     ENDIF.
 
-    " P1: ZDESCARGA nao guarda MJAHR do doc da amostra; derivacao em runtime via MKPF.
+    lv_budat_amostra = COND #( WHEN is_descarga-DtAmostra IS NOT INITIAL THEN is_descarga-DtAmostra ELSE sy-datum ).
+
     SELECT SINGLE mjahr
       FROM mkpf
       WHERE mblnr = @lv_mblnr_amostra
+        AND budat = @lv_budat_amostra
       INTO @lv_mjahr_amostra.
 
     IF sy-subrc <> 0.
-      APPEND VALUE #( type = 'E'
-                      message = |Nao foi possivel derivar o ano do documento { lv_mblnr_amostra } para estorno.| )
-        TO et_return.
+      APPEND VALUE #( type = 'E' message = |Nao foi possivel derivar o ano do documento { lv_mblnr_amostra } para estorno.| ) TO et_return.
       RETURN.
     ENDIF.
 
-    " P2: EF orienta estorno via BAPI_GOODSMVT_CANCEL_OIL.
     CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
       EXPORTING
         materialdocument = lv_mblnr_amostra
@@ -286,6 +286,11 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       APPEND VALUE #( type = ls_ret_101-type message = ls_ret_101-message ) TO et_return.
       EXIT.
     ENDLOOP.
+
+    READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_02) WITH KEY type = 'S'.
+    IF sy-subrc = 0.
+      FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_02-message SUBMATCHES lv_doc_estorno.
+    ENDIF.
 
     IF et_return IS NOT INITIAL.
       CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
@@ -304,7 +309,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       ELSE.
         DATA(lv_ud_code) = VALUE tvarvc-low( ).
 
-        " P3: Codigo de UD de estorno deve vir da TVARVC ZS2M_UD_ESTORNO.
         SELECT SINGLE low
           FROM tvarvc
           WHERE name = 'ZS2M_UD_ESTORNO'
@@ -312,8 +316,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           INTO @lv_ud_code.
 
         IF lv_ud_code IS INITIAL.
-          APPEND VALUE #( type = 'E'
-                          message = 'Parametro TVARVC ZS2M_UD_ESTORNO nao configurado.' ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Parametro TVARVC ZS2M_UD_ESTORNO nao configurado.'(002) ) TO et_return.
           CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
           RETURN.
         ENDIF.
@@ -337,8 +340,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT' EXPORTING wait = abap_true.
-
     MODIFY ENTITIES OF zi_q2c_descarga
       ENTITY descarga
       UPDATE FIELDS ( Status
@@ -356,29 +357,29 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       HrAmostra
                       Aenam
                       Aedat )
-      WITH VALUE #( ( Shnumber           = is_descarga-Shnumber
-                      Remessa            = is_descarga-Remessa
-                      ItemRemessa        = is_descarga-ItemRemessa
-                      Status             = '01'
-                      QtdAmostra         = 0
-                      UmAmostra          = space
-                      Compartimento      = space
-                      PontoAmostragem    = space
-                      LgortAmostra       = space
-                      DocMaterialAmostra = space
+      WITH VALUE #( ( Shnumber            = is_descarga-Shnumber
+                      Remessa             = is_descarga-Remessa
+                      ItemRemessa         = is_descarga-ItemRemessa
+                      Status              = '01'
+                      QtdAmostra          = 0
+                      UmAmostra           = space
+                      Compartimento       = space
+                      PontoAmostragem     = space
+                      LgortAmostra        = space
+                      DocMaterialAmostra  = space
                       LoteMaterialAmostra = space
-                      UsuarioAmostra     = space
-                      LoteQm             = space
-                      DuQm               = space
-                      DtAmostra          = '00000000'
-                      HrAmostra          = '000000'
-                      Aenam              = sy-uname
-                      Aedat              = sy-datum ) )
+                      UsuarioAmostra      = space
+                      LoteQm              = space
+                      DuQm                = space
+                      DtAmostra           = '00000000'
+                      HrAmostra           = '000000'
+                      Aenam               = sy-uname
+                      Aedat               = sy-datum ) )
       FAILED   DATA(ls_failed_02)
       REPORTED DATA(ls_reported_02).
 
     IF ls_failed_02-descarga IS NOT INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Falha ao atualizar a ZDESCARGA no estorno da amostra.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = 'Falha ao atualizar a ZDESCARGA no estorno da amostra.'(003) ) TO et_return.
       LOOP AT ls_reported_02-descarga INTO DATA(ls_rep_02).
         IF ls_rep_02-%msg IS BOUND.
           APPEND VALUE #( type = 'E' message = ls_rep_02-%msg->if_message~get_text( ) ) TO et_return.
@@ -389,11 +390,9 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
     ev_status_novo = '01'.
     ev_sucesso     = abap_true.
-    ev_docs        = |101:{ lv_mblnr_amostra }/{ lv_mjahr_amostra };QM:{ is_descarga-LoteQm }|.
+    ev_docs        = |101:{ lv_mblnr_amostra }/{ lv_mjahr_amostra };REV:{ lv_doc_estorno };QM:{ is_descarga-LoteQm }|.
 
-    APPEND VALUE #( type = 'S'
-                    message = |Amostra do TD { is_descarga-Shnumber } estornada. Documento { lv_mblnr_amostra } cancelado e lote QM anulado.| )
-      TO et_return.
+    APPEND VALUE #( type = 'S' message = |Amostra do TD { is_descarga-Shnumber } estornada. Documento { lv_mblnr_amostra } cancelado e lote QM anulado.| ) TO et_return.
   ENDMETHOD.
 
   METHOD estorno_03_tanque.
@@ -409,6 +408,9 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 *--------------------------------------------------------------------*
 * Mod Date       Author   Request    Description
 * 000 16/06/2026 CPPACH   DS4K908763 Initial Version
+* text-001 = Falha ao atualizar a ZDESCARGA no estorno da escolha do tanque.
+* text-002 = Escolha do tanque do TD
+* text-003 = estornada. Status retornado para 02.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
@@ -442,7 +444,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       REPORTED DATA(ls_reported_03).
 
     IF ls_failed_03-descarga IS NOT INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Falha ao atualizar a ZDESCARGA no estorno da escolha do tanque.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = text-001 ) TO et_return.
       LOOP AT ls_reported_03-descarga INTO DATA(ls_rep_03).
         IF ls_rep_03-%msg IS BOUND.
           APPEND VALUE #( type = 'E' message = ls_rep_03-%msg->if_message~get_text( ) ) TO et_return.
@@ -453,9 +455,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
     ev_status_novo = '02'.
     ev_sucesso     = abap_true.
-    APPEND VALUE #( type = 'S'
-                    message = |Escolha do tanque do TD { is_descarga-Shnumber } estornada. Status retornado para 02.| )
-      TO et_return.
+    APPEND VALUE #( type = 'S' message = |{ text-002 } { is_descarga-Shnumber } { text-003 }| ) TO et_return.
   ENDMETHOD.
 
   METHOD estorno_04_medicao.
@@ -471,6 +471,9 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 *--------------------------------------------------------------------*
 * Mod Date       Author   Request    Description
 * 000 16/06/2026 CPPACH   DS4K908763 Initial Version
+* text-001 = Falha ao atualizar a ZDESCARGA no estorno da medicao.
+* text-002 = Medicao do TD
+* text-003 = estornada. Status retornado para 03.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
@@ -509,7 +512,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       REPORTED DATA(ls_reported_04).
 
     IF ls_failed_04-descarga IS NOT INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Falha ao atualizar a ZDESCARGA no estorno da medicao.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = text-001 ) TO et_return.
       LOOP AT ls_reported_04-descarga INTO DATA(ls_rep_04).
         IF ls_rep_04-%msg IS BOUND.
           APPEND VALUE #( type = 'E' message = ls_rep_04-%msg->if_message~get_text( ) ) TO et_return.
@@ -520,9 +523,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
     ev_status_novo = '03'.
     ev_sucesso     = abap_true.
-    APPEND VALUE #( type = 'S'
-                    message = |Medicao do TD { is_descarga-Shnumber } estornada. Status retornado para 03.| )
-      TO et_return.
+    APPEND VALUE #( type = 'S' message = |{ text-002 } { is_descarga-Shnumber } { text-003 }| ) TO et_return.
   ENDMETHOD.
 
   METHOD estorno_05_entrada_merc.
@@ -538,12 +539,26 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 *--------------------------------------------------------------------*
 * Mod Date       Author   Request    Description
 * 000 16/06/2026 CPPACH   DS4K908763 Initial Version
+* text-001 = Nao e possivel estornar, periodo contabil
+* text-002 = ja encerrado.
+* text-003 = Nao e possivel estornar, o tanque
+* text-004 = ja recebeu descarga posterior do TD
+* text-005 = Nao foi possivel derivar o ano do documento 311
+* text-006 = Falha no estorno do mov. 311:
+* text-007 = Nao foi possivel derivar o ano do doc extra drenado
+* text-008 = Falha no estorno do mov. extra drenado:
+* text-009 = Nao foi possivel derivar o ano do doc perdas/sobras
+* text-010 = Falha no estorno de perdas/sobras:
+* text-011 = Falha ao atualizar a ZDESCARGA no estorno da entrada de mercadoria.
+* text-012 = Entrada de Mercadoria e Transferencia 311 do TD
+* text-013 = estornadas. Status retornado para 04.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
-    DATA: lv_budat_em     TYPE budat,
+        DATA: lv_budat_em     TYPE budat,
           lv_cur_period   TYPE monat,
           lv_cur_year     TYPE gjahr,
+          lv_bukrs        TYPE bukrs,
           lv_doc          TYPE mblnr,
           lv_mjahr_doc    TYPE mjahr,
           lv_material_ant TYPE matnr,
@@ -553,11 +568,22 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           lv_mjahr_em     TYPE mjahr,
           lv_mblnr_extra  TYPE mblnr,
           lv_mjahr_extra  TYPE mjahr,
+          lv_doc_estorno  TYPE mblnr,
           lt_ret_bapi     TYPE bapiret2_t,
           lt_docs_rev     TYPE STANDARD TABLE OF char50 WITH EMPTY KEY,
           lt_perdas       TYPE STANDARD TABLE OF string WITH EMPTY KEY.
 
-    " Pre-validacao de periodo contabil (ET 6.1).
+    " Pre-validacao de periodo contabil por empresa do centro.
+    SELECT SINGLE bukrs
+      FROM t001w
+      WHERE werks = @is_descarga-CentroDescarregamento
+      INTO @lv_bukrs.
+
+    IF sy-subrc <> 0 OR lv_bukrs IS INITIAL.
+      APPEND VALUE #( type = 'E' message = |{ text-001 } { is_descarga-CentroDescarregamento } { text-002 }| ) TO et_return.
+      RETURN.
+    ENDIF.
+
     lv_mblnr_em = is_descarga-MblnrEm.
     lv_mjahr_em = is_descarga-MjahrEm.
 
@@ -570,15 +596,14 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
       IF sy-subrc = 0.
         SELECT SINGLE lfmon, lfgja
-          FROM marv
+            FROM mmrv
+            WHERE bukrs = @lv_bukrs
           INTO (@lv_cur_period, @lv_cur_year).
 
-        IF sy-subrc = 0
-           AND ( lv_cur_year > lv_budat_em(4)
-              OR ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ) ).
-          APPEND VALUE #( type = 'E'
-                          message = |Nao e possivel estornar, periodo contabil de { lv_mblnr_em }/{ lv_mjahr_em } ja encerrado.| )
-            TO et_return.
+          IF sy-subrc <> 0 OR
+             lv_cur_year > lv_budat_em(4) OR
+             ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ).
+            APPEND VALUE #( type = 'E' message = |{ text-001 } { lv_mblnr_em }/{ lv_mjahr_em } { text-002 }| ) TO et_return.
           RETURN.
         ENDIF.
       ENDIF.
@@ -596,9 +621,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       INTO @DATA(lv_td_posterior).
 
     IF sy-subrc = 0.
-      APPEND VALUE #( type = 'E'
-                      message = |Nao e possivel estornar, o tanque { is_descarga-LgortDestino } ja recebeu descarga posterior do TD { lv_td_posterior }.| )
-        TO et_return.
+      APPEND VALUE #( type = 'E' message = |{ text-003 } { is_descarga-LgortDestino } { text-004 } { lv_td_posterior }.| ) TO et_return.
       RETURN.
     ENDIF.
 
@@ -606,14 +629,15 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
     lv_mblnr_311 = is_descarga-Mblnr311.
     IF lv_mblnr_311 IS NOT INITIAL.
       " P1: derivacao de MJAHR para docs sem ano persistido na ZDESCARGA.
+      DATA(lv_budat_311) = COND budat( WHEN is_descarga-DtTransf IS NOT INITIAL THEN is_descarga-DtTransf ELSE sy-datum ).
       SELECT SINGLE mjahr
         FROM mkpf
         WHERE mblnr = @lv_mblnr_311
+          AND budat = @lv_budat_311
         INTO @lv_mjahr_311.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E'
-                        message = |Nao foi possivel derivar o ano do documento 311 { lv_mblnr_311 }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ text-005 } 311 { lv_mblnr_311 }.| ) TO et_return.
         RETURN.
       ENDIF.
 
@@ -627,17 +651,21 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           return           = lt_ret_bapi.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_311) WHERE type CA 'EAX'.
-        APPEND VALUE #( type = 'E'
-                        message = |Falha no estorno do mov. 311: { ls_ret_311-message }| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ text-006 } { ls_ret_311-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
+
+      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_311) WITH KEY type = 'S'.
+      IF sy-subrc = 0.
+        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_311-message SUBMATCHES lv_doc_estorno.
+      ENDIF.
 
       IF et_return IS NOT INITIAL.
         CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
 
-      APPEND |311:{ lv_mblnr_311 }/{ lv_mjahr_311 }| TO lt_docs_rev.
+      APPEND |311:{ lv_mblnr_311 }/{ lv_mjahr_311 }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
 
     " Passo 2: cancela 101 da EM.
@@ -651,32 +679,36 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           return           = lt_ret_bapi.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_101_em) WHERE type CA 'EAX'.
-        APPEND VALUE #( type = 'E'
-                        message = |Falha no estorno do mov. 101 (EM) apos reversao parcial. Reconcilie manualmente a partir do passo EM: { ls_ret_101_em-message }| )
-          TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ text-007 } { ls_ret_101_em-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
+
+      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_em) WITH KEY type = 'S'.
+      IF sy-subrc = 0.
+        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_em-message SUBMATCHES lv_doc_estorno.
+      ENDIF.
 
       IF et_return IS NOT INITIAL.
         CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
 
-      APPEND |101EM:{ lv_mblnr_em }/{ lv_mjahr_em }| TO lt_docs_rev.
+      APPEND |101EM:{ lv_mblnr_em }/{ lv_mjahr_em }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
 
     " Passo 3: cancela 101 volume extra drenado.
     IF is_descarga-VolumeExtraDrenado > 0 AND is_descarga-DocMaterialExtraDrenado IS NOT INITIAL.
       lv_mblnr_extra = is_descarga-DocMaterialExtraDrenado.
 
+      DATA(lv_budat_extra) = COND budat( WHEN is_descarga-DtEm IS NOT INITIAL THEN is_descarga-DtEm ELSE sy-datum ).
       SELECT SINGLE mjahr
         FROM mkpf
         WHERE mblnr = @lv_mblnr_extra
+          AND budat = @lv_budat_extra
         INTO @lv_mjahr_extra.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E'
-                        message = |Nao foi possivel derivar o ano do doc extra drenado { lv_mblnr_extra }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ text-007 } { lv_mblnr_extra }.| ) TO et_return.
         CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
@@ -690,18 +722,21 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           return           = lt_ret_bapi.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_extra) WHERE type CA 'EAX'.
-        APPEND VALUE #( type = 'E'
-                        message = |Falha no estorno do mov. extra drenado apos reversao parcial. Reconcilie manualmente: { ls_ret_extra-message }| )
-          TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ text-008 } { ls_ret_extra-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
+
+      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_extra) WITH KEY type = 'S'.
+      IF sy-subrc = 0.
+        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_extra-message SUBMATCHES lv_doc_estorno.
+      ENDIF.
 
       IF et_return IS NOT INITIAL.
         CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
 
-      APPEND |101EXTRA:{ lv_mblnr_extra }/{ lv_mjahr_extra }| TO lt_docs_rev.
+      APPEND |101EXTRA:{ lv_mblnr_extra }/{ lv_mjahr_extra }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
 
     " Passo 4: cancela perdas/sobras (lista separada por virgula).
@@ -714,14 +749,15 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         lv_doc = lv_doc_txt.
         CHECK lv_doc IS NOT INITIAL.
 
+        DATA(lv_budat_perda) = COND budat( WHEN is_descarga-DtEm IS NOT INITIAL THEN is_descarga-DtEm ELSE sy-datum ).
         SELECT SINGLE mjahr
           FROM mkpf
           WHERE mblnr = @lv_doc
+            AND budat = @lv_budat_perda
           INTO @lv_mjahr_doc.
 
         IF sy-subrc <> 0.
-          APPEND VALUE #( type = 'E'
-                          message = |Nao foi possivel derivar o ano do doc perdas/sobras { lv_doc }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = |{ text-009 } { lv_doc }.| ) TO et_return.
           CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
           RETURN.
         ENDIF.
@@ -735,17 +771,21 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
             return           = lt_ret_bapi.
 
         LOOP AT lt_ret_bapi INTO DATA(ls_ret_perda) WHERE type CA 'EAX'.
-          APPEND VALUE #( type = 'E'
-                          message = |Falha no estorno de perdas/sobras apos reversao parcial. Doc { lv_doc }: { ls_ret_perda-message }| ) TO et_return.
+            APPEND VALUE #( type = 'E' message = |{ text-010 } { lv_doc }: { ls_ret_perda-message }| ) TO et_return.
           EXIT.
         ENDLOOP.
+
+        READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_perda) WITH KEY type = 'S'.
+        IF sy-subrc = 0.
+          FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_perda-message SUBMATCHES lv_doc_estorno.
+        ENDIF.
 
         IF et_return IS NOT INITIAL.
           CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
           RETURN.
         ENDIF.
 
-        APPEND |PERDA:{ lv_doc }/{ lv_mjahr_doc }| TO lt_docs_rev.
+        APPEND |PERDA:{ lv_doc }/{ lv_mjahr_doc }->{ lv_doc_estorno }| TO lt_docs_rev.
       ENDLOOP.
     ENDIF.
 
@@ -767,8 +807,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
        SET matnr = @lv_material_ant
      WHERE werks = @is_descarga-CentroDescarregamento
        AND lgort = @is_descarga-LgortDestino.
-
-    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT' EXPORTING wait = abap_true.
 
     DATA(lv_docs_concat) = VALUE string( ).
     LOOP AT lt_docs_rev INTO DATA(lv_doc_log).
@@ -817,7 +855,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       REPORTED DATA(ls_reported_05).
 
     IF ls_failed_05-descarga IS NOT INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Falha ao atualizar a ZDESCARGA no estorno da entrada de mercadoria.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = text-011 ) TO et_return.
       LOOP AT ls_reported_05-descarga INTO DATA(ls_rep_05).
         IF ls_rep_05-%msg IS BOUND.
           APPEND VALUE #( type = 'E' message = ls_rep_05-%msg->if_message~get_text( ) ) TO et_return.
@@ -830,9 +868,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
     ev_status_novo = '04'.
     ev_sucesso     = abap_true.
 
-    APPEND VALUE #( type = 'S'
-                    message = |Entrada de Mercadoria e Transferencia 311 do TD { is_descarga-Shnumber } estornadas. Status retornado para 04.| )
-      TO et_return.
+    APPEND VALUE #( type = 'S' message = |{ text-012 } { is_descarga-Shnumber } { text-013 }| ) TO et_return.
   ENDMETHOD.
 
   METHOD estorno_06_conclusao.
@@ -848,6 +884,10 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 *--------------------------------------------------------------------*
 * Mod Date       Author   Request    Description
 * 000 16/06/2026 CPPACH   DS4K908763 Initial Version
+* text-001 = Nao e possivel reabrir TD concluido, periodo contabil ja encerrado.
+* text-002 = Falha ao reabrir o TD na ZDESCARGA.
+* text-003 = TD
+* text-004 = reaberto. Status retornado para 05.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
@@ -863,15 +903,22 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         INTO @lv_budat_em.
 
       IF sy-subrc = 0.
-        SELECT SINGLE lfmon, lfgja
-          FROM marv
-          INTO (@lv_cur_period, @lv_cur_year).
+        SELECT SINGLE bukrs
+          FROM t001w
+          WHERE werks = @is_descarga-CentroDescarregamento
+          INTO @DATA(lv_bukrs_06).
 
-        IF sy-subrc = 0
-           AND ( lv_cur_year > lv_budat_em(4)
-              OR ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ) ).
-          APPEND VALUE #( type = 'E'
-                          message = 'Nao e possivel reabrir TD concluido, periodo contabil ja encerrado.' ) TO et_return.
+        IF sy-subrc = 0 AND lv_bukrs_06 IS NOT INITIAL.
+          SELECT SINGLE lfmon, lfgja
+            FROM mmrv
+            WHERE bukrs = @lv_bukrs_06
+            INTO (@lv_cur_period, @lv_cur_year).
+        ENDIF.
+
+        IF sy-subrc <> 0 OR
+           lv_cur_year > lv_budat_em(4) OR
+           ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ).
+          APPEND VALUE #( type = 'E' message = text-001 ) TO et_return.
           RETURN.
         ENDIF.
       ENDIF.
@@ -906,7 +953,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       REPORTED DATA(ls_reported_06).
 
     IF ls_failed_06-descarga IS NOT INITIAL.
-      APPEND VALUE #( type = 'E' message = 'Falha ao reabrir o TD na ZDESCARGA.' ) TO et_return.
+      APPEND VALUE #( type = 'E' message = text-002 ) TO et_return.
       LOOP AT ls_reported_06-descarga INTO DATA(ls_rep_06).
         IF ls_rep_06-%msg IS BOUND.
           APPEND VALUE #( type = 'E' message = ls_rep_06-%msg->if_message~get_text( ) ) TO et_return.
@@ -917,8 +964,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
     ev_status_novo = '05'.
     ev_sucesso     = abap_true.
-    APPEND VALUE #( type = 'S'
-                    message = |TD { is_descarga-Shnumber } reaberto. Status retornado para 05.| ) TO et_return.
+    APPEND VALUE #( type = 'S' message = |{ text-003 } { is_descarga-Shnumber } { text-004 }| ) TO et_return.
   ENDMETHOD.
 
   METHOD gravar_log.

@@ -22,8 +22,10 @@ CLASS zcl_q2c_desc_estorno DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    TYPES ty_docs_rev_tt TYPE STANDARD TABLE OF char50 WITH EMPTY KEY.
+
     METHODS build_docs_estornados
-      IMPORTING it_docs       TYPE STANDARD TABLE OF char50 WITH EMPTY KEY
+      IMPORTING it_docs        TYPE ty_docs_rev_tt
       RETURNING VALUE(rv_docs) TYPE char255.
 
     METHODS estorno_01_chegada
@@ -601,7 +603,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           lv_mjahr_extra  TYPE mjahr,
           lv_doc_estorno  TYPE mblnr,
           lt_ret_bapi     TYPE bapiret2_t,
-          lt_docs_rev     TYPE STANDARD TABLE OF char50 WITH EMPTY KEY,
+          lt_docs_rev     TYPE ty_docs_rev_tt,
           lt_perdas       TYPE STANDARD TABLE OF string WITH EMPTY KEY.
 
     " Pre-validacao de periodo contabil por empresa do centro.

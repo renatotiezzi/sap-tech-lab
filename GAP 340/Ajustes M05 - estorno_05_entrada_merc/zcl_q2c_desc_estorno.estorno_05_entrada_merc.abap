@@ -14,7 +14,7 @@ METHOD estorno_05_entrada_merc.
 *--------------------------------------------------------------------*
     CLEAR: et_return, ev_sucesso, ev_status_novo, ev_docs.
 
-        DATA: lv_budat_em     TYPE budat,
+    DATA: lv_budat_em     TYPE budat,
           lv_cur_period   TYPE monat,
           lv_cur_year     TYPE gjahr,
           lv_bukrs        TYPE bukrs,
@@ -31,6 +31,8 @@ METHOD estorno_05_entrada_merc.
           lt_ret_bapi     TYPE bapiret2_t,
           lt_docs_rev     TYPE STANDARD TABLE OF char50 WITH EMPTY KEY,
           lt_perdas       TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+
+    CONSTANTS lc_docs_max TYPE i VALUE 255.
 
     " Pre-validacao de periodo contabil por empresa do centro.
     SELECT SINGLE bukrs
@@ -96,7 +98,7 @@ METHOD estorno_05_entrada_merc.
         INTO @lv_mjahr_311.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E' message = |{ 'Nao foi possivel derivar o ano do documento 311'(023) } { lv_mblnr_311 }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |Falha no estorno do mov. 311: nao foi possivel derivar o ano do documento { lv_mblnr_311 }.| ) TO et_return.
         RETURN.
       ENDIF.
 
@@ -120,9 +122,32 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+        DATA(lv_docs_fail_311) = VALUE string( ).
+        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_311).
+          DATA(lv_candidate_311) = COND string( WHEN lv_docs_fail_311 IS INITIAL THEN lv_doc_ok_311
+                                                ELSE |{ lv_docs_fail_311 }, { lv_doc_ok_311 }| ).
+          IF strlen( lv_candidate_311 ) <= lc_docs_max.
+            lv_docs_fail_311 = lv_candidate_311.
+          ELSE.
+            IF lv_docs_fail_311 IS INITIAL.
+              lv_docs_fail_311 = lv_doc_ok_311.
+            ENDIF.
+            IF strlen( lv_docs_fail_311 ) > lc_docs_max - 3.
+              lv_docs_fail_311 = lv_docs_fail_311(lc_docs_max - 3).
+            ENDIF.
+            lv_docs_fail_311 = |{ lv_docs_fail_311 }...|.
+            EXIT.
+          ENDIF.
+        ENDLOOP.
+        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ).
         RETURN.
       ENDIF.
+
+      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+        EXPORTING
+          wait = abap_true.
 
       APPEND |311:{ lv_mblnr_311 }/{ lv_mjahr_311 }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
@@ -148,9 +173,32 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+        DATA(lv_docs_fail_em) = VALUE string( ).
+        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_em).
+          DATA(lv_candidate_em) = COND string( WHEN lv_docs_fail_em IS INITIAL THEN lv_doc_ok_em
+                                               ELSE |{ lv_docs_fail_em }, { lv_doc_ok_em }| ).
+          IF strlen( lv_candidate_em ) <= lc_docs_max.
+            lv_docs_fail_em = lv_candidate_em.
+          ELSE.
+            IF lv_docs_fail_em IS INITIAL.
+              lv_docs_fail_em = lv_doc_ok_em.
+            ENDIF.
+            IF strlen( lv_docs_fail_em ) > lc_docs_max - 3.
+              lv_docs_fail_em = lv_docs_fail_em(lc_docs_max - 3).
+            ENDIF.
+            lv_docs_fail_em = |{ lv_docs_fail_em }...|.
+            EXIT.
+          ENDIF.
+        ENDLOOP.
+        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ).
         RETURN.
       ENDIF.
+
+      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+        EXPORTING
+          wait = abap_true.
 
       APPEND |101EM:{ lv_mblnr_em }/{ lv_mjahr_em }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
@@ -167,8 +215,27 @@ METHOD estorno_05_entrada_merc.
         INTO @lv_mjahr_extra.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E' message = |{ 'Nao foi possivel derivar o ano do doc extra drenado'(025) } { lv_mblnr_extra }.| ) TO et_return.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+        APPEND VALUE #( type = 'E' message = |Falha no estorno do mov. 101 (extra drenado): nao foi possivel derivar o ano do documento { lv_mblnr_extra }.| ) TO et_return.
+        DATA(lv_docs_fail_extra_y) = VALUE string( ).
+        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_extra_y).
+          DATA(lv_candidate_extra_y) = COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN lv_doc_ok_extra_y
+                                                    ELSE |{ lv_docs_fail_extra_y }, { lv_doc_ok_extra_y }| ).
+          IF strlen( lv_candidate_extra_y ) <= lc_docs_max.
+            lv_docs_fail_extra_y = lv_candidate_extra_y.
+          ELSE.
+            IF lv_docs_fail_extra_y IS INITIAL.
+              lv_docs_fail_extra_y = lv_doc_ok_extra_y.
+            ENDIF.
+            IF strlen( lv_docs_fail_extra_y ) > lc_docs_max - 3.
+              lv_docs_fail_extra_y = lv_docs_fail_extra_y(lc_docs_max - 3).
+            ENDIF.
+            lv_docs_fail_extra_y = |{ lv_docs_fail_extra_y }...|.
+            EXIT.
+          ENDIF.
+        ENDLOOP.
+        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ).
         RETURN.
       ENDIF.
 
@@ -191,9 +258,32 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+        DATA(lv_docs_fail_extra) = VALUE string( ).
+        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_extra).
+          DATA(lv_candidate_extra) = COND string( WHEN lv_docs_fail_extra IS INITIAL THEN lv_doc_ok_extra
+                                                  ELSE |{ lv_docs_fail_extra }, { lv_doc_ok_extra }| ).
+          IF strlen( lv_candidate_extra ) <= lc_docs_max.
+            lv_docs_fail_extra = lv_candidate_extra.
+          ELSE.
+            IF lv_docs_fail_extra IS INITIAL.
+              lv_docs_fail_extra = lv_doc_ok_extra.
+            ENDIF.
+            IF strlen( lv_docs_fail_extra ) > lc_docs_max - 3.
+              lv_docs_fail_extra = lv_docs_fail_extra(lc_docs_max - 3).
+            ENDIF.
+            lv_docs_fail_extra = |{ lv_docs_fail_extra }...|.
+            EXIT.
+          ENDIF.
+        ENDLOOP.
+        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ).
         RETURN.
       ENDIF.
+
+      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+        EXPORTING
+          wait = abap_true.
 
       APPEND |101EXTRA:{ lv_mblnr_extra }/{ lv_mjahr_extra }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
@@ -216,8 +306,27 @@ METHOD estorno_05_entrada_merc.
           INTO @lv_mjahr_doc.
 
         IF sy-subrc <> 0.
-          APPEND VALUE #( type = 'E' message = |{ 'Nao foi possivel derivar o ano do doc perdas/sobras'(027) } { lv_doc }.| ) TO et_return.
-          CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+          APPEND VALUE #( type = 'E' message = |Falha no estorno de perdas/sobras: nao foi possivel derivar o ano do documento { lv_doc }.| ) TO et_return.
+          DATA(lv_docs_fail_perda_y) = VALUE string( ).
+          LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_perda_y).
+            DATA(lv_candidate_perda_y) = COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN lv_doc_ok_perda_y
+                                                      ELSE |{ lv_docs_fail_perda_y }, { lv_doc_ok_perda_y }| ).
+            IF strlen( lv_candidate_perda_y ) <= lc_docs_max.
+              lv_docs_fail_perda_y = lv_candidate_perda_y.
+            ELSE.
+              IF lv_docs_fail_perda_y IS INITIAL.
+                lv_docs_fail_perda_y = lv_doc_ok_perda_y.
+              ENDIF.
+              IF strlen( lv_docs_fail_perda_y ) > lc_docs_max - 3.
+                lv_docs_fail_perda_y = lv_docs_fail_perda_y(lc_docs_max - 3).
+              ENDIF.
+              lv_docs_fail_perda_y = |{ lv_docs_fail_perda_y }...|.
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+          APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ) }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+          ev_docs = COND #( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ).
           RETURN.
         ENDIF.
 
@@ -240,9 +349,32 @@ METHOD estorno_05_entrada_merc.
         ENDIF.
 
         IF et_return IS NOT INITIAL.
-          CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
+          DATA(lv_docs_fail_perda) = VALUE string( ).
+          LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_perda).
+            DATA(lv_candidate_perda) = COND string( WHEN lv_docs_fail_perda IS INITIAL THEN lv_doc_ok_perda
+                                                    ELSE |{ lv_docs_fail_perda }, { lv_doc_ok_perda }| ).
+            IF strlen( lv_candidate_perda ) <= lc_docs_max.
+              lv_docs_fail_perda = lv_candidate_perda.
+            ELSE.
+              IF lv_docs_fail_perda IS INITIAL.
+                lv_docs_fail_perda = lv_doc_ok_perda.
+              ENDIF.
+              IF strlen( lv_docs_fail_perda ) > lc_docs_max - 3.
+                lv_docs_fail_perda = lv_docs_fail_perda(lc_docs_max - 3).
+              ENDIF.
+              lv_docs_fail_perda = |{ lv_docs_fail_perda }...|.
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+          APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ) }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
+          ev_docs = COND #( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ).
           RETURN.
         ENDIF.
+
+        CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+          EXPORTING
+            wait = abap_true.
 
         APPEND |PERDA:{ lv_doc }/{ lv_mjahr_doc }->{ lv_doc_estorno }| TO lt_docs_rev.
       ENDLOOP.
@@ -262,15 +394,31 @@ METHOD estorno_05_entrada_merc.
       UP TO 1 ROWS.
     ENDSELECT.
 
-    UPDATE zmm_prod_tanque
-       SET matnr = @lv_material_ant
-     WHERE werks = @is_descarga-CentroDescarregamento
-       AND lgort = @is_descarga-LgortDestino.
+    IF lv_material_ant IS NOT INITIAL.
+      UPDATE zmm_prod_tanque
+         SET matnr = @lv_material_ant
+       WHERE werks = @is_descarga-CentroDescarregamento
+         AND lgort = @is_descarga-LgortDestino.
+    ELSE.
+      APPEND VALUE #( type = 'W' message = 'Nao havia produto anterior para restaurar no tanque. Produto atual foi preservado.' ) TO et_return.
+    ENDIF.
 
     DATA(lv_docs_concat) = VALUE string( ).
     LOOP AT lt_docs_rev INTO DATA(lv_doc_log).
-      lv_docs_concat = COND #( WHEN lv_docs_concat IS INITIAL THEN lv_doc_log
-                               ELSE |{ lv_docs_concat }, { lv_doc_log }| ).
+      DATA(lv_candidate_docs) = COND string( WHEN lv_docs_concat IS INITIAL THEN lv_doc_log
+                                             ELSE |{ lv_docs_concat }, { lv_doc_log }| ).
+      IF strlen( lv_candidate_docs ) <= lc_docs_max.
+        lv_docs_concat = lv_candidate_docs.
+      ELSE.
+        IF lv_docs_concat IS INITIAL.
+          lv_docs_concat = lv_doc_log.
+        ENDIF.
+        IF strlen( lv_docs_concat ) > lc_docs_max - 3.
+          lv_docs_concat = lv_docs_concat(lc_docs_max - 3).
+        ENDIF.
+        lv_docs_concat = |{ lv_docs_concat }...|.
+        EXIT.
+      ENDIF.
     ENDLOOP.
 
     MODIFY ENTITIES OF zi_q2c_descarga

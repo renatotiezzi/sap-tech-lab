@@ -32,16 +32,7 @@ METHOD estorno_06_conclusao.
           INTO @DATA(lv_bukrs_06).
 
         IF sy-subrc = 0 AND lv_bukrs_06 IS NOT INITIAL.
-          SELECT SINGLE lfmon, lfgja
-            FROM mmrv
-            WHERE bukrs = @lv_bukrs_06
-            INTO (@lv_cur_period, @lv_cur_year).
-        ENDIF.
-
-        IF sy-subrc <> 0 OR
-           lv_cur_year > lv_budat_em(4) OR
-           ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ).
-          APPEND VALUE #( type = 'E' message = 'Nao e possivel reabrir TD concluido, periodo contabil ja encerrado.'(032) ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Pendencia tecnica: validar API/CDS liberada para periodo contabil MM (substituir MMRV).'(042) ) TO et_return.
           RETURN.
         ENDIF.
       ENDIF.
@@ -57,6 +48,8 @@ METHOD estorno_06_conclusao.
                       DtFim
                       HrFim
                       StatusTd
+                      Aenam
+                      Aedat
 )
       WITH VALUE #( ( Shnumber    = is_descarga-Shnumber
                       Remessa     = is_descarga-Remessa
@@ -69,6 +62,8 @@ METHOD estorno_06_conclusao.
                       DtFim       = '00000000'
                       HrFim       = '000000'
                       StatusTd    = space
+                      Aenam       = sy-uname
+                      Aedat       = sy-datum
 ) )
       FAILED   DATA(ls_failed_06)
       REPORTED DATA(ls_reported_06).

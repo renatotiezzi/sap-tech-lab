@@ -55,17 +55,8 @@
         INTO @lv_budat_em.
 
       IF sy-subrc = 0.
-        SELECT SINGLE lfmon, lfgja
-            FROM mmrv
-            WHERE bukrs = @lv_bukrs
-          INTO (@lv_cur_period, @lv_cur_year).
-
-          IF sy-subrc <> 0 OR
-             lv_cur_year > lv_budat_em(4) OR
-             ( lv_cur_year = lv_budat_em(4) AND lv_cur_period > lv_budat_em+4(2) ).
-            APPEND VALUE #( type = 'E' message = |{ 'Nao e possivel estornar, periodo contabil'(019) } { lv_mblnr_em }/{ lv_mjahr_em } { 'ja encerrado.'(020) }| ) TO et_return.
-          RETURN.
-        ENDIF.
+        APPEND VALUE #( type = 'E' message = 'Pendencia tecnica: validar API/CDS liberada para periodo contabil MM (substituir MMRV).'(042) ) TO et_return.
+        RETURN.
       ENDIF.
     ENDIF.
 
@@ -97,7 +88,7 @@
         INTO @lv_mjahr_311.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E' message = |Falha no estorno do mov. 311: nao foi possivel derivar o ano do documento { lv_mblnr_311 }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. 311:'(024) } { 'Nao foi possivel derivar o ano do documento'(007) } { lv_mblnr_311 } { 'para estorno.'(036) }| ) TO et_return.
         RETURN.
       ENDIF.
 
@@ -122,9 +113,9 @@
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_311) = build_docs_estornados( lt_docs_rev ).
-        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ) }.| ) TO et_return.
-        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-        ev_docs = COND #( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ).
+        APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_311 ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_311 ).
         RETURN.
       ENDIF.
 
@@ -157,9 +148,9 @@
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_em) = build_docs_estornados( lt_docs_rev ).
-        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ) }.| ) TO et_return.
-        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-        ev_docs = COND #( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ).
+        APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_em ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_em ).
         RETURN.
       ENDIF.
 
@@ -182,11 +173,11 @@
         INTO @lv_mjahr_extra.
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( type = 'E' message = |Falha no estorno do mov. 101 (extra drenado): nao foi possivel derivar o ano do documento { lv_mblnr_extra }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. extra drenado:'(026) } { 'Nao foi possivel derivar o ano do documento'(007) } { lv_mblnr_extra } { 'para estorno.'(036) }| ) TO et_return.
         DATA(lv_docs_fail_extra_y) = build_docs_estornados( lt_docs_rev ).
-        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ) }.| ) TO et_return.
-        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-        ev_docs = COND #( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ).
+        APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_extra_y ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_extra_y ).
         RETURN.
       ENDIF.
 
@@ -210,9 +201,9 @@
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_extra) = build_docs_estornados( lt_docs_rev ).
-        APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ) }.| ) TO et_return.
-        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-        ev_docs = COND #( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ).
+        APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_extra ) }.| ) TO et_return.
+        APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+        ev_docs = COND #( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_extra ).
         RETURN.
       ENDIF.
 
@@ -241,11 +232,11 @@
           INTO @lv_mjahr_doc.
 
         IF sy-subrc <> 0.
-          APPEND VALUE #( type = 'E' message = |Falha no estorno de perdas/sobras: nao foi possivel derivar o ano do documento { lv_doc }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno de perdas/sobras:'(028) } { 'Nao foi possivel derivar o ano do documento'(007) } { lv_doc } { 'para estorno.'(036) }| ) TO et_return.
           DATA(lv_docs_fail_perda_y) = build_docs_estornados( lt_docs_rev ).
-          APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ) }.| ) TO et_return.
-          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-          ev_docs = COND #( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ).
+          APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_perda_y ) }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+          ev_docs = COND #( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_perda_y ).
           RETURN.
         ENDIF.
 
@@ -269,9 +260,9 @@
 
         IF et_return IS NOT INITIAL.
           DATA(lv_docs_fail_perda) = build_docs_estornados( lt_docs_rev ).
-          APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ) }.| ) TO et_return.
-          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
-          ev_docs = COND #( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ).
+          APPEND VALUE #( type = 'E' message = |{ 'Documentos estornados com sucesso ate a falha:'(038) } { COND string( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_perda ) }.| ) TO et_return.
+          APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.'(039) ) TO et_return.
+          ev_docs = COND #( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_perda ).
           RETURN.
         ENDIF.
 
@@ -303,7 +294,7 @@
        WHERE werks = @is_descarga-CentroDescarregamento
          AND lgort = @is_descarga-LgortDestino.
     ELSE.
-      APPEND VALUE #( type = 'W' message = 'Nao havia produto anterior para restaurar no tanque. Produto atual foi preservado.' ) TO et_return.
+      APPEND VALUE #( type = 'W' message = 'Nao havia produto anterior para restaurar no tanque. Produto atual foi preservado.'(040) ) TO et_return.
     ENDIF.
 
     DATA(lv_docs_concat) = build_docs_estornados( lt_docs_rev ).
@@ -324,6 +315,8 @@
                       Mblnr311
                       DtTransf
                       HrTransf
+                      Aenam
+                      Aedat
 )
       WITH VALUE #( ( Shnumber                 = is_descarga-Shnumber
                       Remessa                  = is_descarga-Remessa
@@ -342,6 +335,8 @@
                       Mblnr311                 = space
                       DtTransf                 = '00000000'
                       HrTransf                 = '000000'
+                      Aenam                   = sy-uname
+                      Aedat                   = sy-datum
 ) )
       FAILED   DATA(ls_failed_05)
       REPORTED DATA(ls_reported_05).

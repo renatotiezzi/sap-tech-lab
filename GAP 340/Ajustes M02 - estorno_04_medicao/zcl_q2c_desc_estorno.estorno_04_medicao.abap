@@ -27,6 +27,8 @@ METHOD estorno_04_medicao.
                       UsuarioMedicao
                       DtMedicao
                       HrMedicao
+                      Aenam
+                      Aedat
 )
       WITH VALUE #( ( Shnumber           = is_descarga-Shnumber
                       Remessa            = is_descarga-Remessa
@@ -42,6 +44,8 @@ METHOD estorno_04_medicao.
                       UsuarioMedicao     = space
                       DtMedicao          = '00000000'
                       HrMedicao          = '000000'
+                      Aenam              = sy-uname
+                      Aedat              = sy-datum
 ) )
       FAILED   DATA(ls_failed_04)
       REPORTED DATA(ls_reported_04).

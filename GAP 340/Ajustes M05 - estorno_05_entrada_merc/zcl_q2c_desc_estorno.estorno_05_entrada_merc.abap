@@ -1,4 +1,5 @@
-METHOD estorno_05_entrada_merc.
+
+  METHOD estorno_05_entrada_merc.
 *--------------------------------------------------------------------*
 * Program       : zcl_q2c_desc_estorno~estorno_05_entrada_merc
 * Program Type  : Method
@@ -31,8 +32,6 @@ METHOD estorno_05_entrada_merc.
           lt_ret_bapi     TYPE bapiret2_t,
           lt_docs_rev     TYPE STANDARD TABLE OF char50 WITH EMPTY KEY,
           lt_perdas       TYPE STANDARD TABLE OF string WITH EMPTY KEY.
-
-    CONSTANTS lc_docs_max TYPE i VALUE 255.
 
     " Pre-validacao de periodo contabil por empresa do centro.
     SELECT SINGLE bukrs
@@ -122,23 +121,7 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        DATA(lv_docs_fail_311) = VALUE string( ).
-        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_311).
-          DATA(lv_candidate_311) = COND string( WHEN lv_docs_fail_311 IS INITIAL THEN lv_doc_ok_311
-                                                ELSE |{ lv_docs_fail_311 }, { lv_doc_ok_311 }| ).
-          IF strlen( lv_candidate_311 ) <= lc_docs_max.
-            lv_docs_fail_311 = lv_candidate_311.
-          ELSE.
-            IF lv_docs_fail_311 IS INITIAL.
-              lv_docs_fail_311 = lv_doc_ok_311.
-            ENDIF.
-            IF strlen( lv_docs_fail_311 ) > lc_docs_max - 3.
-              lv_docs_fail_311 = lv_docs_fail_311(lc_docs_max - 3).
-            ENDIF.
-            lv_docs_fail_311 = |{ lv_docs_fail_311 }...|.
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+        DATA(lv_docs_fail_311) = build_docs_estornados( lt_docs_rev ).
         APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ) }.| ) TO et_return.
         APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
         ev_docs = COND #( WHEN lv_docs_fail_311 IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_311 ).
@@ -173,23 +156,7 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        DATA(lv_docs_fail_em) = VALUE string( ).
-        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_em).
-          DATA(lv_candidate_em) = COND string( WHEN lv_docs_fail_em IS INITIAL THEN lv_doc_ok_em
-                                               ELSE |{ lv_docs_fail_em }, { lv_doc_ok_em }| ).
-          IF strlen( lv_candidate_em ) <= lc_docs_max.
-            lv_docs_fail_em = lv_candidate_em.
-          ELSE.
-            IF lv_docs_fail_em IS INITIAL.
-              lv_docs_fail_em = lv_doc_ok_em.
-            ENDIF.
-            IF strlen( lv_docs_fail_em ) > lc_docs_max - 3.
-              lv_docs_fail_em = lv_docs_fail_em(lc_docs_max - 3).
-            ENDIF.
-            lv_docs_fail_em = |{ lv_docs_fail_em }...|.
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+        DATA(lv_docs_fail_em) = build_docs_estornados( lt_docs_rev ).
         APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ) }.| ) TO et_return.
         APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
         ev_docs = COND #( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_em ).
@@ -216,23 +183,7 @@ METHOD estorno_05_entrada_merc.
 
       IF sy-subrc <> 0.
         APPEND VALUE #( type = 'E' message = |Falha no estorno do mov. 101 (extra drenado): nao foi possivel derivar o ano do documento { lv_mblnr_extra }.| ) TO et_return.
-        DATA(lv_docs_fail_extra_y) = VALUE string( ).
-        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_extra_y).
-          DATA(lv_candidate_extra_y) = COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN lv_doc_ok_extra_y
-                                                    ELSE |{ lv_docs_fail_extra_y }, { lv_doc_ok_extra_y }| ).
-          IF strlen( lv_candidate_extra_y ) <= lc_docs_max.
-            lv_docs_fail_extra_y = lv_candidate_extra_y.
-          ELSE.
-            IF lv_docs_fail_extra_y IS INITIAL.
-              lv_docs_fail_extra_y = lv_doc_ok_extra_y.
-            ENDIF.
-            IF strlen( lv_docs_fail_extra_y ) > lc_docs_max - 3.
-              lv_docs_fail_extra_y = lv_docs_fail_extra_y(lc_docs_max - 3).
-            ENDIF.
-            lv_docs_fail_extra_y = |{ lv_docs_fail_extra_y }...|.
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+        DATA(lv_docs_fail_extra_y) = build_docs_estornados( lt_docs_rev ).
         APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ) }.| ) TO et_return.
         APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
         ev_docs = COND #( WHEN lv_docs_fail_extra_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra_y ).
@@ -258,23 +209,7 @@ METHOD estorno_05_entrada_merc.
       ENDIF.
 
       IF et_return IS NOT INITIAL.
-        DATA(lv_docs_fail_extra) = VALUE string( ).
-        LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_extra).
-          DATA(lv_candidate_extra) = COND string( WHEN lv_docs_fail_extra IS INITIAL THEN lv_doc_ok_extra
-                                                  ELSE |{ lv_docs_fail_extra }, { lv_doc_ok_extra }| ).
-          IF strlen( lv_candidate_extra ) <= lc_docs_max.
-            lv_docs_fail_extra = lv_candidate_extra.
-          ELSE.
-            IF lv_docs_fail_extra IS INITIAL.
-              lv_docs_fail_extra = lv_doc_ok_extra.
-            ENDIF.
-            IF strlen( lv_docs_fail_extra ) > lc_docs_max - 3.
-              lv_docs_fail_extra = lv_docs_fail_extra(lc_docs_max - 3).
-            ENDIF.
-            lv_docs_fail_extra = |{ lv_docs_fail_extra }...|.
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+        DATA(lv_docs_fail_extra) = build_docs_estornados( lt_docs_rev ).
         APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ) }.| ) TO et_return.
         APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
         ev_docs = COND #( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_extra ).
@@ -307,23 +242,7 @@ METHOD estorno_05_entrada_merc.
 
         IF sy-subrc <> 0.
           APPEND VALUE #( type = 'E' message = |Falha no estorno de perdas/sobras: nao foi possivel derivar o ano do documento { lv_doc }.| ) TO et_return.
-          DATA(lv_docs_fail_perda_y) = VALUE string( ).
-          LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_perda_y).
-            DATA(lv_candidate_perda_y) = COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN lv_doc_ok_perda_y
-                                                      ELSE |{ lv_docs_fail_perda_y }, { lv_doc_ok_perda_y }| ).
-            IF strlen( lv_candidate_perda_y ) <= lc_docs_max.
-              lv_docs_fail_perda_y = lv_candidate_perda_y.
-            ELSE.
-              IF lv_docs_fail_perda_y IS INITIAL.
-                lv_docs_fail_perda_y = lv_doc_ok_perda_y.
-              ENDIF.
-              IF strlen( lv_docs_fail_perda_y ) > lc_docs_max - 3.
-                lv_docs_fail_perda_y = lv_docs_fail_perda_y(lc_docs_max - 3).
-              ENDIF.
-              lv_docs_fail_perda_y = |{ lv_docs_fail_perda_y }...|.
-              EXIT.
-            ENDIF.
-          ENDLOOP.
+          DATA(lv_docs_fail_perda_y) = build_docs_estornados( lt_docs_rev ).
           APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ) }.| ) TO et_return.
           APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
           ev_docs = COND #( WHEN lv_docs_fail_perda_y IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda_y ).
@@ -349,23 +268,7 @@ METHOD estorno_05_entrada_merc.
         ENDIF.
 
         IF et_return IS NOT INITIAL.
-          DATA(lv_docs_fail_perda) = VALUE string( ).
-          LOOP AT lt_docs_rev INTO DATA(lv_doc_ok_perda).
-            DATA(lv_candidate_perda) = COND string( WHEN lv_docs_fail_perda IS INITIAL THEN lv_doc_ok_perda
-                                                    ELSE |{ lv_docs_fail_perda }, { lv_doc_ok_perda }| ).
-            IF strlen( lv_candidate_perda ) <= lc_docs_max.
-              lv_docs_fail_perda = lv_candidate_perda.
-            ELSE.
-              IF lv_docs_fail_perda IS INITIAL.
-                lv_docs_fail_perda = lv_doc_ok_perda.
-              ENDIF.
-              IF strlen( lv_docs_fail_perda ) > lc_docs_max - 3.
-                lv_docs_fail_perda = lv_docs_fail_perda(lc_docs_max - 3).
-              ENDIF.
-              lv_docs_fail_perda = |{ lv_docs_fail_perda }...|.
-              EXIT.
-            ENDIF.
-          ENDLOOP.
+          DATA(lv_docs_fail_perda) = build_docs_estornados( lt_docs_rev ).
           APPEND VALUE #( type = 'E' message = |Documentos estornados com sucesso ate a falha: { COND string( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ) }.| ) TO et_return.
           APPEND VALUE #( type = 'E' message = 'Contate o suporte para reconciliacao manual antes de nova tentativa de estorno.' ) TO et_return.
           ev_docs = COND #( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum' ELSE lv_docs_fail_perda ).
@@ -403,23 +306,7 @@ METHOD estorno_05_entrada_merc.
       APPEND VALUE #( type = 'W' message = 'Nao havia produto anterior para restaurar no tanque. Produto atual foi preservado.' ) TO et_return.
     ENDIF.
 
-    DATA(lv_docs_concat) = VALUE string( ).
-    LOOP AT lt_docs_rev INTO DATA(lv_doc_log).
-      DATA(lv_candidate_docs) = COND string( WHEN lv_docs_concat IS INITIAL THEN lv_doc_log
-                                             ELSE |{ lv_docs_concat }, { lv_doc_log }| ).
-      IF strlen( lv_candidate_docs ) <= lc_docs_max.
-        lv_docs_concat = lv_candidate_docs.
-      ELSE.
-        IF lv_docs_concat IS INITIAL.
-          lv_docs_concat = lv_doc_log.
-        ENDIF.
-        IF strlen( lv_docs_concat ) > lc_docs_max - 3.
-          lv_docs_concat = lv_docs_concat(lc_docs_max - 3).
-        ENDIF.
-        lv_docs_concat = |{ lv_docs_concat }...|.
-        EXIT.
-      ENDIF.
-    ENDLOOP.
+    DATA(lv_docs_concat) = build_docs_estornados( lt_docs_rev ).
 
     MODIFY ENTITIES OF zi_q2c_descarga
       ENTITY descarga

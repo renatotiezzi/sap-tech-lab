@@ -72,7 +72,14 @@ METHOD estorno_02_amostra.
           TABLES
             return = lt_ret_bapi.
       ELSE.
-        DATA(lv_ud_code) = get_param( 'ZQ2C340_UD_ESTORNO' ).
+        DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
+
+        SELECT SINGLE low
+          FROM zz1_8d05c26e3b4f
+          WHERE name = 'ZQ2C340_UD_ESTORNO'
+            AND type = 'P'
+            AND numb = '1'
+          INTO @lv_ud_code.
 
         IF lv_ud_code IS INITIAL.
           APPEND VALUE #( type = 'E' message = 'Parametro ZZ1_TVARVC_Q2C ZQ2C340_UD_ESTORNO nao configurado.' ) TO et_return.

@@ -57,8 +57,7 @@ METHOD estorno_06_conclusao.
                       DtFim
                       HrFim
                       StatusTd
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber    = is_descarga-Shnumber
                       Remessa     = is_descarga-Remessa
                       ItemRemessa = is_descarga-ItemRemessa
@@ -70,8 +69,7 @@ METHOD estorno_06_conclusao.
                       DtFim       = '00000000'
                       HrFim       = '000000'
                       StatusTd    = space
-                      Aenam       = sy-uname
-                      Aedat       = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_06)
       REPORTED DATA(ls_reported_06).
 

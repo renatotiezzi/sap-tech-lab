@@ -324,8 +324,7 @@
                       Mblnr311
                       DtTransf
                       HrTransf
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber                 = is_descarga-Shnumber
                       Remessa                  = is_descarga-Remessa
                       ItemRemessa              = is_descarga-ItemRemessa
@@ -343,8 +342,7 @@
                       Mblnr311                 = space
                       DtTransf                 = '00000000'
                       HrTransf                 = '000000'
-                      Aenam                    = sy-uname
-                      Aedat                    = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_05)
       REPORTED DATA(ls_reported_05).
 

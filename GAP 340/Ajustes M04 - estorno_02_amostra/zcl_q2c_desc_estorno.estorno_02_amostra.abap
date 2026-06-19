@@ -121,8 +121,7 @@ METHOD estorno_02_amostra.
                       DuQm
                       DtAmostra
                       HrAmostra
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber            = is_descarga-Shnumber
                       Remessa             = is_descarga-Remessa
                       ItemRemessa         = is_descarga-ItemRemessa
@@ -139,8 +138,7 @@ METHOD estorno_02_amostra.
                       DuQm                = space
                       DtAmostra           = '00000000'
                       HrAmostra           = '000000'
-                      Aenam               = sy-uname
-                      Aedat               = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_02)
       REPORTED DATA(ls_reported_02).
 

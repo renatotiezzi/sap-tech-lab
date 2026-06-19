@@ -407,8 +407,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       DuQm
                       DtAmostra
                       HrAmostra
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber            = is_descarga-Shnumber
                       Remessa             = is_descarga-Remessa
                       ItemRemessa         = is_descarga-ItemRemessa
@@ -425,8 +424,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       DuQm                = space
                       DtAmostra           = '00000000'
                       HrAmostra           = '000000'
-                      Aenam               = sy-uname
-                      Aedat               = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_02)
       REPORTED DATA(ls_reported_02).
 
@@ -473,8 +471,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       QtdeSerDescarregada
                       MaterialCompativel
                       PcsOrdernum
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber            = is_descarga-Shnumber
                       Remessa             = is_descarga-Remessa
                       ItemRemessa         = is_descarga-ItemRemessa
@@ -487,8 +484,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       MaterialCompativel  = space
                       " P4: limpar PCS_ORDERNUM ate decisao funcional sobre cancelamento na interface PCS.
                       PcsOrdernum         = space
-                      Aenam               = sy-uname
-                      Aedat               = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_03)
       REPORTED DATA(ls_reported_03).
 
@@ -536,8 +532,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       UsuarioMedicao
                       DtMedicao
                       HrMedicao
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber           = is_descarga-Shnumber
                       Remessa            = is_descarga-Remessa
                       ItemRemessa        = is_descarga-ItemRemessa
@@ -552,8 +547,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       UsuarioMedicao     = space
                       DtMedicao          = '00000000'
                       HrMedicao          = '000000'
-                      Aenam              = sy-uname
-                      Aedat              = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_04)
       REPORTED DATA(ls_reported_04).
 
@@ -897,8 +891,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       Mblnr311
                       DtTransf
                       HrTransf
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber                 = is_descarga-Shnumber
                       Remessa                  = is_descarga-Remessa
                       ItemRemessa              = is_descarga-ItemRemessa
@@ -916,8 +909,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       Mblnr311                 = space
                       DtTransf                 = '00000000'
                       HrTransf                 = '000000'
-                      Aenam                    = sy-uname
-                      Aedat                    = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_05)
       REPORTED DATA(ls_reported_05).
 
@@ -997,8 +989,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       DtFim
                       HrFim
                       StatusTd
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber    = is_descarga-Shnumber
                       Remessa     = is_descarga-Remessa
                       ItemRemessa = is_descarga-ItemRemessa
@@ -1010,8 +1001,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
                       DtFim       = '00000000'
                       HrFim       = '000000'
                       StatusTd    = space
-                      Aenam       = sy-uname
-                      Aedat       = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_06)
       REPORTED DATA(ls_reported_06).
 

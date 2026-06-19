@@ -24,8 +24,7 @@ METHOD estorno_03_tanque.
                       QtdeSerDescarregada
                       MaterialCompativel
                       PcsOrdernum
-                      Aenam
-                      Aedat )
+)
       WITH VALUE #( ( Shnumber            = is_descarga-Shnumber
                       Remessa             = is_descarga-Remessa
                       ItemRemessa         = is_descarga-ItemRemessa
@@ -38,8 +37,7 @@ METHOD estorno_03_tanque.
                       MaterialCompativel  = space
                       " P4: limpar PCS_ORDERNUM ate decisao funcional sobre cancelamento na interface PCS.
                       PcsOrdernum         = space
-                      Aenam               = sy-uname
-                      Aedat               = sy-datum ) )
+) )
       FAILED   DATA(ls_failed_03)
       REPORTED DATA(ls_reported_03).
 

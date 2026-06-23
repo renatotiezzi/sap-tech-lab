@@ -20,6 +20,8 @@ METHOD estorno_02_amostra.
           lv_doc_estorno   TYPE mblnr,
           lt_ret_bapi      TYPE bapiret2_t.
 
+    DATA(lo_parallel) = NEW zcl_q2c_estorno_parallel( ).
+
     lv_mblnr_amostra = is_descarga-DocMaterialAmostra.
 
     IF lv_mblnr_amostra IS INITIAL.
@@ -40,14 +42,15 @@ METHOD estorno_02_amostra.
       RETURN.
     ENDIF.
 
-    cancelar_doc_bapi(
+    lo_parallel->execute_cancel(
       EXPORTING
-        iv_mblnr       = lv_mblnr_amostra
-        iv_mjahr       = lv_mjahr_amostra
+        is_input  = VALUE #( mblnr = lv_mblnr_amostra
+                             mjahr = lv_mjahr_amostra )
       IMPORTING
-        ev_ok          = DATA(lv_ok_amostra)
-        ev_doc_estorno = lv_doc_estorno
-        et_return      = lt_ret_bapi ).
+        es_output = DATA(ls_out_101) ).
+
+    APPEND ls_out_101-return TO lt_ret_bapi.
+    lv_doc_estorno = ls_out_101-doc_estorno.
 
     LOOP AT lt_ret_bapi INTO DATA(ls_ret_101) WHERE type CA 'EAX'.
       APPEND VALUE #( type = ls_ret_101-type message = ls_ret_101-message ) TO et_return.
@@ -62,12 +65,13 @@ METHOD estorno_02_amostra.
       CLEAR lt_ret_bapi.
 
       IF is_descarga-DuQm IS INITIAL.
-        cancelar_lote_qm_bapi(
+        lo_parallel->execute_qm_cancel(
           EXPORTING
             iv_lote_qm = is_descarga-LoteQm
           IMPORTING
-            ev_ok      = DATA(lv_ok_qm_cancel)
-            et_return  = lt_ret_bapi ).
+            es_output  = DATA(ls_out_qm_cancel) ).
+
+        APPEND ls_out_qm_cancel-return TO lt_ret_bapi.
       ELSE.
         DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
 
@@ -83,13 +87,14 @@ METHOD estorno_02_amostra.
           RETURN.
         ENDIF.
 
-        gravar_ud_qm_bapi(
+        lo_parallel->execute_qm_ud(
           EXPORTING
             iv_lote_qm = is_descarga-LoteQm
             iv_ud_code = lv_ud_code
           IMPORTING
-            ev_ok      = DATA(lv_ok_qm_ud)
-            et_return  = lt_ret_bapi ).
+            es_output  = DATA(ls_out_qm_ud) ).
+
+        APPEND ls_out_qm_ud-return TO lt_ret_bapi.
       ENDIF.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_qm) WHERE type CA 'EAX'.

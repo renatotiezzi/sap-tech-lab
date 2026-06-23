@@ -33,6 +33,8 @@
           lt_docs_rev     TYPE STANDARD TABLE OF char50 WITH EMPTY KEY,
           lt_perdas       TYPE STANDARD TABLE OF string WITH EMPTY KEY.
 
+        DATA(lo_parallel) = NEW zcl_q2c_estorno_parallel( ).
+
     " Pre-validacao de periodo contabil por empresa do centro.
     SELECT SINGLE bukrs
       FROM t001w
@@ -93,14 +95,15 @@
       ENDIF.
 
       CLEAR lt_ret_bapi.
-      cancelar_doc_bapi(
+      lo_parallel->execute_cancel(
         EXPORTING
-          iv_mblnr       = lv_mblnr_311
-          iv_mjahr       = lv_mjahr_311
+          is_input  = VALUE #( mblnr = lv_mblnr_311
+                               mjahr = lv_mjahr_311 )
         IMPORTING
-          ev_ok          = DATA(lv_ok_311)
-          ev_doc_estorno = lv_doc_estorno
-          et_return      = lt_ret_bapi ).
+          es_output = DATA(ls_out_311) ).
+
+      APPEND ls_out_311-return TO lt_ret_bapi.
+      lv_doc_estorno = ls_out_311-doc_estorno.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_311) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. 311:'(024) } { ls_ret_311-message }| ) TO et_return.
@@ -121,14 +124,15 @@
     " Passo 2: cancela 101 da EM.
     IF lv_mblnr_em IS NOT INITIAL AND lv_mjahr_em IS NOT INITIAL.
       CLEAR lt_ret_bapi.
-      cancelar_doc_bapi(
+      lo_parallel->execute_cancel(
         EXPORTING
-          iv_mblnr       = lv_mblnr_em
-          iv_mjahr       = lv_mjahr_em
+          is_input  = VALUE #( mblnr = lv_mblnr_em
+                               mjahr = lv_mjahr_em )
         IMPORTING
-          ev_ok          = DATA(lv_ok_em)
-          ev_doc_estorno = lv_doc_estorno
-          et_return      = lt_ret_bapi ).
+          es_output = DATA(ls_out_em) ).
+
+      APPEND ls_out_em-return TO lt_ret_bapi.
+      lv_doc_estorno = ls_out_em-doc_estorno.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_101_em) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. 101 (EM):'(037) } { ls_ret_101_em-message }| ) TO et_return.
@@ -167,14 +171,15 @@
       ENDIF.
 
       CLEAR lt_ret_bapi.
-      cancelar_doc_bapi(
+      lo_parallel->execute_cancel(
         EXPORTING
-          iv_mblnr       = lv_mblnr_extra
-          iv_mjahr       = lv_mjahr_extra
+          is_input  = VALUE #( mblnr = lv_mblnr_extra
+                               mjahr = lv_mjahr_extra )
         IMPORTING
-          ev_ok          = DATA(lv_ok_extra)
-          ev_doc_estorno = lv_doc_estorno
-          et_return      = lt_ret_bapi ).
+          es_output = DATA(ls_out_extra) ).
+
+      APPEND ls_out_extra-return TO lt_ret_bapi.
+      lv_doc_estorno = ls_out_extra-doc_estorno.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_extra) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. extra drenado:'(026) } { ls_ret_extra-message }| ) TO et_return.
@@ -219,14 +224,15 @@
         ENDIF.
 
         CLEAR lt_ret_bapi.
-        cancelar_doc_bapi(
+        lo_parallel->execute_cancel(
           EXPORTING
-            iv_mblnr       = lv_doc
-            iv_mjahr       = lv_mjahr_doc
+            is_input  = VALUE #( mblnr = lv_doc
+                                 mjahr = lv_mjahr_doc )
           IMPORTING
-            ev_ok          = DATA(lv_ok_perda)
-            ev_doc_estorno = lv_doc_estorno
-            et_return      = lt_ret_bapi ).
+            es_output = DATA(ls_out_perda) ).
+
+        APPEND ls_out_perda-return TO lt_ret_bapi.
+        lv_doc_estorno = ls_out_perda-doc_estorno.
 
         LOOP AT lt_ret_bapi INTO DATA(ls_ret_perda) WHERE type CA 'EAX'.
             APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno de perdas/sobras:'(028) } { lv_doc }: { ls_ret_perda-message }| ) TO et_return.

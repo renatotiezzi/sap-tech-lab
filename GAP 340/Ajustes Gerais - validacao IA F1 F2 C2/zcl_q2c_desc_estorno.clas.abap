@@ -28,6 +28,15 @@ CLASS zcl_q2c_desc_estorno DEFINITION
       IMPORTING it_docs        TYPE ty_docs_rev_tt
       RETURNING VALUE(rv_docs) TYPE char255.
 
+    METHODS cancelar_doc_bapi
+      IMPORTING
+        iv_mblnr       TYPE mblnr
+        iv_mjahr       TYPE mjahr
+      EXPORTING
+        ev_ok          TYPE abap_bool
+        ev_doc_estorno TYPE mblnr
+        et_return      TYPE bapiret2_t.
+
     METHODS estorno_01_chegada
       IMPORTING
         is_descarga      TYPE zi_q2c_descarga
@@ -162,6 +171,31 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
     ENDLOOP.
 
     rv_docs = lv_docs.
+  ENDMETHOD.
+
+  METHOD cancelar_doc_bapi.
+*--------------------------------------------------------------------*
+* Program       : zcl_q2c_desc_estorno~cancelar_doc_bapi
+* Program Type  : Method
+* Author        : CPPACH
+* Creation Date : 23/06/2026
+* Gap ID        : 340
+* Description   : Executa cancelamento em LUW paralela (CL_ABAP_PARALLEL)
+*--------------------------------------------------------------------*
+    CLEAR: ev_ok, ev_doc_estorno, et_return.
+
+    DATA(lo_parallel) = NEW zcl_q2c_estorno_parallel( ).
+
+    lo_parallel->execute_cancel(
+      EXPORTING
+        is_input  = VALUE #( mblnr = iv_mblnr
+                             mjahr = iv_mjahr )
+      IMPORTING
+        es_output = DATA(ls_output) ).
+
+    APPEND ls_output-return TO et_return.
+    ev_doc_estorno = ls_output-doc_estorno.
+    ev_ok = xsdbool( ls_output-return-type NA 'EAX' ).
   ENDMETHOD.
 
   METHOD realizar_estorno.
@@ -672,23 +706,19 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       ENDIF.
 
       CLEAR lt_ret_bapi.
-      " P2: EF orienta estorno via BAPI_GOODSMVT_CANCEL_OIL.
-      CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+      cancelar_doc_bapi(
         EXPORTING
-          materialdocument = lv_mblnr_311
-          matdocumentyear  = lv_mjahr_311
-        TABLES
-          return           = lt_ret_bapi.
+          iv_mblnr       = lv_mblnr_311
+          iv_mjahr       = lv_mjahr_311
+        IMPORTING
+          ev_ok          = DATA(lv_ok_311)
+          ev_doc_estorno = lv_doc_estorno
+          et_return      = lt_ret_bapi ).
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_311) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. 311:'(024) } { ls_ret_311-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
-
-      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_311) WITH KEY type = 'S'.
-      IF sy-subrc = 0.
-        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_311-message SUBMATCHES lv_doc_estorno.
-      ENDIF.
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_311) = build_docs_estornados( lt_docs_rev ).
@@ -698,32 +728,25 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
-        EXPORTING
-          wait = abap_true.
-
       APPEND |311:{ lv_mblnr_311 }/{ lv_mjahr_311 }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
 
     " Passo 2: cancela 101 da EM.
     IF lv_mblnr_em IS NOT INITIAL AND lv_mjahr_em IS NOT INITIAL.
       CLEAR lt_ret_bapi.
-      CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+      cancelar_doc_bapi(
         EXPORTING
-          materialdocument = lv_mblnr_em
-          matdocumentyear  = lv_mjahr_em
-        TABLES
-          return           = lt_ret_bapi.
+          iv_mblnr       = lv_mblnr_em
+          iv_mjahr       = lv_mjahr_em
+        IMPORTING
+          ev_ok          = DATA(lv_ok_em)
+          ev_doc_estorno = lv_doc_estorno
+          et_return      = lt_ret_bapi ).
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_101_em) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. 101 (EM):'(037) } { ls_ret_101_em-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
-
-      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_em) WITH KEY type = 'S'.
-      IF sy-subrc = 0.
-        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_em-message SUBMATCHES lv_doc_estorno.
-      ENDIF.
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_em) = build_docs_estornados( lt_docs_rev ).
@@ -732,10 +755,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         ev_docs = COND #( WHEN lv_docs_fail_em IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_em ).
         RETURN.
       ENDIF.
-
-      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
-        EXPORTING
-          wait = abap_true.
 
       APPEND |101EM:{ lv_mblnr_em }/{ lv_mjahr_em }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
@@ -761,22 +780,19 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       ENDIF.
 
       CLEAR lt_ret_bapi.
-      CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+      cancelar_doc_bapi(
         EXPORTING
-          materialdocument = lv_mblnr_extra
-          matdocumentyear  = lv_mjahr_extra
-        TABLES
-          return           = lt_ret_bapi.
+          iv_mblnr       = lv_mblnr_extra
+          iv_mjahr       = lv_mjahr_extra
+        IMPORTING
+          ev_ok          = DATA(lv_ok_extra)
+          ev_doc_estorno = lv_doc_estorno
+          et_return      = lt_ret_bapi ).
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_extra) WHERE type CA 'EAX'.
         APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno do mov. extra drenado:'(026) } { ls_ret_extra-message }| ) TO et_return.
         EXIT.
       ENDLOOP.
-
-      READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_extra) WITH KEY type = 'S'.
-      IF sy-subrc = 0.
-        FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_extra-message SUBMATCHES lv_doc_estorno.
-      ENDIF.
 
       IF et_return IS NOT INITIAL.
         DATA(lv_docs_fail_extra) = build_docs_estornados( lt_docs_rev ).
@@ -785,10 +801,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         ev_docs = COND #( WHEN lv_docs_fail_extra IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_extra ).
         RETURN.
       ENDIF.
-
-      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
-        EXPORTING
-          wait = abap_true.
 
       APPEND |101EXTRA:{ lv_mblnr_extra }/{ lv_mjahr_extra }->{ lv_doc_estorno }| TO lt_docs_rev.
     ENDIF.
@@ -820,22 +832,19 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
         ENDIF.
 
         CLEAR lt_ret_bapi.
-        CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+        cancelar_doc_bapi(
           EXPORTING
-            materialdocument = lv_doc
-            matdocumentyear  = lv_mjahr_doc
-          TABLES
-            return           = lt_ret_bapi.
+            iv_mblnr       = lv_doc
+            iv_mjahr       = lv_mjahr_doc
+          IMPORTING
+            ev_ok          = DATA(lv_ok_perda)
+            ev_doc_estorno = lv_doc_estorno
+            et_return      = lt_ret_bapi ).
 
         LOOP AT lt_ret_bapi INTO DATA(ls_ret_perda) WHERE type CA 'EAX'.
             APPEND VALUE #( type = 'E' message = |{ 'Falha no estorno de perdas/sobras:'(028) } { lv_doc }: { ls_ret_perda-message }| ) TO et_return.
           EXIT.
         ENDLOOP.
-
-        READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_perda) WITH KEY type = 'S'.
-        IF sy-subrc = 0.
-          FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_perda-message SUBMATCHES lv_doc_estorno.
-        ENDIF.
 
         IF et_return IS NOT INITIAL.
           DATA(lv_docs_fail_perda) = build_docs_estornados( lt_docs_rev ).
@@ -844,10 +853,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
           ev_docs = COND #( WHEN lv_docs_fail_perda IS INITIAL THEN 'nenhum'(043) ELSE lv_docs_fail_perda ).
           RETURN.
         ENDIF.
-
-        CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
-          EXPORTING
-            wait = abap_true.
 
         APPEND |PERDA:{ lv_doc }/{ lv_mjahr_doc }->{ lv_doc_estorno }| TO lt_docs_rev.
       ENDLOOP.

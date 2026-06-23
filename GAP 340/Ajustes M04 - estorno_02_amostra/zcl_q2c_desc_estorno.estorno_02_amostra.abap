@@ -40,25 +40,21 @@ METHOD estorno_02_amostra.
       RETURN.
     ENDIF.
 
-    CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+    cancelar_doc_bapi(
       EXPORTING
-        materialdocument = lv_mblnr_amostra
-        matdocumentyear  = lv_mjahr_amostra
-      TABLES
-        return           = lt_ret_bapi.
+        iv_mblnr       = lv_mblnr_amostra
+        iv_mjahr       = lv_mjahr_amostra
+      IMPORTING
+        ev_ok          = DATA(lv_ok_amostra)
+        ev_doc_estorno = lv_doc_estorno
+        et_return      = lt_ret_bapi ).
 
     LOOP AT lt_ret_bapi INTO DATA(ls_ret_101) WHERE type CA 'EAX'.
       APPEND VALUE #( type = ls_ret_101-type message = ls_ret_101-message ) TO et_return.
       EXIT.
     ENDLOOP.
 
-    READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_02) WITH KEY type = 'S'.
-    IF sy-subrc = 0.
-      FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_02-message SUBMATCHES lv_doc_estorno.
-    ENDIF.
-
     IF et_return IS NOT INITIAL.
-      CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
       RETURN.
     ENDIF.
 
@@ -66,11 +62,12 @@ METHOD estorno_02_amostra.
       CLEAR lt_ret_bapi.
 
       IF is_descarga-DuQm IS INITIAL.
-        CALL FUNCTION 'BAPI_INSPLOT_CANCEL'
+        cancelar_lote_qm_bapi(
           EXPORTING
-            number = is_descarga-LoteQm
-          TABLES
-            return = lt_ret_bapi.
+            iv_lote_qm = is_descarga-LoteQm
+          IMPORTING
+            ev_ok      = DATA(lv_ok_qm_cancel)
+            et_return  = lt_ret_bapi ).
       ELSE.
         DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
 
@@ -83,16 +80,16 @@ METHOD estorno_02_amostra.
 
         IF lv_ud_code IS INITIAL.
           APPEND VALUE #( type = 'E' message = 'Parametro ZZ1_TVARVC_Q2C ZQ2C340_UD_ESTORNO nao configurado.'(041) ) TO et_return.
-          CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
           RETURN.
         ENDIF.
 
-        CALL FUNCTION 'BAPI_INSPLOT_USAGE_DECISION'
+        gravar_ud_qm_bapi(
           EXPORTING
-            inspectionlot = is_descarga-LoteQm
-            ud_code       = lv_ud_code
-          TABLES
-            return        = lt_ret_bapi.
+            iv_lote_qm = is_descarga-LoteQm
+            iv_ud_code = lv_ud_code
+          IMPORTING
+            ev_ok      = DATA(lv_ok_qm_ud)
+            et_return  = lt_ret_bapi ).
       ENDIF.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_qm) WHERE type CA 'EAX'.
@@ -101,7 +98,6 @@ METHOD estorno_02_amostra.
       ENDLOOP.
 
       IF et_return IS NOT INITIAL.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
     ENDIF.

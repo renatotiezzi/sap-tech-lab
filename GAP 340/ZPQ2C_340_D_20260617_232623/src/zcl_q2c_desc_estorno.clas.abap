@@ -37,6 +37,21 @@ CLASS zcl_q2c_desc_estorno DEFINITION
         ev_doc_estorno TYPE mblnr
         et_return      TYPE bapiret2_t.
 
+    METHODS cancelar_lote_qm_bapi
+      IMPORTING
+        iv_lote_qm TYPE qplos
+      EXPORTING
+        ev_ok      TYPE abap_bool
+        et_return  TYPE bapiret2_t.
+
+    METHODS gravar_ud_qm_bapi
+      IMPORTING
+        iv_lote_qm TYPE qplos
+        iv_ud_code TYPE zz1_8d05c26e3b4f-low
+      EXPORTING
+        ev_ok      TYPE abap_bool
+        et_return  TYPE bapiret2_t.
+
     METHODS estorno_01_chegada
       IMPORTING
         is_descarga      TYPE zi_q2c_descarga
@@ -195,6 +210,37 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
     APPEND ls_output-return TO et_return.
     ev_doc_estorno = ls_output-doc_estorno.
+    ev_ok = xsdbool( ls_output-return-type NA 'EAX' ).
+  ENDMETHOD.
+
+  METHOD cancelar_lote_qm_bapi.
+    CLEAR: ev_ok, et_return.
+
+    DATA(lo_parallel) = NEW zcl_q2c_estorno_parallel( ).
+
+    lo_parallel->execute_qm_cancel(
+      EXPORTING
+        iv_lote_qm = iv_lote_qm
+      IMPORTING
+        es_output  = DATA(ls_output) ).
+
+    APPEND ls_output-return TO et_return.
+    ev_ok = xsdbool( ls_output-return-type NA 'EAX' ).
+  ENDMETHOD.
+
+  METHOD gravar_ud_qm_bapi.
+    CLEAR: ev_ok, et_return.
+
+    DATA(lo_parallel) = NEW zcl_q2c_estorno_parallel( ).
+
+    lo_parallel->execute_qm_ud(
+      EXPORTING
+        iv_lote_qm = iv_lote_qm
+        iv_ud_code = iv_ud_code
+      IMPORTING
+        es_output  = DATA(ls_output) ).
+
+    APPEND ls_output-return TO et_return.
     ev_ok = xsdbool( ls_output-return-type NA 'EAX' ).
   ENDMETHOD.
 
@@ -360,25 +406,21 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    CALL FUNCTION 'BAPI_GOODSMVT_CANCEL_OIL'
+    cancelar_doc_bapi(
       EXPORTING
-        materialdocument = lv_mblnr_amostra
-        matdocumentyear  = lv_mjahr_amostra
-      TABLES
-        return           = lt_ret_bapi.
+        iv_mblnr       = lv_mblnr_amostra
+        iv_mjahr       = lv_mjahr_amostra
+      IMPORTING
+        ev_ok          = DATA(lv_ok_amostra)
+        ev_doc_estorno = lv_doc_estorno
+        et_return      = lt_ret_bapi ).
 
     LOOP AT lt_ret_bapi INTO DATA(ls_ret_101) WHERE type CA 'EAX'.
       APPEND VALUE #( type = ls_ret_101-type message = ls_ret_101-message ) TO et_return.
       EXIT.
     ENDLOOP.
 
-    READ TABLE lt_ret_bapi INTO DATA(ls_ret_ok_02) WITH KEY type = 'S'.
-    IF sy-subrc = 0.
-      FIND FIRST OCCURRENCE OF REGEX '\d{10}' IN ls_ret_ok_02-message SUBMATCHES lv_doc_estorno.
-    ENDIF.
-
     IF et_return IS NOT INITIAL.
-      CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
       RETURN.
     ENDIF.
 
@@ -386,11 +428,12 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       CLEAR lt_ret_bapi.
 
       IF is_descarga-DuQm IS INITIAL.
-        CALL FUNCTION 'BAPI_INSPLOT_CANCEL'
+        cancelar_lote_qm_bapi(
           EXPORTING
-            number = is_descarga-LoteQm
-          TABLES
-            return = lt_ret_bapi.
+            iv_lote_qm = is_descarga-LoteQm
+          IMPORTING
+            ev_ok      = DATA(lv_ok_qm_cancel)
+            et_return  = lt_ret_bapi ).
       ELSE.
         DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
 
@@ -403,16 +446,16 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
         IF lv_ud_code IS INITIAL.
           APPEND VALUE #( type = 'E' message = 'Parametro ZZ1_TVARVC_Q2C ZQ2C340_UD_ESTORNO nao configurado.'(041) ) TO et_return.
-          CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
           RETURN.
         ENDIF.
 
-        CALL FUNCTION 'BAPI_INSPLOT_USAGE_DECISION'
+        gravar_ud_qm_bapi(
           EXPORTING
-            inspectionlot = is_descarga-LoteQm
-            ud_code       = lv_ud_code
-          TABLES
-            return        = lt_ret_bapi.
+            iv_lote_qm = is_descarga-LoteQm
+            iv_ud_code = lv_ud_code
+          IMPORTING
+            ev_ok      = DATA(lv_ok_qm_ud)
+            et_return  = lt_ret_bapi ).
       ENDIF.
 
       LOOP AT lt_ret_bapi INTO DATA(ls_ret_qm) WHERE type CA 'EAX'.
@@ -421,7 +464,6 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       ENDLOOP.
 
       IF et_return IS NOT INITIAL.
-        CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
         RETURN.
       ENDIF.
     ENDIF.

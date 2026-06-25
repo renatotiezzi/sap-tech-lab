@@ -428,12 +428,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
       CLEAR lt_ret_bapi.
 
       IF is_descarga-DuQm IS INITIAL.
-        cancelar_lote_qm_bapi(
-          EXPORTING
-            iv_lote_qm = is_descarga-LoteQm
-          IMPORTING
-            ev_ok      = DATA(lv_ok_qm_cancel)
-            et_return  = lt_ret_bapi ).
+        " Novo modelo: sem cancelamento explicito de lote QM quando nao ha UD.
       ELSE.
         DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
 

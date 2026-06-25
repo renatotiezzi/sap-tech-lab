@@ -176,32 +176,8 @@ CLASS zcl_q2c_estorno_parallel IMPLEMENTATION.
           RETURN.
         ENDIF.
 
-        CALL FUNCTION 'BAPI_INSPLOT_CANCEL'
-          EXPORTING
-            number = ls_input-lote_qm
-          TABLES
-            return = lt_return.
-
-        LOOP AT lt_return INTO DATA(ls_ret_err_qm_cancel) WHERE type CA 'EAX'.
-          ls_output-return = ls_ret_err_qm_cancel.
-          EXIT.
-        ENDLOOP.
-
-        IF ls_output-return-type CA 'EAX'.
-          CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-        ELSE.
-          CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
-            EXPORTING
-              wait = abap_true.
-
-          READ TABLE lt_return INTO DATA(ls_ret_ok_qm_cancel) WITH KEY type = 'S'.
-          IF sy-subrc = 0.
-            ls_output-return = ls_ret_ok_qm_cancel.
-          ELSE.
-            ls_output-return-type = 'S'.
-            ls_output-return-message = 'Estorno executado com sucesso.'(003).
-          ENDIF.
-        ENDIF.
+        ls_output-return-type = 'S'.
+        ls_output-return-message = 'Cancelamento de lote QM nao necessario no novo modelo.'.
 
       WHEN 'QM_UD'.
         IF ls_input-lote_qm IS INITIAL OR ls_input-ud_code IS INITIAL.

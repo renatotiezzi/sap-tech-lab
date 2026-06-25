@@ -112,12 +112,7 @@ CLASS zcl_q2c_desc_estorno IMPLEMENTATION.
 
   METHOD pode_estornar.
 *--------------------------------------------------------------------*
-* Program       : zcl_q2c_desc_estorno~pode_estornar
-* Program Type  : Method
-* Author        : CPPACH
-* Creation Date : 16/06/2026
-* Gap ID        : 340
-* Description   : Valida autorizacao p/ estornar (autor OU supervisor)
+            " Novo modelo: sem cancelamento explicito de lote QM quando nao ha UD.
 *--------------------------------------------------------------------*
 * Change History Log
 *--------------------------------------------------------------------*

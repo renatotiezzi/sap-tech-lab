@@ -65,13 +65,7 @@ METHOD estorno_02_amostra.
       CLEAR lt_ret_bapi.
 
       IF is_descarga-DuQm IS INITIAL.
-        lo_parallel->execute_qm_cancel(
-          EXPORTING
-            iv_lote_qm = is_descarga-LoteQm
-          IMPORTING
-            es_output  = DATA(ls_out_qm_cancel) ).
-
-        APPEND ls_out_qm_cancel-return TO lt_ret_bapi.
+        " Novo modelo: sem cancelamento explicito de lote QM quando nao ha UD.
       ELSE.
         DATA(lv_ud_code) = VALUE zz1_8d05c26e3b4f-low( ).
 

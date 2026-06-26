@@ -1,0 +1,186 @@
+CLASS zbp_q2c_arqmgr DEFINITION PUBLIC ABSTRACT FINAL
+  FOR BEHAVIOR OF zi_q2c_arqmgr.
+ENDCLASS.
+
+CLASS zbp_q2c_arqmgr IMPLEMENTATION.
+ENDCLASS.
+
+*----------------------------------------------------------------------*
+* LOCAL CLASS IMPLEMENTATIONS (CCIMP — "Local Types" in ADT)
+*----------------------------------------------------------------------*
+
+*----------------------------------------------------------------------*
+* Handler for ArqMgr (root entity)
+*----------------------------------------------------------------------*
+CLASS lhc_arqmgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS setuuidoncreate
+      FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR ArqMgr~setUuidOnCreate.
+
+    METHODS setadminfieldsonsave
+      FOR DETERMINE ON SAVE
+      IMPORTING keys FOR ArqMgr~setAdminFieldsOnSave.
+
+    METHODS validatestatus
+      FOR VALIDATE ON SAVE
+      IMPORTING keys FOR ArqMgr~validateStatus.
+
+ENDCLASS.
+
+CLASS lhc_arqmgr IMPLEMENTATION.
+
+  METHOD setuuidoncreate.
+
+    READ ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY ArqMgr
+        FIELDS ( Uuid )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_arqmgr).
+
+    MODIFY ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY ArqMgr
+        UPDATE FIELDS ( Uuid )
+        WITH VALUE #(
+          FOR <ls> IN lt_arqmgr
+            WHERE ( Uuid IS INITIAL )
+            ( %tky = <ls>-%tky
+              Uuid = cl_system_uuid=>create_uuid_x16_static( ) ) ).
+
+  ENDMETHOD.
+
+  METHOD setadminfieldsonsave.
+
+    DATA lv_ts   TYPE timestampl.
+    DATA lv_user TYPE syuname.
+
+    GET TIME STAMP FIELD lv_ts.
+    lv_user = cl_abap_context_info=>get_user_technical_name( ).
+
+    READ ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY ArqMgr
+        FIELDS ( CreatedBy CreatedAt ChangedBy ChangedAt LocalLastChangedAt )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_arqmgr).
+
+    MODIFY ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY ArqMgr
+        UPDATE FIELDS ( CreatedBy CreatedAt ChangedBy ChangedAt LocalLastChangedAt )
+        WITH VALUE #(
+          FOR <ls> IN lt_arqmgr
+            ( %tky              = <ls>-%tky
+              CreatedBy         = COND #( WHEN <ls>-CreatedBy IS INITIAL
+                                          THEN lv_user
+                                          ELSE <ls>-CreatedBy )
+              CreatedAt         = COND #( WHEN <ls>-CreatedAt IS INITIAL
+                                          THEN lv_ts
+                                          ELSE <ls>-CreatedAt )
+              ChangedBy         = lv_user
+              ChangedAt         = lv_ts
+              LocalLastChangedAt = lv_ts ) ).
+
+  ENDMETHOD.
+
+  METHOD validatestatus.
+
+    READ ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY ArqMgr
+        FIELDS ( Status )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_arqmgr).
+
+    LOOP AT lt_arqmgr ASSIGNING FIELD-SYMBOL(<ls>).
+
+      CASE <ls>-Status.
+        WHEN 'PEND' OR 'PROC' OR 'DONE' OR 'ERRO'.
+          " Status válido — nenhuma ação necessária
+        WHEN OTHERS.
+          APPEND VALUE #( %tky = <ls>-%tky ) TO failed-arqmgr.
+
+          APPEND VALUE #(
+            %tky            = <ls>-%tky
+            %state_area     = 'VALIDATE_STATUS'
+            %msg            = new_message_with_text(
+                                severity = if_abap_behv_message=>severity-error
+                                text     = |Status inválido: '{ <ls>-Status }'. Valores permitidos: PEND, PROC, DONE, ERRO.|
+                              )
+            %element-Status = if_abap_behv=>mk-on
+          ) TO reported-arqmgr.
+      ENDCASE.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+*----------------------------------------------------------------------*
+* Handler for LogMgr (child entity)
+*----------------------------------------------------------------------*
+CLASS lhc_logmgr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS setuuidoncreate
+      FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR LogMgr~setUuidOnCreate.
+
+    METHODS setadminfieldsonsave
+      FOR DETERMINE ON SAVE
+      IMPORTING keys FOR LogMgr~setAdminFieldsOnSave.
+
+ENDCLASS.
+
+CLASS lhc_logmgr IMPLEMENTATION.
+
+  METHOD setuuidoncreate.
+
+    READ ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY LogMgr
+        FIELDS ( Uuid )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_log).
+
+    MODIFY ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY LogMgr
+        UPDATE FIELDS ( Uuid )
+        WITH VALUE #(
+          FOR <ls> IN lt_log
+            WHERE ( Uuid IS INITIAL )
+            ( %tky = <ls>-%tky
+              Uuid = cl_system_uuid=>create_uuid_x16_static( ) ) ).
+
+  ENDMETHOD.
+
+  METHOD setadminfieldsonsave.
+
+    DATA lv_ts   TYPE timestampl.
+    DATA lv_user TYPE syuname.
+
+    GET TIME STAMP FIELD lv_ts.
+    lv_user = cl_abap_context_info=>get_user_technical_name( ).
+
+    READ ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY LogMgr
+        FIELDS ( CreatedBy CreatedAt )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_log).
+
+    MODIFY ENTITIES OF zi_q2c_arqmgr IN LOCAL MODE
+      ENTITY LogMgr
+        UPDATE FIELDS ( CreatedBy CreatedAt )
+        WITH VALUE #(
+          FOR <ls> IN lt_log
+            ( %tky      = <ls>-%tky
+              CreatedBy = COND #( WHEN <ls>-CreatedBy IS INITIAL
+                                  THEN lv_user
+                                  ELSE <ls>-CreatedBy )
+              CreatedAt = COND #( WHEN <ls>-CreatedAt IS INITIAL
+                                  THEN lv_ts
+                                  ELSE <ls>-CreatedAt ) ) ).
+
+  ENDMETHOD.
+
+ENDCLASS.

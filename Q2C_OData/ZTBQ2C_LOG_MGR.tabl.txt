@@ -1,0 +1,15 @@
+@EndUserText.label: 'Q2C - Log de Arquivo - Manager'
+@AbapCatalog.enhancement.category: #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory: #TRANSPARENT
+@AbapCatalog.deliveryClass: #A
+@AbapCatalog.dataMaintenance: #RESTRICTED
+define table ztbq2c_log_mgr {
+  key client    : abap.clnt not null;
+  key uuid      : sysuuid_x16 not null;
+  arq_uuid      : sysuuid_x16 not null;
+  log_type      : abap.char(1);
+  log_msg       : abap.char(255);
+  detail_msg    : abap.char(1333);
+  created_by    : syuname;
+  created_at    : timestampl;
+}

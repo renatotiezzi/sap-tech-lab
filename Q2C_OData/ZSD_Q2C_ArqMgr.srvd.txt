@@ -1,0 +1,5 @@
+@EndUserText.label: 'Q2C - Service Definition - Arquivo Manager'
+define service ZSD_Q2C_ArqMgr {
+  expose ZI_Q2C_ArqMgr as ArquivoMgr;
+  expose ZI_Q2C_LogMgr as LogMgr;
+}

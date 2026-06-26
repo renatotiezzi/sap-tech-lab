@@ -1,0 +1,32 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #CHECK
+@EndUserText.label: 'Q2C - Interface View - Arquivo Manager'
+@ObjectModel.usageType:{
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #TRANSACTIONAL
+}
+@ObjectModel.compositionRoot: true
+define root view entity ZI_Q2C_ArqMgr
+  as select from ztbq2c_arq_mgr
+
+  composition [0..*] of ZI_Q2C_LogMgr as _Log
+
+{
+  key uuid                  as Uuid,
+      status                as Status,
+      filename              as Filename,
+      filetype              as Filetype,
+      filesize              as Filesize,
+      content_type          as ContentType,
+      source                as Source,
+      bukrs                 as Bukrs,
+      created_by            as CreatedBy,
+      created_at            as CreatedAt,
+      changed_by            as ChangedBy,
+      changed_at            as ChangedAt,
+      local_last_changed_at as LocalLastChangedAt,
+
+      /* Associations */
+      _Log
+}

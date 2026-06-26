@@ -1,0 +1,73 @@
+/// ---------------------------------------------------------------------------
+/// ATC Priority-1 Fix: ZC_S2M_BATELADA – Behavior Definition
+/// ---------------------------------------------------------------------------
+/// Finding:
+///   ATC check "Strict mode level 2 not active" fires because the behavior
+///   definition does not declare  strict ( 2 ).
+///
+/// Required change:
+///   Add  strict ( 2 )  to the behavior definition header.
+///
+/// strict ( 2 )  activates ALL strict-mode checks, including:
+///   - No implicit BDEF assumptions (every feature must be declared).
+///   - Syntax restrictions aligned with ABAP Cloud / BTP restrictions.
+///   - Enforcement of "always-inline" result parameter for actions.
+///
+/// ---------------------------------------------------------------------------
+/// TEMPLATE – replace the placeholder sections with your actual entity,
+/// action and association definitions.
+/// ---------------------------------------------------------------------------
+
+managed implementation in class zbp_c_s2m_batelada unique;
+
+/// ↓↓ KEY CHANGE: strict ( 2 ) added to satisfy ATC Priority-1 finding ↓↓
+strict ( 2 );
+
+define behavior for ZC_S2M_BATELADA alias Batelada
+  persistent table ztbqmbatelada
+  lock master
+  authorization master ( instance )
+  etag master LastChangedAt
+{
+  // ── Standard CRUD ────────────────────────────────────────────────────────
+  create;
+  update;
+  delete;
+
+  // ── Field-level settings ─────────────────────────────────────────────────
+  field ( readonly ) Prueflos;       // Inspection lot – set by system
+  field ( readonly ) Aufnr;          // Manufacturing order – set at creation
+  field ( mandatory ) Matnr;
+  field ( mandatory ) Werks;
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+  // strict ( 2 ) requires result parameter to be declared inline:
+  action ( features : instance ) ApproveBatch result [1] $self;
+
+  // ── Determinations ───────────────────────────────────────────────────────
+  determination SetDefaultValues on modify { create; }
+
+  // ── Validations ──────────────────────────────────────────────────────────
+  validation ValidateMaterial on save { create; update; }
+  validation ValidatePlant    on save { create; update; }
+
+  // ── Draft handling (if draft-enabled) ────────────────────────────────────
+  // draft action Edit;
+  // draft action Activate;
+  // draft action Discard;
+  // draft action Resume;
+  // draft determine action Prepare;
+
+  // ── Mapping (if projection view differs from base BO) ────────────────────
+  mapping for ztbqmbatelada corresponding
+  {
+    Prueflos  = prueflos;
+    Aufnr     = aufnr;
+    Matnr     = matnr;
+    Werks     = werks;
+    Stlnr     = stlnr;
+    Stlan     = stlan;
+    Stlal     = stlal;
+    Enstehdat = enstehdat;
+  }
+}

@@ -11,12 +11,13 @@ Objetivo: corrigir selecao de grupo/lotes e mensagens funcionais sem hardcode.
 Objeto principal de busca: `ZI_S2M_MATERIAIS_COMPAT`
 Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.asddls`
 
-Status nesta DEF174: **regra ja existente no objeto (nao alterada nesta entrega)**.
+Status nesta DEF174: **regra ajustada nesta entrega**.
 
-- Linha 43: filtro de bloqueio de versao de producao
-  - `ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked = ''`
-- Linha 44: filtro de validade da versao
-  - `ZI_S2M_PRODUCTIONVERSION.ValidityEndDate > $session.system_date`
+- Join atualizado para `I_ProductionVersion` (sem dependencia de CDS custom nao versionada no repositorio).
+- Filtro de bloqueio aplicado na origem:
+  - `I_ProductionVersion.ProductionVersionIsLocked = ''`
+- Filtro de validade mantido na origem:
+  - `I_ProductionVersion.ValidityEndDate > $session.system_date`
 
 Esse objeto e utilizado na busca dos grupos e materiais elegiveis.
 
@@ -70,6 +71,8 @@ Observacao: neste ajuste nao foi usado texto literal hardcoded nas mensagens fun
 ## Espelhamento da V06
 Arquivos mantidos identicos entre raiz e V06:
 
+- `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.asddls`
+- `Gap316/Ajustes V06/zi_s2m_materiais_compat.ddls.asddls`
 - `Gap316/ZPS2M_316E001_20260604_132249/src/zcls2m_materiais_ordem.clas.abap`
 - `Gap316/Ajustes V06/zcls2m_materiais_ordem.clas.abap`
 - `Gap316/ZPS2M_316E001_20260604_132249/src/zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap`

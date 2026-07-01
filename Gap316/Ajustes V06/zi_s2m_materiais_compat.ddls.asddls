@@ -8,6 +8,12 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
                                               and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
                                               and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
     inner join   R_BatchCharacteristicValueTP on ZI_S2M_PRODUCTIONVERSION.Material = R_BatchCharacteristicValueTP.Material
+    inner join   I_ClfnCharcDesc              on  R_BatchCharacteristicValueTP.CharcInternalID = I_ClfnCharcDesc.CharcInternalID
+                                              and I_ClfnCharcDesc.Language                    = 'P'
+                                              and I_ClfnCharcDesc.CharcDescription            = 'Grp Receita Mestre'
+                                              and I_ClfnCharcDesc.ValidityStartDate           <= $session.system_date
+                                              and I_ClfnCharcDesc.ValidityEndDate             >= $session.system_date
+                                              and I_ClfnCharcDesc.IsDeleted                   = ''
     inner join   nsdm_e_mchb                  on  I_MasterRecipeMaterialAssgmt.Material = nsdm_e_mchb.matnr
                                               and I_MasterRecipeMaterialAssgmt.Plant    = nsdm_e_mchb.werks
                                               and R_BatchCharacteristicValueTP.Batch    = nsdm_e_mchb.charg
@@ -21,6 +27,7 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
   key I_MasterRecipeMaterialAssgmt.BOOToMaterialInternalID,
   key I_MasterRecipeMaterialAssgmt.BOOMatlInternalVersionCounter,
       ZI_S2M_PRODUCTIONVERSION.ProductionVersion,
+      ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked,
       ZI_S2M_PRODUCTIONVERSION.BillOfMaterialVariant,
       ZI_S2M_PRODUCTIONVERSION.BillOfMaterialVariantUsage,
       R_BatchCharacteristicValueTP.CharcInternalID,
@@ -40,6 +47,10 @@ where
     and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'REM'
     and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'GRA'
   )
+  and (
+        R_BatchCharacteristicValueTP.CharcValue                  = I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
+        or ltrim( R_BatchCharacteristicValueTP.CharcValue, '0' ) = ltrim( I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup, '0' )
+      )
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'

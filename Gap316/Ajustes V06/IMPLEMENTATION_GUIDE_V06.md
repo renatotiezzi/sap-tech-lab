@@ -5,6 +5,14 @@ WRICEF: S2M316E001
 Defeito: DEF174
 Objetivo: corrigir selecao de grupo/lotes e mensagens funcionais sem hardcode.
 
+## Recorte desta entrega tecnica (grupo bloqueado)
+Pasta V06 contem somente os objetos necessarios para este pedido tecnico:
+
+- `Gap316/Ajustes V06/zi_s2m_materiais_compat.ddls.asddls`
+- `Gap316/Ajustes V06/IMPLEMENTATION_GUIDE_V06.md`
+
+Observacao: o objeto `ZI_S2M_PRODUCTIONVERSION` e dependencia do join, mas o arquivo-fonte dele nao esta versionado neste pacote local.
+
 ## Onde cada regra foi tratada
 
 ### EF01 - Grupo de Receita valido
@@ -70,14 +78,10 @@ Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zbp_r_s2m_po_comp_monitor.cla
 Observacao: neste ajuste nao foi usado texto literal hardcoded nas mensagens funcionais; foram utilizados text elements.
 
 ## Espelhamento da V06
-Arquivos mantidos identicos entre raiz e V06:
+Arquivos mantidos identicos entre raiz e V06 neste recorte:
 
 - `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.asddls`
 - `Gap316/Ajustes V06/zi_s2m_materiais_compat.ddls.asddls`
-- `Gap316/ZPS2M_316E001_20260604_132249/src/zcls2m_materiais_ordem.clas.abap`
-- `Gap316/Ajustes V06/zcls2m_materiais_ordem.clas.abap`
-- `Gap316/ZPS2M_316E001_20260604_132249/src/zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap`
-- `Gap316/Ajustes V06/zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap`
 
 ## Testes sugeridos da EF
 1. CT01 - grupo bloqueado: deve usar apenas grupo liberado.

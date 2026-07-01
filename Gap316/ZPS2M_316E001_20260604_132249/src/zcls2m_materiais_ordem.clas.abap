@@ -29,10 +29,6 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
 *&---------------------------------------------------------------------*
 *& RTiezzi
-*&   V05 - Ajuste funcional de elegibilidade para remarcacao:
-*&   - nao listar o material original da reserva como candidato.
-*&   - manter somente materiais substitutos no resultado final.
-*&
 *&   Rota correta: SELECT direto em ZI_S2M_MATERIAIS_COMPAT pelo
 *&   material componente (antes: I_MasterRecipeMaterialAssgmt retornava
 *&   grupos da receita do produto - grupo errado para o componente).
@@ -103,14 +99,6 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " V05 - IMPORTANTE:
-    " Foi removida a exclusao global por ir_material neste ponto, pois ela
-    " removia substitutos validos de outras ordens na mesma execucao.
-    " Linha antiga (desativada propositalmente):
-  *   DELETE lt_materiais WHERE material IN ir_material.
-    " A exclusao do material original agora e feita por ordem no map_atom
-    " (AND material <> <fs_comp_monitor>-material).
-
     IF lt_materiais IS INITIAL.
       RETURN.
     ENDIF.
@@ -156,30 +144,6 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
     ENDLOOP.
 
-    " V05 - Eliminar duplicidade de lotes com multiplos grupos
-    " Manter apenas a primeira ocorrencia de cada material/centro/lote/deposito
-        IF et_materiais_compat IS NOT INITIAL.
-      DATA lt_dedup_lote TYPE TABLE OF ztbs2m_mat_compa.
-      DATA ls_last_lote TYPE ztbs2m_mat_compa.
-
-*     V7 - Rtiezzi - Start - Mantem deduplicacao neutra por lote; bloqueio de versao deve ser filtrado na CDS de origem.
-      SORT et_materiais_compat BY material centro lote deposito grupo.
-*     V7 - End
-
-      CLEAR ls_last_lote.
-      LOOP AT et_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_compat>).
-        IF ls_last_lote-material    <> <fs_compat>-material
-        OR ls_last_lote-centro      <> <fs_compat>-centro
-        OR ls_last_lote-lote        <> <fs_compat>-lote
-        OR ls_last_lote-deposito    <> <fs_compat>-deposito.
-          APPEND <fs_compat> TO lt_dedup_lote.
-          ls_last_lote = <fs_compat>.
-        ENDIF.
-      ENDLOOP.
-
-      et_materiais_compat = lt_dedup_lote.
-    ENDIF.
-
   ENDMETHOD.
 
 
@@ -211,9 +175,7 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
         FOR ls IN it_mat_compativeis ( sign = 'I' option = 'EQ' low = ls-reservation )
       ).
 
-*     V7 - Rtiezzi - Start - Remove registros antigos da mesma reserva antes do MODIFY para evitar buffer obsoleto.
-      DELETE FROM ztbs2m_mat_compa WHERE reservation IN @lr_reservation_m.
-*     V7 - End
+  "DELETE FROM ztbs2m_mat_compa WHERE reservation IN @lr_reservation_m.
       MODIFY ztbs2m_mat_compa FROM TABLE @it_mat_compativeis.
       IF sy-subrc IS INITIAL.
         COMMIT WORK AND WAIT.

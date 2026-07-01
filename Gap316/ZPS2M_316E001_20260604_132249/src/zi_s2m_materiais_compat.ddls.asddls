@@ -4,12 +4,10 @@
 @Metadata.ignorePropagatedAnnotations: true
 define view entity ZI_S2M_MATERIAIS_COMPAT
   as select from I_MasterRecipeMaterialAssgmt
-    inner join   I_ProductionVersion          on  I_MasterRecipeMaterialAssgmt.Material               = I_ProductionVersion.Material
-                                              and I_MasterRecipeMaterialAssgmt.Plant                  = I_ProductionVersion.Plant
-                                              and I_MasterRecipeMaterialAssgmt.BillOfOperationsType   = I_ProductionVersion.BillOfOperationsType
-                                              and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup  = I_ProductionVersion.BillOfOperationsGroup
-                                              and I_MasterRecipeMaterialAssgmt.BillOfOperationsVariant = I_ProductionVersion.BillOfOperationsVariant
-    inner join   R_BatchCharacteristicValueTP on I_ProductionVersion.Material = R_BatchCharacteristicValueTP.Material
+    inner join   ZI_S2M_PRODUCTIONVERSION     on  I_MasterRecipeMaterialAssgmt.Material              = ZI_S2M_PRODUCTIONVERSION.Material
+                                              and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
+                                              and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
+    inner join   R_BatchCharacteristicValueTP on ZI_S2M_PRODUCTIONVERSION.Material = R_BatchCharacteristicValueTP.Material
     inner join   nsdm_e_mchb                  on  I_MasterRecipeMaterialAssgmt.Material = nsdm_e_mchb.matnr
                                               and I_MasterRecipeMaterialAssgmt.Plant    = nsdm_e_mchb.werks
                                               and R_BatchCharacteristicValueTP.Batch    = nsdm_e_mchb.charg
@@ -22,13 +20,13 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
   key I_MasterRecipeMaterialAssgmt.BillOfOperationsVariant,
   key I_MasterRecipeMaterialAssgmt.BOOToMaterialInternalID,
   key I_MasterRecipeMaterialAssgmt.BOOMatlInternalVersionCounter,
-      I_ProductionVersion.ProductionVersion,
-      I_ProductionVersion.BillOfMaterialVariant,
-      I_ProductionVersion.BillOfMaterialVariantUsage,
+      ZI_S2M_PRODUCTIONVERSION.ProductionVersion,
+      ZI_S2M_PRODUCTIONVERSION.BillOfMaterialVariant,
+      ZI_S2M_PRODUCTIONVERSION.BillOfMaterialVariantUsage,
       R_BatchCharacteristicValueTP.CharcInternalID,
       R_BatchCharacteristicValueTP.CharcValue,
       R_BatchCharacteristicValueTP.Batch                 as Lote,
-      I_ProductionVersion.ValidityEndDate                as Validade,
+      ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           as Validade,
       nsdm_e_mchb.lgort                                  as Deposito,
       nsdm_e_mchb.charg,
       _Mara.BaseUnit                                     as meins,
@@ -36,7 +34,13 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
       nsdm_e_mchb.clabs
 }
 where
-  I_ProductionVersion.ProductionVersionIsLocked = ''
-  and   I_ProductionVersion.ValidityEndDate           > $session.system_date
+  (
+        ZI_S2M_PRODUCTIONVERSION.sub                       <> 'DES'
+    and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'REP'
+    and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'REM'
+    and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'GRA'
+  )
+  and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
+  and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'
   and   nsdm_e_mchb.clabs                                  >  0

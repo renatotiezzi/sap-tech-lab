@@ -11,13 +11,14 @@ Objetivo: corrigir selecao de grupo/lotes e mensagens funcionais sem hardcode.
 Objeto principal de busca: `ZI_S2M_MATERIAIS_COMPAT`
 Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.asddls`
 
-Status nesta DEF174: **regra ajustada nesta entrega**.
+Status nesta DEF174: **regra mantida na camada ZI_S2M_PRODUCTIONVERSION**.
 
-- Join atualizado para `I_ProductionVersion` (sem dependencia de CDS custom nao versionada no repositorio).
+- Filtro de status de versao mantido na origem:
+  - `ZI_S2M_PRODUCTIONVERSION.sub NOT IN ('DES','REP','REM','GRA')`
 - Filtro de bloqueio aplicado na origem:
-  - `I_ProductionVersion.ProductionVersionIsLocked = ''`
+  - `ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked = ''`
 - Filtro de validade mantido na origem:
-  - `I_ProductionVersion.ValidityEndDate > $session.system_date`
+  - `ZI_S2M_PRODUCTIONVERSION.ValidityEndDate > $session.system_date`
 
 Esse objeto e utilizado na busca dos grupos e materiais elegiveis.
 

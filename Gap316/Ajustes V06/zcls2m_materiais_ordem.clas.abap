@@ -158,11 +158,13 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
     " V05 - Eliminar duplicidade de lotes com multiplos grupos
     " Manter apenas a primeira ocorrencia de cada material/centro/lote/deposito
-    IF et_materiais_compat IS NOT INITIAL.
+        IF et_materiais_compat IS NOT INITIAL.
       DATA lt_dedup_lote TYPE TABLE OF ztbs2m_mat_compa.
       DATA ls_last_lote TYPE ztbs2m_mat_compa.
 
-      SORT et_materiais_compat BY material centro lote deposito productionversion DESCENDING grupo.
+*     V7 - Rtiezzi - Start - Mantem deduplicacao neutra por lote; bloqueio de versao deve ser filtrado na CDS de origem.
+      SORT et_materiais_compat BY material centro lote deposito grupo.
+*     V7 - End
 
       CLEAR ls_last_lote.
       LOOP AT et_materiais_compat ASSIGNING FIELD-SYMBOL(<fs_compat>).
@@ -209,7 +211,9 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
         FOR ls IN it_mat_compativeis ( sign = 'I' option = 'EQ' low = ls-reservation )
       ).
 
+*     V7 - Rtiezzi - Start - Remove registros antigos da mesma reserva antes do MODIFY para evitar buffer obsoleto.
       DELETE FROM ztbs2m_mat_compa WHERE reservation IN @lr_reservation_m.
+*     V7 - End
       MODIFY ztbs2m_mat_compa FROM TABLE @it_mat_compativeis.
       IF sy-subrc IS INITIAL.
         COMMIT WORK AND WAIT.

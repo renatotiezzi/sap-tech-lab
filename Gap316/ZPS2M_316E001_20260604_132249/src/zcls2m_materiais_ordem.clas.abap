@@ -158,7 +158,7 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
 
     " V05 - Eliminar duplicidade de lotes com multiplos grupos
     " Manter apenas a primeira ocorrencia de cada material/centro/lote/deposito
-    IF et_materiais_compat IS NOT INITIAL.
+        IF et_materiais_compat IS NOT INITIAL.
       DATA lt_dedup_lote TYPE TABLE OF ztbs2m_mat_compa.
       DATA ls_last_lote TYPE ztbs2m_mat_compa.
 

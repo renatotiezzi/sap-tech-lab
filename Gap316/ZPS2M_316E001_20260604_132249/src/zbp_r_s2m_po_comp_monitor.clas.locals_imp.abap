@@ -57,7 +57,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 
     DATA: lt_resbkeys TYPE coxt_t_resbdel.
 
-*   V07 - RTIEZZI - Bloqueia selecao multipla para manter remarcacao com apenas um lote.
+*   V7 - Rtiezzi - Start - Bloqueia selecao multipla para manter remarcacao com apenas um lote.
     IF lines( keys ) > 1.
       APPEND VALUE #( %key = keys[ 1 ]-%key ) TO failed-zr_s2m_materiais_compativeis.
       APPEND VALUE #( %key = keys[ 1 ]-%key
@@ -66,6 +66,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
         TO reported-zr_s2m_materiais_compativeis.
       RETURN.
     ENDIF.
+*   V7 - End
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key>). ##EML_IN_LOOP_OK
 
@@ -119,7 +120,7 @@ WITH VALUE #( (
      rspos = ls_po_comp_monitor-reservationitem )
  ).
 
-*       V07 - RTIEZZI - Valida quantidade antes da BAPI para impedir remarcacao com lote insuficiente.
+*       V7 - Rtiezzi - Start - Valida quantidade antes da BAPI para impedir remarcacao com lote insuficiente.
         IF ls_material_comp-quantidade < ls_po_comp_monitor-requiredquantity.
           APPEND VALUE #( %key = ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
           APPEND VALUE #( %key = ls_material_comp-%key
@@ -128,6 +129,7 @@ WITH VALUE #( (
             TO reported-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.
+*       V7 - End
 
       ENDAT.
 
@@ -180,11 +182,12 @@ WITH VALUE #( (
 
         ELSE.
           APPEND VALUE #( %key =  ls_material_comp-%key ) TO mapped-zr_s2m_materiais_compativeis.
-*         V07 - RTIEZZI - Troca retorno tecnico por mensagem funcional de sucesso para o usuario.
+*         V7 - Rtiezzi - Start - Troca retorno tecnico por mensagem funcional de sucesso para o usuario.
           APPEND VALUE #( %key = ls_material_comp-%key
                             %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
                                                           text = 'Remarcacao efetuada com sucesso.' ) )
             TO reported-zr_s2m_materiais_compativeis.
+*         V7 - End
         ENDIF.
 
         FREE: lt_bapi_ret.

@@ -11,6 +11,8 @@ Objetivo: corrigir selecao de grupo/lotes e mensagens funcionais sem hardcode.
 Objeto principal de busca: `ZI_S2M_MATERIAIS_COMPAT`
 Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.asddls`
 
+Status nesta DEF174: **regra ja existente no objeto (nao alterada nesta entrega)**.
+
 - Linha 43: filtro de bloqueio de versao de producao
   - `ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked = ''`
 - Linha 44: filtro de validade da versao
@@ -18,7 +20,7 @@ Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zi_s2m_materiais_compat.ddls.
 
 Esse objeto e utilizado na busca dos grupos e materiais elegiveis.
 
-Complemento aplicado para evitar grupo antigo residual em buffer:
+Complemento aplicado na DEF174 para evitar grupo antigo residual em buffer:
 
 Objeto: `ZCLS2M_MATERIAIS_ORDEM`
 Arquivo: `Gap316/ZPS2M_316E001_20260604_132249/src/zcls2m_materiais_ordem.clas.abap`

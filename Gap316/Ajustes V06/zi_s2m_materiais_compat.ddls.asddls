@@ -8,6 +8,7 @@ define view entity ZI_S2M_MATERIAIS_COMPAT
                                               and I_MasterRecipeMaterialAssgmt.Plant                 = ZI_S2M_PRODUCTIONVERSION.Plant
                                               and I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup = ZI_S2M_PRODUCTIONVERSION.Grupo
     inner join   R_BatchCharacteristicValueTP on ZI_S2M_PRODUCTIONVERSION.Material = R_BatchCharacteristicValueTP.Material
+    /* V6 - RTIEZZI - DEF174 - Seleciona dinamicamente IDs validos de "Grp Receita Mestre" */
     inner join   I_ClfnCharcDesc              on  R_BatchCharacteristicValueTP.CharcInternalID = I_ClfnCharcDesc.CharcInternalID
                                               and I_ClfnCharcDesc.Language                    = 'P'
                                               and I_ClfnCharcDesc.CharcDescription            = 'Grp Receita Mestre'
@@ -47,10 +48,12 @@ where
     and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'REM'
     and ZI_S2M_PRODUCTIONVERSION.sub                       <> 'GRA'
   )
+  /* V6 - RTIEZZI - DEF174 - Garante coerencia entre valor da caracteristica e grupo da receita */
   and (
         R_BatchCharacteristicValueTP.CharcValue                  = I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup
         or ltrim( R_BatchCharacteristicValueTP.CharcValue, '0' ) = ltrim( I_MasterRecipeMaterialAssgmt.BillOfOperationsGroup, '0' )
       )
+  /* V6 - RTIEZZI - DEF174 - Exclui versoes de producao bloqueadas */
   and   ZI_S2M_PRODUCTIONVERSION.ProductionVersionIsLocked =  ''
   and   ZI_S2M_PRODUCTIONVERSION.ValidityEndDate           > $session.system_date
   and   R_BatchCharacteristicValueTP.ClassType             =  '023'

@@ -1,7 +1,9 @@
 This repository focuses on SAP development and troubleshooting.
 
-Guidelines:
+Primary policy:
+- Follow .github/copilot-instructions.md as the canonical workflow and delivery standard.
 
+Additional guardrails:
 - Always prioritize SAP standard solutions.
 - Evaluate possibility of SAP Notes when errors occur.
 - Code comments must always be written in English.

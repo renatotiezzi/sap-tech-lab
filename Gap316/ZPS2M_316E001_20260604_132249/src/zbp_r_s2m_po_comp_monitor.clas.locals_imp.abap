@@ -57,16 +57,15 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 
     DATA: lt_resbkeys TYPE coxt_t_resbdel.
 
-*   V7 - Rtiezzi - Start - Bloqueia selecao multipla para manter remarcacao com apenas um lote.
+" V6 - RTIEZZI - DEF174 - Permite apenas um lote por remarcacao
     IF lines( keys ) > 1.
       APPEND VALUE #( %key = keys[ 1 ]-%key ) TO failed-zr_s2m_materiais_compativeis.
       APPEND VALUE #( %key = keys[ 1 ]-%key
                       %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                                    text = 'Nao e permitido selecionar mais de um lote.' ) )
+                                                    text = TEXT-002 ) )
         TO reported-zr_s2m_materiais_compativeis.
       RETURN.
     ENDIF.
-*   V7 - End
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key>). ##EML_IN_LOOP_OK
 
@@ -76,6 +75,16 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
   WITH VALUE #( ( %key = <fs_key>-%key
                   ) )
       RESULT DATA(lt_material_comp).
+
+      " V6 - RTIEZZI - DEF174 - Sem material elegivel: nao existe grupo de receita valido
+      IF lt_material_comp IS INITIAL.
+        APPEND VALUE #( %key = <fs_key>-%key ) TO failed-zr_s2m_materiais_compativeis.
+        APPEND VALUE #( %key = <fs_key>-%key
+                        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                      text = TEXT-005 ) )
+          TO reported-zr_s2m_materiais_compativeis.
+        RETURN.
+      ENDIF.
 
       DATA(ls_material_comp) = lt_material_comp[ 1 ].
 
@@ -120,16 +129,15 @@ WITH VALUE #( (
      rspos = ls_po_comp_monitor-reservationitem )
  ).
 
-*       V7 - Rtiezzi - Start - Valida quantidade antes da BAPI para impedir remarcacao com lote insuficiente.
-        IF ls_material_comp-quantidade < ls_po_comp_monitor-requiredquantity.
+        " V6 - RTIEZZI - DEF174 - Valida quantidade disponivel do lote antes da BAPI
+        IF ls_material_comp-clabs < ls_po_comp_monitor-requiredquantity.
           APPEND VALUE #( %key = ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
           APPEND VALUE #( %key = ls_material_comp-%key
                           %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                                        text = 'Quantidade do lote nao e suficiente.' ) )
+                                                        text = TEXT-003 ) )
             TO reported-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.
-*       V7 - End
 
       ENDAT.
 
@@ -143,10 +151,6 @@ WITH VALUE #( (
             AND Plant = @ls_material_comp-centro
             AND Batch = @ls_material_comp-charg
           INTO @DATA(ls_mchb).
-
-
-
-        lv_soma_quantidade += ls_material_comp-quantidade.
 
         lo_remarcacao_parallel->executar_bapi( EXPORTING
            iv_order_key = ls_po_comp_monitor-manufacturingorder
@@ -182,12 +186,11 @@ WITH VALUE #( (
 
         ELSE.
           APPEND VALUE #( %key =  ls_material_comp-%key ) TO mapped-zr_s2m_materiais_compativeis.
-*         V7 - Rtiezzi - Start - Troca retorno tecnico por mensagem funcional de sucesso para o usuario.
+"         V6 - RTIEZZI - DEF174 - Substitui mensagem tecnica por mensagem funcional de sucesso
           APPEND VALUE #( %key = ls_material_comp-%key
                             %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
-                                                          text = 'Remarcacao efetuada com sucesso.' ) )
+                                                          text = TEXT-004 ) )
             TO reported-zr_s2m_materiais_compativeis.
-*         V7 - End
         ENDIF.
 
         FREE: lt_bapi_ret.

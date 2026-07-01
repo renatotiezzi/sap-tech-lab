@@ -175,7 +175,8 @@ CLASS ZCLS2M_MATERIAIS_ORDEM IMPLEMENTATION.
         FOR ls IN it_mat_compativeis ( sign = 'I' option = 'EQ' low = ls-reservation )
       ).
 
-  "DELETE FROM ztbs2m_mat_compa WHERE reservation IN @lr_reservation_m.
+      " V6 - RTIEZZI - DEF174 - Limpa buffer da reserva antes do MODIFY para nao manter grupo antigo/bloqueado
+      DELETE FROM ztbs2m_mat_compa WHERE reservation IN @lr_reservation_m.
       MODIFY ztbs2m_mat_compa FROM TABLE @it_mat_compativeis.
       IF sy-subrc IS INITIAL.
         COMMIT WORK AND WAIT.

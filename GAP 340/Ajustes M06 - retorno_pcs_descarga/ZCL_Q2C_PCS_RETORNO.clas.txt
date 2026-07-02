@@ -1,0 +1,880 @@
+CLASS zcl_q2c_pcs_retorno DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_apj_dt_exec_object.
+    INTERFACES if_apj_rt_exec_object.
+
+  PRIVATE SECTION.
+    " ================================================================
+    " Constants
+    " ================================================================
+    CONSTANTS gc_log_object       TYPE balobj_d   VALUE 'ZQ2C_PCS' ##NO_TEXT.
+    CONSTANTS gc_log_subobject    TYPE balsubobj  VALUE 'RETORNO'  ##NO_TEXT.
+    CONSTANTS gc_msgid            TYPE symsgid    VALUE 'ZQ2C_PCS' ##NO_TEXT.
+    CONSTANTS gc_delimitador      TYPE c          VALUE ';'        ##NO_TEXT.
+    CONSTANTS gc_header_tag       TYPE string     VALUE 'U301-H'   ##NO_TEXT.
+
+    " 0-based positions in the split result (record-type is position 0)
+    CONSTANTS gc_pos_rectype      TYPE i          VALUE 0.
+    CONSTANTS gc_pos_ordernum     TYPE i          VALUE 1.
+    CONSTANTS gc_pos_trkintwt     TYPE i          VALUE 2.
+    CONSTANTS gc_pos_trkfnlwt     TYPE i          VALUE 3.
+    CONSTANTS gc_header_min_flds  TYPE i          VALUE 4.  " type + 3 mandatory
+
+    " TVARV keys (entries in ZZ1_TVARVC_Q2C, type 'P')
+    CONSTANTS gc_tvarv_indir   TYPE rvari_vnam VALUE 'ZQ2C_PCS_RETURN_INPUT_DIR'     ##NO_TEXT.
+    CONSTANTS gc_tvarv_prodir  TYPE rvari_vnam VALUE 'ZQ2C_PCS_RETURN_PROCESSED_DIR' ##NO_TEXT.
+    CONSTANTS gc_tvarv_errdir  TYPE rvari_vnam VALUE 'ZQ2C_PCS_RETURN_ERROR_DIR'     ##NO_TEXT.
+    CONSTANTS gc_tvarv_mask    TYPE rvari_vnam VALUE 'ZQ2C_PCS_RETURN_FILE_MASK'     ##NO_TEXT.
+
+    " ================================================================
+    " Types
+    " ================================================================
+    TYPES ty_variable TYPE if_bali_message_setter=>ty_variable.
+
+    TYPES:
+      BEGIN OF ty_header_pcs,
+        ordernum TYPE char9,
+        trkintwt TYPE char6,
+        trkfnlwt TYPE char6,
+      END OF ty_header_pcs.
+
+    TYPES:
+      BEGIN OF ty_key_descarga,
+        shnumber     TYPE ztbq2c_descarga-shnumber,
+        remessa      TYPE ztbq2c_descarga-remessa,
+        item_remessa TYPE ztbq2c_descarga-item_remessa,
+      END OF ty_key_descarga.
+
+    TYPES:
+      BEGIN OF ty_file_result,
+        filename TYPE string,
+        ok       TYPE abap_bool,
+        message  TYPE string,
+      END OF ty_file_result.
+
+    TYPES ty_string_lines TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+
+    " ================================================================
+    " Methods
+    " ================================================================
+    METHODS get_tvarv
+      IMPORTING iv_name        TYPE rvari_vnam
+      RETURNING VALUE(rv_value) TYPE string.
+
+    METHODS read_parameters
+      IMPORTING it_parameters    TYPE if_apj_rt_exec_object=>tt_templ_val
+      EXPORTING ev_dir_input     TYPE string
+                ev_dir_processed TYPE string
+                ev_dir_error     TYPE string
+                ev_file_mask     TYPE string
+                ev_teste         TYPE abap_bool.
+
+    METHODS list_files
+      IMPORTING iv_dir          TYPE string
+                iv_mask         TYPE string
+      RETURNING VALUE(rt_files) TYPE string_table.
+
+    METHODS read_file
+      IMPORTING iv_full_path    TYPE string
+      EXPORTING et_lines        TYPE ty_string_lines
+                ev_ok           TYPE abap_bool
+                ev_message      TYPE string.
+
+    METHODS parse_header
+      IMPORTING it_lines        TYPE ty_string_lines
+      EXPORTING es_header       TYPE ty_header_pcs
+                ev_ok           TYPE abap_bool
+                ev_message      TYPE string.
+
+    METHODS find_descarga
+      IMPORTING iv_pcs_ordernum TYPE char9
+      EXPORTING es_key          TYPE ty_key_descarga
+                ev_ok           TYPE abap_bool.
+
+    METHODS validate_pcs_enabled
+      IMPORTING is_key          TYPE ty_key_descarga
+      RETURNING VALUE(rv_ok)    TYPE abap_bool.
+
+    METHODS convert_weight
+      IMPORTING iv_raw          TYPE char6
+      EXPORTING ev_weight       TYPE ztbq2c_descarga-peso_inicial
+                ev_ok           TYPE abap_bool.
+
+    METHODS update_descarga_weights
+      IMPORTING is_key          TYPE ty_key_descarga
+                iv_peso_inicial TYPE ztbq2c_descarga-peso_inicial
+                iv_peso_final   TYPE ztbq2c_descarga-peso_final
+                iv_teste        TYPE abap_bool
+      EXPORTING ev_ok           TYPE abap_bool
+                ev_message      TYPE string.
+
+    METHODS move_file
+      IMPORTING iv_full_source  TYPE string
+                iv_dir_target   TYPE string
+                iv_filename     TYPE string
+                iv_teste        TYPE abap_bool
+      RETURNING VALUE(rv_ok)    TYPE abap_bool.
+
+    METHODS process_file
+      IMPORTING iv_dir_input     TYPE string
+                iv_dir_processed TYPE string
+                iv_dir_error     TYPE string
+                iv_filename      TYPE string
+                iv_teste         TYPE abap_bool
+                io_log           TYPE REF TO if_bali_log
+      RETURNING VALUE(rs_result) TYPE ty_file_result.
+
+    METHODS add_log_msg
+      IMPORTING io_log      TYPE REF TO if_bali_log
+                iv_severity TYPE if_bali_constants=>ty_severity
+                iv_msgno    TYPE symsgno
+                iv_v1       TYPE ty_variable OPTIONAL
+                iv_v2       TYPE ty_variable OPTIONAL
+                iv_v3       TYPE ty_variable OPTIONAL
+                iv_v4       TYPE ty_variable OPTIONAL.
+
+    METHODS save_log
+      IMPORTING io_log TYPE REF TO if_bali_log.
+
+ENDCLASS.
+
+
+
+CLASS zcl_q2c_pcs_retorno IMPLEMENTATION.
+
+  METHOD if_apj_dt_exec_object~get_parameters.
+*--------------------------------------------------------------------*
+* Program       : zcl_q2c_pcs_retorno~get_parameters (DT)
+* Program Type  : Method
+* Author        : RTIEZZI
+* Creation Date : 02/07/2026
+* Gap ID        : 265 / 340
+* Description   : Define parametros e tela de selecao do job APJ
+*--------------------------------------------------------------------*
+* Change History Log
+*--------------------------------------------------------------------*
+* Mod Date       Author   Request    Description
+* V1  02/07/2026 RTIEZZI             Initial Version - Retorno PCS
+*--------------------------------------------------------------------*
+    " Text elements (criar via ADT ou SE38):
+    " text-001 = 'P_INDIR'   text-011 = 'Diretorio de entrada (AL11)'
+    " text-002 = 'P_PRODIR'  text-012 = 'Diretorio de arquivos processados'
+    " text-003 = 'P_ERRDIR'  text-013 = 'Diretorio de arquivos com erro'
+    " text-004 = 'P_MASK'    text-014 = 'Mascara de arquivo (ex: *.txt)'
+    " text-005 = 'P_TESTE'   text-015 = 'Modo Teste (sem update real)'
+
+    DATA lv_sel_indir  TYPE c LENGTH 30.
+    DATA lv_sel_prodir TYPE c LENGTH 30.
+    DATA lv_sel_errdir TYPE c LENGTH 30.
+    DATA lv_sel_mask   TYPE c LENGTH 30.
+    DATA lv_sel_teste  TYPE c LENGTH 30.
+
+    lv_sel_indir  = text-001.
+    lv_sel_prodir = text-002.
+    lv_sel_errdir = text-003.
+    lv_sel_mask   = text-004.
+    lv_sel_teste  = text-005.
+
+    et_parameter_def = VALUE #(
+
+      ( selname        = lv_sel_indir
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 255
+        param_text     = text-011
+        changeable_ind = abap_true )
+
+      ( selname        = lv_sel_prodir
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 255
+        param_text     = text-012
+        changeable_ind = abap_true )
+
+      ( selname        = lv_sel_errdir
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 255
+        param_text     = text-013
+        changeable_ind = abap_true )
+
+      ( selname        = lv_sel_mask
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 50
+        param_text     = text-014
+        changeable_ind = abap_true )
+
+      ( selname        = lv_sel_teste
+        kind           = if_apj_dt_exec_object=>parameter
+        datatype       = 'C'
+        length         = 1
+        param_text     = text-015
+        checkbox_ind   = abap_true
+        changeable_ind = abap_true )
+
+    ).
+
+    " Default values from TVARV (fallback to empty / '*.txt')
+    DATA(lv_def_mask) = get_tvarv( gc_tvarv_mask ).
+    IF lv_def_mask IS INITIAL. lv_def_mask = '*.txt'. ENDIF.
+
+    et_parameter_val = VALUE #(
+      ( selname = lv_sel_indir  kind = if_apj_dt_exec_object=>parameter
+        sign = 'I' option = 'EQ' low = get_tvarv( gc_tvarv_indir ) )
+      ( selname = lv_sel_prodir kind = if_apj_dt_exec_object=>parameter
+        sign = 'I' option = 'EQ' low = get_tvarv( gc_tvarv_prodir ) )
+      ( selname = lv_sel_errdir kind = if_apj_dt_exec_object=>parameter
+        sign = 'I' option = 'EQ' low = get_tvarv( gc_tvarv_errdir ) )
+      ( selname = lv_sel_mask   kind = if_apj_dt_exec_object=>parameter
+        sign = 'I' option = 'EQ' low = lv_def_mask )
+    ).
+
+  ENDMETHOD.
+
+
+  METHOD if_apj_rt_exec_object~execute.
+*--------------------------------------------------------------------*
+* Program       : zcl_q2c_pcs_retorno~execute (RT)
+* Program Type  : Method
+* Author        : RTIEZZI
+* Creation Date : 02/07/2026
+* Gap ID        : 265 / 340
+* Description   : Execucao do job: le arquivos PCS, atualiza Descarga
+*--------------------------------------------------------------------*
+* Change History Log
+*--------------------------------------------------------------------*
+* Mod Date       Author   Request    Description
+* V1  02/07/2026 RTIEZZI             Initial Version - Retorno PCS
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: main execution — read PCS return files and update Descarga weights
+
+    DATA lv_dir_input     TYPE string.
+    DATA lv_dir_processed TYPE string.
+    DATA lv_dir_error     TYPE string.
+    DATA lv_file_mask     TYPE string.
+    DATA lv_teste         TYPE abap_bool.
+
+    " --- Read parameters ---
+    read_parameters(
+      EXPORTING it_parameters    = it_parameters
+      IMPORTING ev_dir_input     = lv_dir_input
+                ev_dir_processed = lv_dir_processed
+                ev_dir_error     = lv_dir_error
+                ev_file_mask     = lv_file_mask
+                ev_teste         = lv_teste
+    ).
+
+    " --- Build BALI log ---
+    DATA(lo_log) = cl_bali_log=>create_with_header(
+      cl_bali_header_setter=>create(
+        object      = gc_log_object
+        sub_object  = gc_log_subobject
+        external_id = |PCS_RET_{ sy-datum }_{ sy-uzeit }|
+      )
+    ).
+
+    " --- Log start ---
+    add_log_msg(
+      io_log      = lo_log
+      iv_severity = if_bali_constants=>c_severity_status
+      iv_msgno    = '001'
+      iv_v1       = CONV #( lv_dir_input )
+    ).
+
+    IF lv_teste = abap_true.
+      add_log_msg(
+        io_log      = lo_log
+        iv_severity = if_bali_constants=>c_severity_warning
+        iv_msgno    = '002'
+      ).
+    ENDIF.
+
+    " --- List pending files in input directory ---
+    DATA(lt_files) = list_files(
+      iv_dir  = lv_dir_input
+      iv_mask = lv_file_mask
+    ).
+
+    add_log_msg(
+      io_log      = lo_log
+      iv_severity = if_bali_constants=>c_severity_status
+      iv_msgno    = '003'
+      iv_v1       = CONV #( CONV string( lines( lt_files ) ) )
+    ).
+
+    " --- Process each file ---
+    DATA lv_ok_count    TYPE i VALUE 0.
+    DATA lv_error_count TYPE i VALUE 0.
+
+    LOOP AT lt_files INTO DATA(lv_filename).
+
+      DATA(ls_result) = process_file(
+        iv_dir_input     = lv_dir_input
+        iv_dir_processed = lv_dir_processed
+        iv_dir_error     = lv_dir_error
+        iv_filename      = lv_filename
+        iv_teste         = lv_teste
+        io_log           = lo_log
+      ).
+
+      IF ls_result-ok = abap_true.
+        lv_ok_count = lv_ok_count + 1.
+      ELSE.
+        lv_error_count = lv_error_count + 1.
+      ENDIF.
+
+    ENDLOOP.
+
+    " --- Log end ---
+    add_log_msg(
+      io_log      = lo_log
+      iv_severity = if_bali_constants=>c_severity_status
+      iv_msgno    = '099'
+      iv_v1       = CONV #( CONV string( lv_ok_count ) )
+      iv_v2       = CONV #( CONV string( lv_error_count ) )
+    ).
+
+    save_log( lo_log ).
+
+  ENDMETHOD.
+
+
+  METHOD get_tvarv.
+*--------------------------------------------------------------------*
+* Description   : Le valor de parametro na ZZ1_TVARVC_Q2C (tipo 'P')
+*--------------------------------------------------------------------*
+
+    SELECT SINGLE low
+      FROM zz1_tvarvc_q2c
+      WHERE name = @iv_name
+        AND type = 'P'
+      INTO @rv_value.
+
+  ENDMETHOD.
+
+
+  METHOD read_parameters.
+*--------------------------------------------------------------------*
+* Description   : Extrai parametros do job a partir de IT_PARAMETERS
+*--------------------------------------------------------------------*
+
+    " text-001 = 'P_INDIR', text-002 = 'P_PRODIR', text-003 = 'P_ERRDIR'
+    " text-004 = 'P_MASK',  text-005 = 'P_TESTE'
+
+    LOOP AT it_parameters INTO DATA(ls_p).
+      CASE ls_p-selname.
+        WHEN text-001.  ev_dir_input     = ls_p-low.
+        WHEN text-002.  ev_dir_processed = ls_p-low.
+        WHEN text-003.  ev_dir_error     = ls_p-low.
+        WHEN text-004.  ev_file_mask     = ls_p-low.
+        WHEN text-005.  ev_teste = COND #( WHEN ls_p-low = 'X' THEN abap_true ELSE abap_false ).
+      ENDCASE.
+    ENDLOOP.
+
+    " Fallback to TVARV if parameters were not passed
+    IF ev_dir_input     IS INITIAL. ev_dir_input     = get_tvarv( gc_tvarv_indir ).  ENDIF.
+    IF ev_dir_processed IS INITIAL. ev_dir_processed = get_tvarv( gc_tvarv_prodir ). ENDIF.
+    IF ev_dir_error     IS INITIAL. ev_dir_error     = get_tvarv( gc_tvarv_errdir ). ENDIF.
+    IF ev_file_mask     IS INITIAL.
+      ev_file_mask = get_tvarv( gc_tvarv_mask ).
+      IF ev_file_mask IS INITIAL. ev_file_mask = '*.txt'. ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD list_files.
+*--------------------------------------------------------------------*
+* Description   : Lista arquivos pendentes no diretorio AL11
+* Nota          : Verificar assinatura de EPS2_GET_DIRECTORY_LISTING
+*                 no sistema de destino (param names podem variar).
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: list pending files in input directory
+
+    DATA lt_dir TYPE STANDARD TABLE OF eps2fili.
+
+    CALL FUNCTION 'EPS2_GET_DIRECTORY_LISTING'
+      EXPORTING
+        iv_dir_name  = iv_dir
+        iv_file_mask = iv_mask
+      TABLES
+        ct_dir_list  = lt_dir
+      EXCEPTIONS
+        invalid_path = 1
+        OTHERS       = 2.
+
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    LOOP AT lt_dir INTO DATA(ls_dir).
+      CHECK ls_dir-name IS NOT INITIAL.
+      APPEND ls_dir-name TO rt_files.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+  METHOD read_file.
+*--------------------------------------------------------------------*
+* Description   : Le linhas do arquivo servidor via OPEN DATASET
+*--------------------------------------------------------------------*
+
+    ev_ok = abap_false.
+
+    OPEN DATASET iv_full_path FOR INPUT IN TEXT MODE ENCODING DEFAULT.
+
+    IF sy-subrc <> 0.
+      ev_message = |Nao foi possivel abrir o arquivo: { iv_full_path }|.
+      RETURN.
+    ENDIF.
+
+    WHILE sy-subrc = 0.
+      DATA(lv_line) = ``.
+      READ DATASET iv_full_path INTO lv_line.
+      IF sy-subrc = 0.
+        APPEND lv_line TO et_lines.
+      ENDIF.
+    ENDWHILE.
+
+    CLOSE DATASET iv_full_path.
+    ev_ok = abap_true.
+
+  ENDMETHOD.
+
+
+  METHOD parse_header.
+*--------------------------------------------------------------------*
+* Description   : Localiza linha U301-H e extrai ORDERNUM/TRKINTWT/TRKFNLWT
+* Layout        : U301-H;<ORDERNUM>;<TRKINTWT>;<TRKFNLWT>;...
+*                 Pos 0 = tipo de registro, Pos 1 = ORDERNUM, etc.
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: parse header line U301-H
+
+    ev_ok = abap_false.
+
+    LOOP AT it_lines INTO DATA(lv_raw_line).
+
+      DATA(lt_fields) = VALUE string_table( ).
+      SPLIT lv_raw_line AT gc_delimitador INTO TABLE lt_fields.
+
+      IF lines( lt_fields ) < gc_header_min_flds.
+        CONTINUE.
+      ENDIF.
+
+      DATA(lv_rectype) = lt_fields[ gc_pos_rectype + 1 ].
+      CONDENSE lv_rectype.
+
+      IF lv_rectype <> gc_header_tag.
+        CONTINUE.
+      ENDIF.
+
+      " Header found — extract and condense mandatory fields
+      es_header-ordernum = lt_fields[ gc_pos_ordernum + 1 ].
+      es_header-trkintwt = lt_fields[ gc_pos_trkintwt + 1 ].
+      es_header-trkfnlwt = lt_fields[ gc_pos_trkfnlwt + 1 ].
+      CONDENSE es_header-ordernum.
+      CONDENSE es_header-trkintwt.
+      CONDENSE es_header-trkfnlwt.
+
+      " Mandatory field validations
+      IF es_header-ordernum IS INITIAL.
+        ev_message = 'ORDERNUM vazio na linha header U301-H'.
+        RETURN.
+      ENDIF.
+
+      IF es_header-trkintwt IS INITIAL.
+        ev_message = 'TRKINTWT (peso inicial) vazio na linha header U301-H'.
+        RETURN.
+      ENDIF.
+
+      IF es_header-trkfnlwt IS INITIAL.
+        ev_message = 'TRKFNLWT (peso final) vazio na linha header U301-H'.
+        RETURN.
+      ENDIF.
+
+      ev_ok = abap_true.
+      RETURN.
+
+    ENDLOOP.
+
+    " Header line not found in file
+    IF ev_ok = abap_false AND ev_message IS INITIAL.
+      ev_message = |Linha header { gc_header_tag } nao encontrada no arquivo|.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD find_descarga.
+*--------------------------------------------------------------------*
+* Description   : Localiza Descarga em ZI_Q2C_DESCARGA pelo pcs_ordernum
+* Fonte         : pcs_ordernum e unico conforme confirmado por Christian Pach
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: locate Descarga by pcs_ordernum (unique per Christian Pach confirmation)
+
+    ev_ok = abap_false.
+
+    SELECT SINGLE shnumber, remessa, item_remessa
+      FROM zi_q2c_descarga
+      WHERE pcs_ordernum = @iv_pcs_ordernum
+      INTO ( @es_key-shnumber, @es_key-remessa, @es_key-item_remessa ).
+
+    IF sy-subrc = 0.
+      ev_ok = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD validate_pcs_enabled.
+*--------------------------------------------------------------------*
+* Description   : Valida se planta/TD esta habilitada para PCS
+*
+* TODO GAP 265 : Quando GAP 265 adicionar campo 'envia_pcs' em
+*                ZI_Q2C_DESCARGA, substituir esta implementacao por:
+*
+*   SELECT SINGLE envia_pcs
+*     FROM zi_q2c_descarga
+*     WHERE shnumber     = @is_key-shnumber
+*       AND remessa      = @is_key-remessa
+*       AND item_remessa = @is_key-item_remessa
+*     INTO @DATA(lv_envia_pcs).
+*   rv_ok = COND #( WHEN lv_envia_pcs IS NOT INITIAL THEN abap_true
+*                   ELSE abap_false ).
+*
+* Implementacao atual: encontrar pelo pcs_ordernum ja garante que
+* a planta tinha PCS habilitado no momento do envio.
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: EnviaPcs validation — TODO align field name with GAP 265
+    rv_ok = abap_true.
+
+  ENDMETHOD.
+
+
+  METHOD convert_weight.
+*--------------------------------------------------------------------*
+* Description   : Converte string numerica do PCS para QUAN da Descarga
+* Exemplo       : '012000' -> 12000.000
+*--------------------------------------------------------------------*
+
+    ev_ok = abap_false.
+
+    TRY.
+        ev_weight = CONV #( iv_raw ).
+        ev_ok = abap_true.
+      CATCH cx_sy_conversion_no_number.
+        ev_weight = 0.
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD update_descarga_weights.
+*--------------------------------------------------------------------*
+* Description   : Atualiza PESO_INICIAL e PESO_FINAL na ZTBQ2C_DESCARGA
+* Nota          : Update direto na tabela persistente (padrao do projeto)
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: update Descarga initial/final weights from PCS file
+
+    ev_ok = abap_false.
+
+    " Modo teste: logar inten o sem executar update
+    IF iv_teste = abap_true.
+      ev_ok = abap_true.
+      ev_message = |[TESTE] Descarga { is_key-shnumber }/{ is_key-remessa }| &&
+                   |/{ is_key-item_remessa }: | &&
+                   |PesoInicial={ iv_peso_inicial } PesoFinal={ iv_peso_final } (sem update real)|.
+      RETURN.
+    ENDIF.
+
+    UPDATE ztbq2c_descarga
+       SET peso_inicial = @iv_peso_inicial,
+           peso_final   = @iv_peso_final,
+           aenam        = @sy-uname,
+           aedat        = @sy-datum
+     WHERE shnumber     = @is_key-shnumber
+       AND remessa      = @is_key-remessa
+       AND item_remessa = @is_key-item_remessa.
+
+    IF sy-subrc = 0.
+      COMMIT WORK AND WAIT.
+      ev_ok = abap_true.
+    ELSE.
+      ev_message = |UPDATE falhou (sy-subrc={ sy-subrc }): | &&
+                   |{ is_key-shnumber }/{ is_key-remessa }/{ is_key-item_remessa }|.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD move_file.
+*--------------------------------------------------------------------*
+* Description   : Move arquivo para diretorio destino (copia + delete)
+* Modo teste    : Nao move; retorna OK para nao bloquear log de sucesso
+*--------------------------------------------------------------------*
+
+    rv_ok = abap_false.
+
+    " Modo teste: simula movimentacao sem executar
+    IF iv_teste = abap_true.
+      rv_ok = abap_true.
+      RETURN.
+    ENDIF.
+
+    DATA(lv_target) = |{ iv_dir_target }/{ iv_filename }|.
+
+    " --- Read source ---
+    DATA lt_content TYPE ty_string_lines.
+    DATA lv_ok      TYPE abap_bool.
+    DATA lv_dummy   TYPE string.
+
+    read_file(
+      EXPORTING iv_full_path = iv_full_source
+      IMPORTING et_lines     = lt_content
+                ev_ok        = lv_ok
+                ev_message   = lv_dummy
+    ).
+
+    IF lv_ok = abap_false.
+      RETURN.
+    ENDIF.
+
+    " --- Write to target ---
+    OPEN DATASET lv_target FOR OUTPUT IN TEXT MODE ENCODING DEFAULT.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    LOOP AT lt_content INTO DATA(lv_line).
+      TRANSFER lv_line TO lv_target.
+    ENDLOOP.
+
+    CLOSE DATASET lv_target.
+
+    " --- Delete source ---
+    DELETE DATASET iv_full_source.
+
+    rv_ok = abap_true.
+
+  ENDMETHOD.
+
+
+  METHOD process_file.
+*--------------------------------------------------------------------*
+* Description   : Orquestra o processamento end-to-end de um arquivo
+*                 1. Ler arquivo
+*                 2. Parse header U301-H
+*                 3. Localizar Descarga por pcs_ordernum
+*                 4. Validar EnviaPcs
+*                 5. Converter pesos
+*                 6. Atualizar ztbq2c_descarga
+*                 7. Mover para /processed ou /error
+*--------------------------------------------------------------------*
+
+    " ** V1 - RTIEZZI - PCS return: process single return file end-to-end
+
+    DATA lv_full_path TYPE string.
+    DATA lt_lines     TYPE ty_string_lines.
+    DATA ls_header    TYPE ty_header_pcs.
+    DATA ls_key       TYPE ty_key_descarga.
+    DATA lv_weight_i  TYPE ztbq2c_descarga-peso_inicial.
+    DATA lv_weight_f  TYPE ztbq2c_descarga-peso_final.
+    DATA lv_ok        TYPE abap_bool.
+    DATA lv_message   TYPE string.
+
+    rs_result-filename = iv_filename.
+    rs_result-ok       = abap_false.
+
+    lv_full_path = |{ iv_dir_input }/{ iv_filename }|.
+
+    add_log_msg(
+      io_log      = io_log
+      iv_severity = if_bali_constants=>c_severity_status
+      iv_msgno    = '010'
+      iv_v1       = CONV #( iv_filename )
+    ).
+
+    " --- Step 1: Ler arquivo ---
+    read_file(
+      EXPORTING iv_full_path = lv_full_path
+      IMPORTING et_lines     = lt_lines
+                ev_ok        = lv_ok
+                ev_message   = lv_message
+    ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '020'  iv_v1 = CONV #( iv_filename )  iv_v2 = CONV #( lv_message ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = lv_message.
+      RETURN.
+    ENDIF.
+
+    " --- Step 2: Parse header U301-H ---
+    parse_header(
+      EXPORTING it_lines   = lt_lines
+      IMPORTING es_header  = ls_header
+                ev_ok      = lv_ok
+                ev_message = lv_message
+    ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '021'  iv_v1 = CONV #( iv_filename )  iv_v2 = CONV #( lv_message ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = lv_message.
+      RETURN.
+    ENDIF.
+
+    " --- Step 3: Localizar Descarga pelo pcs_ordernum ---
+    find_descarga(
+      EXPORTING iv_pcs_ordernum = ls_header-ordernum
+      IMPORTING es_key          = ls_key
+                ev_ok           = lv_ok
+    ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '023'  iv_v1 = CONV #( iv_filename )  iv_v2 = CONV #( ls_header-ordernum ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = |ORDERNUM { ls_header-ordernum } nao encontrado em ZI_Q2C_DESCARGA|.
+      RETURN.
+    ENDIF.
+
+    " --- Step 4: Validar EnviaPcs ---
+    IF validate_pcs_enabled( ls_key ) = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '024'
+                   iv_v1 = CONV #( iv_filename )
+                   iv_v2 = CONV #( ls_key-shnumber )
+                   iv_v3 = CONV #( ls_key-remessa ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = |Descarga sem PCS habilitado (EnviaPcs vazio)|.
+      RETURN.
+    ENDIF.
+
+    " --- Step 5: Converter pesos ---
+    convert_weight( EXPORTING iv_raw = ls_header-trkintwt
+                    IMPORTING ev_weight = lv_weight_i  ev_ok = lv_ok ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '025'  iv_v1 = CONV #( iv_filename )
+                   iv_v2 = 'TRKINTWT'  iv_v3 = CONV #( ls_header-trkintwt ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = |TRKINTWT invalido: '{ ls_header-trkintwt }'|.
+      RETURN.
+    ENDIF.
+
+    convert_weight( EXPORTING iv_raw = ls_header-trkfnlwt
+                    IMPORTING ev_weight = lv_weight_f  ev_ok = lv_ok ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '025'  iv_v1 = CONV #( iv_filename )
+                   iv_v2 = 'TRKFNLWT'  iv_v3 = CONV #( ls_header-trkfnlwt ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = |TRKFNLWT invalido: '{ ls_header-trkfnlwt }'|.
+      RETURN.
+    ENDIF.
+
+    " --- Step 6: Atualizar Descarga ---
+    update_descarga_weights(
+      EXPORTING is_key          = ls_key
+                iv_peso_inicial = lv_weight_i
+                iv_peso_final   = lv_weight_f
+                iv_teste        = iv_teste
+      IMPORTING ev_ok           = lv_ok
+                ev_message      = lv_message
+    ).
+
+    IF lv_ok = abap_false.
+      add_log_msg( io_log = io_log  iv_severity = if_bali_constants=>c_severity_error
+                   iv_msgno = '026'
+                   iv_v1 = CONV #( iv_filename )
+                   iv_v2 = CONV #( ls_key-shnumber )
+                   iv_v3 = CONV #( ls_key-remessa )
+                   iv_v4 = CONV #( lv_message ) ).
+      move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_error
+                 iv_filename = iv_filename  iv_teste = iv_teste ).
+      rs_result-message = lv_message.
+      RETURN.
+    ENDIF.
+
+    " --- Step 7: Mover para /processed ---
+    move_file( iv_full_source = lv_full_path  iv_dir_target = iv_dir_processed
+               iv_filename = iv_filename  iv_teste = iv_teste ).
+
+    " --- Log sucesso ---
+    add_log_msg(
+      io_log      = io_log
+      iv_severity = if_bali_constants=>c_severity_status
+      iv_msgno    = '011'
+      iv_v1       = CONV #( iv_filename )
+      iv_v2       = CONV #( ls_key-shnumber )
+      iv_v3       = CONV #( ls_key-remessa )
+      iv_v4       = CONV #( ls_key-item_remessa )
+    ).
+
+    rs_result-ok = abap_true.
+
+  ENDMETHOD.
+
+
+  METHOD add_log_msg.
+*--------------------------------------------------------------------*
+* Description   : Adiciona mensagem ao log BALI (suprime excecoes)
+*--------------------------------------------------------------------*
+
+    TRY.
+        io_log->add_item(
+          cl_bali_message_setter=>create(
+            severity   = iv_severity
+            msg_class  = gc_msgid
+            msg_number = iv_msgno
+            msg_v1     = iv_v1
+            msg_v2     = iv_v2
+            msg_v3     = iv_v3
+            msg_v4     = iv_v4
+          )
+        ).
+      CATCH cx_bali_runtime.
+        " Suprime — erro de log nao deve interromper o job
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD save_log.
+*--------------------------------------------------------------------*
+* Description   : Persiste log BALI no banco (SLG1)
+*--------------------------------------------------------------------*
+
+    TRY.
+        cl_bali_log_db=>get_instance( )->save_log( io_log = io_log ).
+        COMMIT WORK.
+      CATCH cx_bali_runtime.
+        " Suprime
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.

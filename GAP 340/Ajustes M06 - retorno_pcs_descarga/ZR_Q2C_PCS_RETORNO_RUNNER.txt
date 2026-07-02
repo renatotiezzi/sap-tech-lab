@@ -1,0 +1,34 @@
+REPORT zr_q2c_pcs_retorno_runner.
+
+" ** V1 - RTIEZZI - PCS return: Runner manual para execucao/teste da classe ZCL_Q2C_PCS_RETORNO
+
+PARAMETERS p_indir  TYPE string LOWER CASE OBLIGATORY.
+PARAMETERS p_prodir TYPE string LOWER CASE OBLIGATORY.
+PARAMETERS p_errdir TYPE string LOWER CASE OBLIGATORY.
+PARAMETERS p_mask   TYPE char50 DEFAULT '*.txt'.
+PARAMETERS p_teste  AS CHECKBOX DEFAULT 'X'.
+
+TRY.
+    DATA(lo_job) = NEW zcl_q2c_pcs_retorno( ).
+
+    lo_job->if_apj_rt_exec_object~execute(
+      it_parameters = VALUE #(
+        ( selname = 'P_INDIR'  kind = if_apj_dt_exec_object=>parameter
+          sign = 'I' option = 'EQ' low = p_indir )
+        ( selname = 'P_PRODIR' kind = if_apj_dt_exec_object=>parameter
+          sign = 'I' option = 'EQ' low = p_prodir )
+        ( selname = 'P_ERRDIR' kind = if_apj_dt_exec_object=>parameter
+          sign = 'I' option = 'EQ' low = p_errdir )
+        ( selname = 'P_MASK'   kind = if_apj_dt_exec_object=>parameter
+          sign = 'I' option = 'EQ' low = p_mask )
+        ( selname = 'P_TESTE'  kind = if_apj_dt_exec_object=>parameter
+          sign = 'I' option = 'EQ' low = p_teste )
+      )
+    ).
+
+    WRITE: / 'Execucao concluida.'.
+    WRITE: / 'Verificar SLG1 -> Object: ZQ2C_PCS, Subobject: RETORNO'.
+
+  CATCH cx_root INTO DATA(lx).
+    WRITE: / 'Erro:', lx->get_text( ).
+ENDTRY.

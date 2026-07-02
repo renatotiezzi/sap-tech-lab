@@ -57,7 +57,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
 
     DATA: lt_resbkeys TYPE coxt_t_resbdel.
 
-" V6 - RTIEZZI - DEF174 - Permite apenas um lote por remarcacao
+* V6 - Start - RTiezzi - Permite apenas um lote por remarcacao
     IF lines( keys ) > 1.
       APPEND VALUE #( %key = keys[ 1 ]-%key ) TO failed-zr_s2m_materiais_compativeis.
       APPEND VALUE #( %key = keys[ 1 ]-%key
@@ -66,6 +66,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
         TO reported-zr_s2m_materiais_compativeis.
       RETURN.
     ENDIF.
+* V6 - End - RTiezzi - Permite apenas um lote por remarcacao
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<fs_key>). ##EML_IN_LOOP_OK
 
@@ -76,7 +77,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
                   ) )
       RESULT DATA(lt_material_comp).
 
-      " V6 - RTIEZZI - DEF174 - Sem material elegivel: nao existe grupo de receita valido
+*     V6 - Start - RTiezzi - Sem material elegivel retorna erro
       IF lt_material_comp IS INITIAL.
         APPEND VALUE #( %key = <fs_key>-%key ) TO failed-zr_s2m_materiais_compativeis.
         APPEND VALUE #( %key = <fs_key>-%key
@@ -85,6 +86,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
           TO reported-zr_s2m_materiais_compativeis.
         RETURN.
       ENDIF.
+*     V6 - End - RTiezzi - Sem material elegivel retorna erro
 
       DATA(ls_material_comp) = lt_material_comp[ 1 ].
 
@@ -129,7 +131,7 @@ WITH VALUE #( (
      rspos = ls_po_comp_monitor-reservationitem )
  ).
 
-        " V6 - RTIEZZI - DEF174 - Valida quantidade disponivel do lote antes da BAPI
+*       V6 - Start - RTiezzi - Valida quantidade disponivel do lote antes da BAPI
         IF ls_material_comp-clabs < ls_po_comp_monitor-requiredquantity.
           APPEND VALUE #( %key = ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
           APPEND VALUE #( %key = ls_material_comp-%key
@@ -138,6 +140,7 @@ WITH VALUE #( (
             TO reported-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.
+*       V6 - End - RTiezzi - Valida quantidade disponivel do lote antes da BAPI
 
       ENDAT.
 
@@ -186,11 +189,12 @@ WITH VALUE #( (
 
         ELSE.
           APPEND VALUE #( %key =  ls_material_comp-%key ) TO mapped-zr_s2m_materiais_compativeis.
-"         V6 - RTIEZZI - DEF174 - Substitui mensagem tecnica por mensagem funcional de sucesso
+*         V6 - Start - RTiezzi - Substitui mensagem tecnica por mensagem funcional de sucesso
           APPEND VALUE #( %key = ls_material_comp-%key
                             %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
                                                           text = TEXT-004 ) )
             TO reported-zr_s2m_materiais_compativeis.
+*         V6 - End - RTiezzi - Substitui mensagem tecnica por mensagem funcional de sucesso
         ENDIF.
 
         FREE: lt_bapi_ret.

@@ -190,7 +190,7 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
     read_al11_file( iv_file_path = iv_file_path ).
 
     IF gt_file_raw IS INITIAL.
-      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '040' iv_v1 = |Arquivo nao lido: { iv_file_name }| iv_name = iv_file_name CHANGING ct_message = ct_msg ).
+      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '041' iv_v1 = iv_file_name iv_name = iv_file_name CHANGING ct_message = ct_msg ).
       RETURN.
     ENDIF.
 
@@ -270,14 +270,14 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
 
       READ TABLE gt_u301_s WITH KEY sordrnm = ls_header-ordernum TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
-        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |U301-S nao encontrado para ORDERNUM { ls_header-ordernum }| CHANGING ct_message = ct_msg ).
+        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '037' iv_v1 = |U301-S nao encontrado para ORDERNUM { ls_header-ordernum }| CHANGING ct_message = ct_msg ).
       ENDIF.
     ENDLOOP.
 
     LOOP AT gt_u301_s INTO DATA(ls_seal).
       READ TABLE gt_u301_h WITH KEY ordernum = ls_seal-sordrnm TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
-        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |U301-H nao encontrado para ORDERNUM { ls_seal-sordrnm }| CHANGING ct_message = ct_msg ).
+        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '037' iv_v1 = |U301-H nao encontrado para ORDERNUM { ls_seal-sordrnm }| CHANGING ct_message = ct_msg ).
       ENDIF.
     ENDLOOP.
 
@@ -290,7 +290,7 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
       LOOP AT gt_u301_h INTO ls_header.
         READ TABLE lt_existing WITH KEY pcsordernum = ls_header-ordernum TRANSPORTING NO FIELDS.
         IF sy-subrc <> 0.
-          zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |ORDERNUM nao existe no SAP: { ls_header-ordernum }| CHANGING ct_message = ct_msg ).
+          zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '036' iv_v1 = ls_header-ordernum CHANGING ct_message = ct_msg ).
         ENDIF.
       ENDLOOP.
     ENDIF.
@@ -312,6 +312,18 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
     LOOP AT gt_u301_s INTO DATA(ls_seal).
       APPEND INITIAL LINE TO lt_itm ASSIGNING FIELD-SYMBOL(<fs_itm>).
       MOVE-CORRESPONDING ls_seal TO <fs_itm>.
+    ENDLOOP.
+
+    SORT lt_itm BY sordrnm.
+    DATA lv_seqno TYPE n LENGTH 3.
+    DATA lv_current_ordernum TYPE zdeq2c_265_order_num.
+    LOOP AT lt_itm ASSIGNING <fs_itm>.
+      IF lv_current_ordernum <> <fs_itm>-sordrnm.
+        lv_current_ordernum = <fs_itm>-sordrnm.
+        CLEAR lv_seqno.
+      ENDIF.
+      lv_seqno = lv_seqno + 1.
+      <fs_itm>-seqno = lv_seqno.
     ENDLOOP.
 
     LOOP AT gt_u301_h INTO ls_header.

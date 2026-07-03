@@ -129,7 +129,7 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
     ELSE.
       IF iv_reference IS INITIAL.
         zclq2c_265_desc_common=>add_error(
-          EXPORTING iv_number = '010'
+          EXPORTING iv_number = '012'
                     iv_v1     = 'Referencia da ordem nao informada'
           CHANGING  ct_message = ct_msg ).
         RETURN.
@@ -202,6 +202,7 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
 
   METHOD load_order_data.
     DATA lv_reference TYPE string.
+    DATA ls_moni_descarga TYPE zi_q2c_moni_descarga.
 
     CLEAR: cs_u200_h, ct_u200_s.
     CLEAR ms_descarga.
@@ -224,14 +225,25 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    SELECT SINGLE *
+      FROM zi_q2c_moni_descarga
+      WHERE shnumber       = @ms_descarga-shnumber
+        AND deliverynumber = @ms_descarga-remessa
+        AND deliveryitem   = @ms_descarga-itemremessa
+      INTO @ls_moni_descarga.
+
     cs_u200_h-ordernum = ms_descarga-pcsordernum.
     cs_u200_h-invoqtyl = ms_descarga-qtdenfe.
     cs_u200_h-invoqtykg = ms_descarga-pesobrutonfe.
     cs_u200_h-desttank = ms_descarga-lgortdestino.
     cs_u200_h-prodnum = ms_descarga-matnr.
+    cs_u200_h-prodname = ls_moni_descarga-arktx.
     cs_u200_h-unloadln = ms_descarga-linhadescarga.
     cs_u200_h-unloadpt = ms_descarga-plataforma.
     cs_u200_h-coloryn = ms_descarga-mangote.
+    cs_u200_h-truckid = ls_moni_descarga-vehicle.
+    cs_u200_h-cartid = ls_moni_descarga-vehid.
+    cs_u200_h-batchids = ls_moni_descarga-charg.
     cs_u200_h-invoicen = ms_descarga-nfnum.
     cs_u200_h-msgrcvtm = |{ sy-datum } { sy-uzeit }|.
 
@@ -263,18 +275,18 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
     LOOP AT lt_fields INTO lv_field.
       ASSIGN COMPONENT lv_field OF STRUCTURE cs_u200_h TO <fs_value>.
       IF sy-subrc <> 0 OR <fs_value> IS INITIAL.
-        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |Campo obrigatorio nao preenchido: { lv_field }| CHANGING ct_message = ct_msg ).
+        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '031' iv_v1 = lv_field CHANGING ct_message = ct_msg ).
       ENDIF.
     ENDLOOP.
 
     IF ct_u200_s IS INITIAL.
-      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = 'Lacres da descarga nao informados' CHANGING ct_message = ct_msg ).
+      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '032' iv_v1 = cs_u200_h-ordernum CHANGING ct_message = ct_msg ).
     ENDIF.
 
     IF ms_descarga-status IS INITIAL.
-      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = 'Status da ordem nao identificado' CHANGING ct_message = ct_msg ).
+      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '033' iv_v1 = cs_u200_h-ordernum CHANGING ct_message = ct_msg ).
     ELSEIF ms_descarga-status <> '03'.
-      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |Status invalido para envio PCS: { ms_descarga-status }| CHANGING ct_message = ct_msg ).
+      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '034' iv_v1 = ms_descarga-status CHANGING ct_message = ct_msg ).
     ENDIF.
   ENDMETHOD.
 
@@ -292,7 +304,7 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
     ENDIF.
 
     IF ls_descarga-status <> '03'.
-      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '030' iv_v1 = |Cancelamento permitido apenas no status 03. Atual: { ls_descarga-status }| CHANGING ct_message = ct_msg ).
+      zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '035' iv_v1 = ls_descarga-status CHANGING ct_message = ct_msg ).
     ENDIF.
   ENDMETHOD.
 

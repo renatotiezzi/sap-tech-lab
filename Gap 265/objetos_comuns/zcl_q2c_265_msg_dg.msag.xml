@@ -21,9 +21,18 @@
     <item><SPRSL>P</SPRSL><MSGNR>001</MSGNR><TEXT>Job Descarga iniciado: dir &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>010</MSGNR><TEXT>Processando ordem: &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>011</MSGNR><TEXT>Arquivo &1 gravado com sucesso</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>012</MSGNR><TEXT>Referencia da descarga nao informada: &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>020</MSGNR><TEXT>Diretório TVARVC inválido: &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>030</MSGNR><TEXT>ORDERNUM inválido: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>031</MSGNR><TEXT>Campo obrigatório não preenchido: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>032</MSGNR><TEXT>Lacres da descarga não informados para a ordem &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>033</MSGNR><TEXT>Status da ordem não identificado: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>034</MSGNR><TEXT>Status inválido para envio PCS: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>035</MSGNR><TEXT>Cancelamento permitido apenas no status 03. Atual: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>036</MSGNR><TEXT>ORDERNUM não existe no SAP: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>037</MSGNR><TEXT>Inconsistência de arquivos de retorno: &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>040</MSGNR><TEXT>Erro ao gravar arquivo: &1</TEXT></item>
+    <item><SPRSL>P</SPRSL><MSGNR>041</MSGNR><TEXT>Erro ao ler arquivo: &1</TEXT></item>
     <item><SPRSL>P</SPRSL><MSGNR>099</MSGNR><TEXT>Job Descarga concluído: &1 OK / &2 erro(s)</TEXT></item>
    </T100_TEXTS>
   </asx:values>

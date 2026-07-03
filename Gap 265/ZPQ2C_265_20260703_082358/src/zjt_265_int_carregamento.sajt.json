@@ -1,0 +1,26 @@
+{
+  "formatVersion": "1",
+  "header": {
+    "description": "",
+    "originalLanguage": "en"
+  },
+  "generalInformation": {
+    "catalogName": "ZJCE_265_INT_CARREGAMENTO"
+  },
+  "parameters": {
+    "singleValueParameters": [
+      {
+        "name": "COMP_NUM",
+        "value": ""
+      },
+      {
+        "name": "PATH",
+        "value": ""
+      },
+      {
+        "name": "SHP_DOC",
+        "value": ""
+      }
+    ]
+  }
+}

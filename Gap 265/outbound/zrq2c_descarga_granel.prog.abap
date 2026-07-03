@@ -1,3 +1,10 @@
+*&---------------------------------------------------------------------*
+* Object Name    : ZRQ2C_DESCARGA_GRANEL
+* Object Title   : Runner de envio Descarga PCS
+* WRICEF ID      : Q2C265I004
+* Author         : GitHub Copilot
+* Date           : 03/07/2026
+*-----------------------------------------------------------------------*
 REPORT zrq2c_descarga_granel LINE-SIZE 1000.
 
 DATA: go_descarga TYPE REF TO zclq2c_265_descarga_granel,
@@ -12,5 +19,5 @@ SELECTION-SCREEN END OF BLOCK b1.
 START-OF-SELECTION.
   CREATE OBJECT go_descarga EXPORTING iv_job = p_job.
   go_descarga->execute(
-    EXPORTING iv_ordernum = p_ordnum
+    EXPORTING iv_reference = p_ordnum
     CHANGING  ct_msg      = gt_msg ).

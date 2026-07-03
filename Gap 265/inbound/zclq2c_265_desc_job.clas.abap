@@ -1,3 +1,10 @@
+*&---------------------------------------------------------------------*
+* Object Name    : ZCLQ2C_265_DESC_JOB
+* Object Title   : Job APJ Descarga GAP 265
+* WRICEF ID      : Q2C265I005 / Q2C265I006
+* Author         : GitHub Copilot
+* Date           : 03/07/2026
+*-----------------------------------------------------------------------*
 CLASS zclq2c_265_desc_job DEFINITION
   PUBLIC
   FINAL

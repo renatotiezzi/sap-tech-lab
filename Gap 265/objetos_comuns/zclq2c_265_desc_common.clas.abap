@@ -1,3 +1,10 @@
+*&---------------------------------------------------------------------*
+* Object Name    : ZCLQ2C_265_DESC_COMMON
+* Object Title   : Objetos comuns da Descarga GAP 265
+* WRICEF ID      : Q2C265I004 / Q2C265I005 / Q2C265I006
+* Author         : GitHub Copilot
+* Date           : 03/07/2026
+*-----------------------------------------------------------------------*
 CLASS zclq2c_265_desc_common DEFINITION
   PUBLIC
   FINAL
@@ -9,7 +16,7 @@ CLASS zclq2c_265_desc_common DEFINITION
 
     TYPES: BEGIN OF ty_message,
              name     TYPE eps2filnam,
-             ordernum TYPE string,
+             ordernum TYPE zdeq2c_265_order_num,
              id       TYPE symsgid,
              number   TYPE symsgno,
              type     TYPE symsgty,
@@ -62,6 +69,8 @@ ENDCLASS.
 CLASS zclq2c_265_desc_common IMPLEMENTATION.
 
   METHOD get_tvarvc_value.
+    " O GAP 265 ja usa zz1_tvarvc_q2c no outbound da carga.
+    " Mantemos a mesma fonte aqui para evitar divergencia tecnica.
     SELECT SINGLE low
       FROM zz1_tvarvc_q2c
       WHERE name = @iv_name

@@ -1,3 +1,10 @@
+*&---------------------------------------------------------------------*
+* Object Name    : ZRQ2C_DESC_RET_GRANEL
+* Object Title   : Runner de retorno Descarga PCS -> SAP
+* WRICEF ID      : Q2C265I005 / Q2C265I006
+* Author         : GitHub Copilot
+* Date           : 03/07/2026
+*-----------------------------------------------------------------------*
 REPORT zrq2c_desc_ret_granel LINE-SIZE 1000.
 
 DATA: go_desc_ret TYPE REF TO zclq2c_265_desc_ret_granel,

@@ -224,7 +224,6 @@ WITH VALUE #( (
 
         ELSE.
           APPEND VALUE #( %key =  ls_material_comp-%key ) TO mapped-zr_s2m_materiais_compativeis.
-"         V8 - RTIEZZI - INICIO - Rele o contexto atual para retorno consistente da action RAP
           READ ENTITIES OF zr_s2m_po_comp_monitor IN LOCAL MODE
             ENTITY zr_s2m_materiais_compativeis
             ALL FIELDS
@@ -238,6 +237,7 @@ WITH VALUE #( (
             APPEND VALUE #( %tky = ls_material_comp-%tky
                             %param = CORRESPONDING #( ls_material_comp ) ) TO result.
           ENDIF.
+"         V8 - RTIEZZI - INICIO - Rele o contexto atual para retorno consistente da action RAP
 "         V8 - RTIEZZI - FIM - Rele o contexto atual para retorno consistente da action RAP
 "         V8 - RTIEZZI - INICIO - Retorna mensagem funcional apos o processamento
           APPEND VALUE #( %key = ls_material_comp-%key

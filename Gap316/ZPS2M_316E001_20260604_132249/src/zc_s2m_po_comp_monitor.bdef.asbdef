@@ -19,9 +19,6 @@ define behavior for ZC_S2M_PO_COMP_MONITOR //alias <alias_name>
 
 define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
 {
-  // V8 - RTIEZZI - INICIO - Reutiliza side effects do BO para refresh padrao da object page
-  use side effects;
-  // V8 - RTIEZZI - FIM - Reutiliza side effects do BO para refresh padrao da object page
   use association _Componente { with draft; }
   use action Remarcar;
   use update;

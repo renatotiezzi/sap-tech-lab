@@ -64,8 +64,7 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
              clabs           TYPE mchb-clabs,
            END OF ty_mchb_lote.
 
-    DATA: ls_mchb     TYPE ty_mchb_lote,
-          lt_bapi_ret TYPE STANDARD TABLE OF bapiret2 WITH EMPTY KEY.
+        DATA: ls_mchb TYPE ty_mchb_lote.
     " V7 - RTIEZZI - DEF174 - FIM - Tipagem explicita para evitar erros de parser/ativacao em cascata
 
 " V6 - RTIEZZI - DEF174 - Permite apenas um lote por remarcacao
@@ -153,12 +152,11 @@ WITH VALUE #( (
       IF lt_po_comp_monitor IS NOT INITIAL.
 
         " ATC - Change MCHB -> wrapper ZI_S2M_WRP_MCHB_LOTE
-        SELECT SINGLE FROM zi_s2m_wrp_mchb_lote
-          FIELDS Plant, StorageLocation, Batch, Clabs
+        SELECT SINGLE * FROM zi_s2m_wrp_mchb_lote
           WHERE Material = @ls_material_comp-material
             AND Plant = @ls_material_comp-centro
             AND Batch = @ls_material_comp-charg
-          INTO @ls_mchb.
+          INTO CORRESPONDING FIELDS OF @ls_mchb.
 
         " V7 - RTIEZZI - DEF174 - INICIO - Quantidade de remarcacao nao pode seguir zerada
         DATA(lv_qtd_remarcacao) = COND nsdm_stock_qty_l1(
@@ -198,7 +196,7 @@ WITH VALUE #( (
            it_resbkeys = lt_resbkeys
            iv_call_delete = lv_call_delete
         IMPORTING
-            et_bapiret2 =  lt_bapi_ret ).
+            et_bapiret2 =  DATA(lt_bapi_ret) ).
 
         FREE: lv_call_delete.
 

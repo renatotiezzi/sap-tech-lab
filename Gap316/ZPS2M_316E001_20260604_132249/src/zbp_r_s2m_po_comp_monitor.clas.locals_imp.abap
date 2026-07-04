@@ -64,7 +64,8 @@ CLASS lhc_zr_s2m_materiais_compative IMPLEMENTATION.
              clabs           TYPE mchb-clabs,
            END OF ty_mchb_lote.
 
-        DATA: ls_mchb TYPE ty_mchb_lote.
+        DATA: ls_mchb     TYPE ty_mchb_lote,
+              lt_bapi_ret TYPE STANDARD TABLE OF bapiret2.
     " V7 - RTIEZZI - DEF174 - FIM - Tipagem explicita para evitar erros de parser/ativacao em cascata
 
 " V6 - RTIEZZI - DEF174 - Permite apenas um lote por remarcacao
@@ -204,7 +205,7 @@ WITH VALUE #( (
            it_resbkeys = lt_resbkeys
            iv_call_delete = lv_call_delete
         IMPORTING
-            et_bapiret2 =  DATA(lt_bapi_ret) ).
+            et_bapiret2 =  lt_bapi_ret ).
 
         FREE: lv_call_delete.
 

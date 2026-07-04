@@ -128,7 +128,7 @@ WITH VALUE #( (
 *        AND matnr =  @ls_po_comp_monitor-material
 *        INTO @DATA(ls_resb).
 
-        SELECT SINGLE StorageLocation, Batch          "#EC CI_NOORDER "#EC WARNOK
+        SELECT SINGLE StorageLocation, Batch, RequiredQuantity          "#EC CI_NOORDER "#EC WARNOK
           FROM I_ReservationDocumentItem
          WHERE Reservation     EQ @ls_po_comp_monitor-reservation
            AND ReservationItem EQ @ls_po_comp_monitor-reservationitem
@@ -161,8 +161,16 @@ WITH VALUE #( (
         " V7 - RTIEZZI - DEF174 - INICIO - Quantidade de remarcacao nao pode seguir zerada
         DATA(lv_qtd_remarcacao) = COND nsdm_stock_qty_l1(
           WHEN ls_material_comp-quantidade IS INITIAL
-            THEN ls_po_comp_monitor-requiredquantity
+            THEN COND nsdm_stock_qty_l1(
+                   WHEN ls_resb-RequiredQuantity IS NOT INITIAL
+                     THEN ls_resb-RequiredQuantity
+                   ELSE ls_po_comp_monitor-requiredquantity )
           ELSE ls_material_comp-quantidade ).
+
+        IF lv_qtd_remarcacao IS INITIAL.
+          APPEND VALUE #( %key = ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
+          RETURN.
+        ENDIF.
         " V7 - RTIEZZI - DEF174 - FIM - Quantidade de remarcacao nao pode seguir zerada
 
         " V7 - RTIEZZI - DEF174 - INICIO - Valida estoque em tempo real no wrapper MCHB

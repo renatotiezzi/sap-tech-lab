@@ -224,15 +224,27 @@ WITH VALUE #( (
 
         ELSE.
           APPEND VALUE #( %key =  ls_material_comp-%key ) TO mapped-zr_s2m_materiais_compativeis.
-"         V8 - RTIEZZI - INICIO - Retorna a propria instancia para refresh padrao RAP apos sucesso
-          APPEND VALUE #( %tky = ls_material_comp-%tky
-                          %param = CORRESPONDING #( ls_material_comp ) ) TO result.
-"         V8 - RTIEZZI - FIM - Retorna a propria instancia para refresh padrao RAP apos sucesso
-"         V6 - RTIEZZI - DEF174 - Substitui mensagem tecnica por mensagem funcional de sucesso
+"         V8 - RTIEZZI - INICIO - Rele o contexto atual para retorno consistente da action RAP
+          READ ENTITIES OF zr_s2m_po_comp_monitor IN LOCAL MODE
+            ENTITY zr_s2m_materiais_compativeis
+            ALL FIELDS
+            WITH VALUE #( ( %tky = ls_material_comp-%tky ) )
+            RESULT DATA(lt_material_comp_refresh).
+
+          IF lt_material_comp_refresh IS NOT INITIAL.
+            APPEND VALUE #( %tky = lt_material_comp_refresh[ 1 ]-%tky
+                            %param = CORRESPONDING #( lt_material_comp_refresh[ 1 ] ) ) TO result.
+          ELSE.
+            APPEND VALUE #( %tky = ls_material_comp-%tky
+                            %param = CORRESPONDING #( ls_material_comp ) ) TO result.
+          ENDIF.
+"         V8 - RTIEZZI - FIM - Rele o contexto atual para retorno consistente da action RAP
+"         V8 - RTIEZZI - INICIO - Retorna mensagem funcional apos o processamento
           APPEND VALUE #( %key = ls_material_comp-%key
                             %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
                                                           text = TEXT-004 ) )
             TO reported-zr_s2m_materiais_compativeis.
+"         V8 - RTIEZZI - FIM - Retorna mensagem funcional apos o processamento
         ENDIF.
 
         FREE: lt_bapi_ret.

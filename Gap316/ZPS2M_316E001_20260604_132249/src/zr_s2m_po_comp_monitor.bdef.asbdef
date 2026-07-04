@@ -63,7 +63,7 @@ draft table ztbs2m_mat_compd
 
   // V8 - RTIEZZI - INICIO - Side effects recarregam a object page e a linha apos a action
   side effects {
-    action Remarcar affects $self, entity _Componente;
+    action Remarcar affects $self, entity _Componente, messages;
   }
   // V8 - RTIEZZI - FIM - Side effects recarregam a object page e a linha apos a action
 

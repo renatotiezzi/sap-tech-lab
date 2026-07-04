@@ -1,0 +1,29 @@
+projection;
+strict ( 2 );
+use draft;
+// V9 - REFRESH - A projeção consome side effects do BO para atualizar a tela apos a action
+use side effects;
+define behavior for ZC_S2M_PO_COMP_MONITOR //alias <alias_name>
+{
+
+  use association _Materiais { with draft; }
+
+  use update;
+
+  use action Edit;
+  use action Activate;
+  use action Discard;
+  use action Resume;
+  use action Prepare;
+
+}
+
+define behavior for ZC_S2M_MATERIAIS_COMPATIVEIS
+{
+  // V9 - REFRESH - A action Remarcar devolve o item atualizado para o refresco da tela
+  use association _Componente { with draft; }
+  use action Remarcar;
+  use update;
+
+
+}

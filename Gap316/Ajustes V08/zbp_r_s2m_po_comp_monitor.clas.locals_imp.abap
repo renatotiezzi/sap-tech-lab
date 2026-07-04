@@ -428,3 +428,37 @@ CLASS lsc_zr_s2m_po_comp_monitor IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+```
+</attachment>
+<context>
+The current date is July 5, 2026.
+Terminals:
+Terminal: powershell
+Last Command: git -C c:\Users\renat\GitHub\sap-tech-lab add "Gap316/ZPS2M_316E001_20260604_132249/src/zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap" "Gap316/Ajustes V07/zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap"; git -C c:\Users\renat\GitHub\sap-tech-lab commit -m "[Gap316] V07 corrige import de et_bapiret2"; git -C c:\Users\renat\GitHub\sap-tech-lab push
+Cwd: C:\Users\renat\GitHub
+Exit Code: 0
+
+</context>
+<editorContext>
+The user's current file is c:\Users\renat\GitHub\sap-tech-lab\Gap316\Ajustes V07\zbp_r_s2m_po_comp_monitor.clas.locals_imp.abap. The current selection is from line 206 to line 207.
+</editorContext>
+<reminderInstructions>
+You are an agent—keep going until the user's query is completely resolved before ending your turn. ONLY stop if solved or genuinely blocked.
+Take action when possible; the user expects you to do useful work without unnecessary questions.
+After any parallel, read-only context gathering, give a concise progress update and what's next.
+Avoid repetition across turns: don't restate unchanged plans or sections (like the todo list) verbatim; provide delta updates or only the parts that changed.
+Tool batches: You MUST preface each batch with a one-sentence why/what/outcome preamble.
+Progress cadence: After 3 to 5 tool calls, or when you create/edit > ~3 files in a burst, report progress.
+Requirements coverage: Read the user's ask in full and think carefully. Do not omit a requirement. If something cannot be done with available tools, note why briefly and propose a viable alternative.
+
+IMPORTANT: Before calling any deferred tool that was not previously returned by tool_search, you MUST first use tool_search to load it. Calling a deferred tool without first loading it will fail. Tools returned by tool_search are automatically expanded and immediately available - do not search for them again.
+</reminderInstructions>
+<userRequest>
+fa;a uma REVISA~O TOTAL do que vc fez, as alterações estão bagunçadas, quero que entenda o que fez e garanta que o código fique coerente, sem partes quebradas / sem nada aleatório. 
+
+TEm mta coisa que vc foi fazendo várias tentativas e o código ficou bem confuso. 
+
+revisa o q foi de fato aprovado tecnicamente e ajusta o código. 
+
+quero uma revisão e limpeza do V7 e da V8 
+</userRequest>numerusform to=functions.list_dir +天天中彩票 久久免费热在线精品{

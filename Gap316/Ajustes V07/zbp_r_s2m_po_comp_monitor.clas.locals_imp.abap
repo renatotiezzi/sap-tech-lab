@@ -128,7 +128,7 @@ WITH VALUE #( (
 *        AND matnr =  @ls_po_comp_monitor-material
 *        INTO @DATA(ls_resb).
 
-        SELECT SINGLE StorageLocation, Batch, RequiredQuantity          "#EC CI_NOORDER "#EC WARNOK
+        SELECT SINGLE StorageLocation, Batch          "#EC CI_NOORDER "#EC WARNOK
           FROM I_ReservationDocumentItem
          WHERE Reservation     EQ @ls_po_comp_monitor-reservation
            AND ReservationItem EQ @ls_po_comp_monitor-reservationitem
@@ -159,33 +159,19 @@ WITH VALUE #( (
           INTO CORRESPONDING FIELDS OF @ls_mchb.
 
         " V7 - RTIEZZI - DEF174 - INICIO - Quantidade de remarcacao nao pode seguir zerada
-        DATA(lv_qtd_remarcacao) = COND nsdm_stock_qty_l1(
-          WHEN ls_material_comp-quantidade IS INITIAL
-            THEN COND nsdm_stock_qty_l1(
-                   WHEN ls_resb-RequiredQuantity IS NOT INITIAL
-                     THEN ls_resb-RequiredQuantity
-                   ELSE ls_po_comp_monitor-requiredquantity )
-          ELSE ls_material_comp-quantidade ).
+        DATA lv_qtd_remarcacao TYPE nsdm_stock_qty_l1.
+
+        IF ls_material_comp-quantidade IS INITIAL.
+          lv_qtd_remarcacao = ls_po_comp_monitor-requiredquantity.
+        ELSE.
+          lv_qtd_remarcacao = ls_material_comp-quantidade.
+        ENDIF.
 
         IF lv_qtd_remarcacao IS INITIAL.
           APPEND VALUE #( %key = ls_material_comp-%key ) TO failed-zr_s2m_materiais_compativeis.
           RETURN.
         ENDIF.
         " V7 - RTIEZZI - DEF174 - FIM - Quantidade de remarcacao nao pode seguir zerada
-
-        " V7 - RTIEZZI - DEF174 - INICIO - Envia quantidade com unidade para CO_XT_COMPONENT_ADD
-        DATA(ls_requ_quan) = VALUE coxt_s_quantity( quantity = lv_qtd_remarcacao ).
-
-        ASSIGN COMPONENT 'UNIT' OF STRUCTURE ls_requ_quan TO FIELD-SYMBOL(<fs_requ_unit>). 
-        IF sy-subrc = 0 AND <fs_requ_unit> IS ASSIGNED.
-          <fs_requ_unit> = ls_po_comp_monitor-baseunit.
-        ELSE.
-          ASSIGN COMPONENT 'MEINS' OF STRUCTURE ls_requ_quan TO <fs_requ_unit>.
-          IF sy-subrc = 0 AND <fs_requ_unit> IS ASSIGNED.
-            <fs_requ_unit> = ls_po_comp_monitor-baseunit.
-          ENDIF.
-        ENDIF.
-        " V7 - RTIEZZI - DEF174 - FIM - Envia quantidade com unidade para CO_XT_COMPONENT_ADD
 
         " V7 - RTIEZZI - DEF174 - INICIO - Valida estoque em tempo real no wrapper MCHB
         IF ls_mchb IS INITIAL.
@@ -206,7 +192,7 @@ WITH VALUE #( (
         lo_remarcacao_parallel->executar_bapi( EXPORTING
            iv_order_key = ls_po_comp_monitor-manufacturingorder
            iv_material = lt_material_comp[ 1 ]-material
-            is_requ_quan = ls_requ_quan
+          is_requ_quan = VALUE coxt_s_quantity( quantity = lv_qtd_remarcacao )
            iv_operation = ls_po_comp_monitor-orderoperationinternalid
            iv_sequence = lv_manufacturingordersequence
            is_storage_location = VALUE coxt_s_storage_location( werks = ls_mchb-Plant lgort = ls_mchb-StorageLocation )

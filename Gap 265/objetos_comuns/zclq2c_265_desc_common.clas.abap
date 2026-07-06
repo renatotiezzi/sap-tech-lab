@@ -2,7 +2,8 @@
 * Object Name    : ZCLQ2C_265_DESC_COMMON
 * Object Title   : Objetos comuns da Descarga GAP 265
 * WRICEF ID      : Q2C265I004 / Q2C265I005 / Q2C265I006
-* Author         : GitHub Copilot
+* Request/CHARM  : ZPQ2C_265_20260703_082358
+* Author         : RTiezzi
 * Date           : 03/07/2026
 *-----------------------------------------------------------------------*
 CLASS zclq2c_265_desc_common DEFINITION

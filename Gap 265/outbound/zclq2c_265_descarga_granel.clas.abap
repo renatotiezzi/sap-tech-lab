@@ -2,7 +2,8 @@
 * Object Name    : ZCLQ2C_265_DESCARGA_GRANEL
 * Object Title   : Descarga Granel e Cancelamento Descarga
 * WRICEF ID      : Q2C265I004
-* Author         : GitHub Copilot
+* Request/CHARM  : ZPQ2C_265_20260703_082358
+* Author         : RTiezzi
 * Date           : 03/07/2026
 *-----------------------------------------------------------------------*
 CLASS zclq2c_265_descarga_granel DEFINITION

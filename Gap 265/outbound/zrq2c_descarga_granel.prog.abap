@@ -2,7 +2,8 @@
 * Object Name    : ZRQ2C_DESCARGA_GRANEL
 * Object Title   : Runner de envio Descarga PCS
 * WRICEF ID      : Q2C265I004
-* Author         : GitHub Copilot
+* Request/CHARM  : ZPQ2C_265_20260703_082358
+* Author         : RTiezzi
 * Date           : 03/07/2026
 *-----------------------------------------------------------------------*
 REPORT zrq2c_descarga_granel LINE-SIZE 1000.

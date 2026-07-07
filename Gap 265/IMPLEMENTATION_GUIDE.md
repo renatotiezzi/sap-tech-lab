@@ -106,14 +106,38 @@ Para `zstq2c_ret_granel_l301_h`:
 
 ### 3.1.1 Data Elements com acao no projeto
 
-Use esta lista apenas para os elementos que exigem criacao/ajuste. Tudo que ja for identico ao baseline da Carga nao precisa aparecer aqui.
+Use esta lista apenas para os elementos que exigem acao. Os itens do baseline que nao precisam aparecer aqui sao:
+
+- `zdeq2c_265_order_num`
+- `zdeq2c_265_prod_num`
+- `zdeq2c_265_load_line`
+- `zdeq2c_265_clr_hose`
+
+Esses quatro sao do pacote base da Carga e entram por copia/reuso normal, sem desenho novo.
 
 | Nome | Descricao simples | Tipo esperado | Acao | Origem / molde |
 |---|---|---|---|---|
 | `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(5/6) | Criar/ajustar | Copiar do molde de peso usado na Carga e ajustar ao layout U301-H |
 | `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(5/6) | Criar/ajustar | Copiar do molde de peso usado na Carga e ajustar ao layout U301-H |
+| `zdeq2c_265_desc_lineemty` | Line empty | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_lineemty.dtel.xml` |
+| `zdeq2c_265_desc_pt_yrn` | PT YRN | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_pt_yrn.dtel.xml` |
+| `zdeq2c_265_desc_desttyrn` | Destination YRN | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_desttyrn.dtel.xml` |
+| `zdeq2c_265_desc_trkidy2n` | Truck ID Y/N | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkidy2n.dtel.xml` |
+| `zdeq2c_265_desc_avveryrn` | Availability Y/N | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_avveryrn.dtel.xml` |
+| `zdeq2c_265_desc_compdrop` | Comp drop | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_compdrop.dtel.xml` |
+| `zdeq2c_265_desc_trkgdryn` | Truck grounded Y/N | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkgdryn.dtel.xml` |
+| `zdeq2c_265_desc_trkbkact` | Truck back active | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkbkact.dtel.xml` |
+| `zdeq2c_265_desc_trkmtoff` | Truck motor off | CHAR(1) | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkmtoff.dtel.xml` |
+| `zdeq2c_265_desc_labinfo` | Lab info | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_labinfo.dtel.xml` |
+| `zdeq2c_265_desc_avverend` | Avver end | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_avverend.dtel.xml` |
+| `zdeq2c_265_desc_starttme` | Start time | CHAR/TIME | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_starttme.dtel.xml` |
+| `zdeq2c_265_desc_endtime` | End time | CHAR/TIME | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_endtime.dtel.xml` |
+| `zdeq2c_265_desc_supname` | Supervisor name | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_supname.dtel.xml` |
+| `zdeq2c_265_desc_opsname` | Operator name | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_opsname.dtel.xml` |
+| `zdeq2c_265_desc_sealcode` | Seal code | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealcode.dtel.xml` |
+| `zdeq2c_265_desc_sealyrn` | Seal YRN | CHAR | Copiar/importar se faltar | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealyrn.dtel.xml` |
 
-Observacao: se algum outro Data Element do fluxo de Descarga nao existir no ambiente no momento da copia, a regra e a mesma: copiar do baseline mais proximo e listar aqui apenas se houver acao tecnica real.
+Observacao: `zdeq2c_265_desc_trkintwt` e `zdeq2c_265_desc_trkfnlwt` sao os unicos elementos que precisam decisao de tamanho/layout antes da ativacao. Os demais entram por copia/importacao do arquivo ja existente no repo, se nao estiverem ativos no ambiente.
 
 ### 3.2 Persistencia
 

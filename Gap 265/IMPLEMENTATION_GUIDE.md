@@ -30,6 +30,64 @@ Objetos da primeira entrega que devem ser referencia direta:
 
 Regra: para cada objeto novo de Descarga, apontar explicitamente de qual objeto da Carga ele foi copiado antes de qualquer ajuste.
 
+## 2.1 Mapa exato de copia (origem -> destino)
+
+### A) Tabelas
+
+- Origem: `ztbq2c_retgralog` -> Destino: `ztbq2c_descgralog`
+	- Copiar: estrutura completa da tabela (MANDT, TMSTMP, INTID, INTTY, INTST, MSGTY, MENSAGEM).
+	- Remover: nenhum campo.
+	- Adicionar: nenhum campo.
+	- Ajustar: `TABNAME` e `DDTEXT` para contexto de Descarga.
+
+- Origem: `ZTQ2C_PCS_DET` (ambiente) -> Destino: `ztq2c_pcs_det_d`
+	- Copiar: estrutura de header PCS usada na Carga.
+	- Remover: nao remover campos de layout sem validacao funcional.
+	- Adicionar: chave de negocio SAP de Descarga (`SHNUMBER`, `REMESSA`, `ITEM_REMESSA`) quando nao vier pronta no objeto copiado.
+	- Ajustar: `ORDERNUM` fica como atributo nao-chave.
+
+- Origem: `ZTQ2C_PCS_ITM` (ambiente) -> Destino: `ztq2c_pcs_itm_d`
+	- Copiar: estrutura de itens/lacres da Carga.
+	- Remover: nao remover campos de item sem validacao funcional.
+	- Adicionar: chave de negocio SAP (`SHNUMBER`, `REMESSA`, `ITEM_REMESSA`) + `SEQNO`.
+	- Ajustar: `SORDRNM` como atributo nao-chave.
+
+### B) Classes
+
+- Origem: `zclq2c_265_carga_ret_granel` -> Destino: `zclq2c_265_desc_ret_granel`
+	- Copiar: pipeline tecnico (`load_tvarvc` -> leitura AL11 -> parse -> validacao -> persistencia -> historico -> log/resumo).
+	- Remover: blocos especificos de L300/L301 da Carga.
+	- Adicionar: parse de `U301-H` e `U301-S`, persistencia em `ztq2c_pcs_det_d`/`ztq2c_pcs_itm_d`, update em `ztbq2c_descarga`.
+
+- Origem: `zclq2c_265_carga_granel` -> Destino: `zclq2c_265_descarga_granel`
+	- Copiar: estrutura da classe de envio (validacao, montagem de linhas, gravacao de arquivos, cancelamento).
+	- Remover: campos e validacoes exclusivas de Carga.
+	- Adicionar: campos e validacoes de Descarga conforme layout U200.
+
+- Origem: `zclq2c_265_job` -> Destino: `zclq2c_265_desc_job`
+	- Copiar: interfaces APJ (`if_apj_dt_exec_object` e `if_apj_rt_exec_object`) e forma de execucao.
+	- Remover: parametros que nao se aplicam a Descarga.
+	- Adicionar: parametros de Descarga (ex.: `ORDERNUM`) quando necessarios.
+
+### C) Runners
+
+- Origem: `zrq2c_carga_ret_granel` -> Destino: `zrq2c_desc_ret_granel`
+	- Copiar: estrutura de report e chamada da classe core.
+	- Remover: parametros de Carga nao usados na Descarga.
+	- Adicionar: parametros minimos para operacao do retorno de Descarga.
+
+- Origem: `zrq2c_carga_ret_granel` (padrao de report) -> Destino: `zrq2c_descarga_granel`
+	- Copiar: formato de execucao manual/controlada.
+	- Remover: selecoes especificas de retorno de Carga.
+	- Adicionar: referencia/ordernum para envio e cancelamento de Descarga.
+
+### D) Mensagens
+
+- Origem: `zcl_q2c_265_msg_cg` -> Destino: `zcl_q2c_265_msg_dg`
+	- Copiar: conceito de classe de mensagens dedicada por fluxo.
+	- Remover: textos estritos de Carga.
+	- Adicionar: textos de Descarga (U200/U301, ORDERNUM, retorno).
+
 ## 3. Estrategia por tipo de objeto
 
 ### 3.1 DDIC base (Data Elements e estrutura)
@@ -52,7 +110,7 @@ Padrao adotado:
 
 - `ztq2c_pcs_det_d` = copia adaptada de `ZTQ2C_PCS_DET`
 - `ztq2c_pcs_itm_d` = copia adaptada de `ZTQ2C_PCS_ITM`
-- `ztbq2c_descgralog` = log tecnico da Descarga no mesmo conceito do log da Carga
+- `ztbq2c_descgralog` = copia direta de `ztbq2c_retgralog` (somente troca de nome/descricao)
 
 Regras:
 
@@ -75,6 +133,20 @@ Permitido alterar somente:
 - Tabelas de destino do retorno.
 - Mensagens e textos funcionais da Descarga.
 - Pontos de validacao estritamente necessarios ao cenario U301.
+
+### 3.4 Estruturas de saida (orientacao objetiva)
+
+Para evitar desenho do zero, usar sempre base de estrutura existente e aplicar delta:
+
+- Estrutura de saida header Descarga (`ty_u200_h`) deve ser copiada de `ty_l200_h` em `zclq2c_265_carga_granel`.
+	- Sugerir nome: manter `ty_u200_h` no objeto de Descarga (ja alinhado ao layout U200).
+	- Remover da copia base: `SHNUMBER`, `ORIGORDN`, `LOADQTY`, `SOURCET`, `DRIVERNM`, `TANKINSP`, `FLUSHARM`, `FABS`, `SEALCLR`, `SEALNUM`, `SEALQTY`, `GRPNAME`.
+	- Adicionar no delta Descarga: `INVOQTYL`, `INVOQTYKG`, `DESTTANK`, `UNLOADLN`, `UNLOADPT`, `COLORYN`, `SAMPLEYN`, `LABMAN`, `LADAPPTM`, `INVOICEN`, `BATCHIDS`, `CARTID`.
+
+- Estrutura de saida item Descarga (`ty_u200_s`) deve copiar o padrao de segunda linha/arquivo da Carga (conceito de tabela filha) e ajustar para lacres.
+	- Sugerir nome: manter `ty_u200_s`.
+	- Remover da referencia de Carga: campos de compartimento de `ty_l200_c`.
+	- Adicionar no delta Descarga: `SORDRNM`, `SEALCODE`, `SCOLOR`, `SSEALID`, `SSEALQTY`.
 
 ## 4. Ordem recomendada (copy-first)
 

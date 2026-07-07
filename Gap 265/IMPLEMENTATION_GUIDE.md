@@ -192,6 +192,12 @@ Regra pratica: se houver dependencia quebrada, voltar para o objeto-base de onde
 - Estruturas base copiadas/reutilizadas da primeira entrega.
 - Campos de peso validados com funcional antes de ativacao final (NUMC(5) x NUMC(6)).
 
+### 6.4 Controle de numeracao ORDERNUM
+
+- Verificacao obrigatoria: `zclq2c_265_descarga_granel` deve usar `ZTBQ2C_CTRL_PCS` para controle de numeracao compartilhado Carga/Descarga.
+- Estado observado no codigo atual: nao ha referencia a `ZTBQ2C_CTRL_PCS` no objeto.
+- Tratamento recomendado: abrir ajuste pontual para adotar a tabela de controle compartilhada, sem reescrever o pipeline.
+
 ## 7. O que nao fazer
 
 - Nao iniciar por criar Data Element/estrutura do zero.

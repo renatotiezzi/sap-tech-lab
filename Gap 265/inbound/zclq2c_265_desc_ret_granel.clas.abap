@@ -103,6 +103,14 @@ CLASS zclq2c_265_desc_ret_granel DEFINITION
     METHODS update_historico
       CHANGING ct_msg TYPE zclq2c_265_desc_common=>tt_message.
 
+    METHODS convert_weight
+      IMPORTING
+        iv_weight_raw TYPE string
+      RETURNING
+        VALUE(rv_weight) TYPE ztbq2c_descarga-peso_inicial
+      RAISING
+        cx_root.
+
     METHODS update_log
       CHANGING ct_msg TYPE zclq2c_265_desc_common=>tt_message.
 
@@ -298,29 +306,87 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD update_retorno.
-    DATA lt_hdr TYPE STANDARD TABLE OF zdescarga_interface_pcs WITH EMPTY KEY.
-    DATA lt_itm TYPE STANDARD TABLE OF zdescarga_interface_pcs_i WITH EMPTY KEY.
+    TYPES: BEGIN OF ty_descarga_map,
+             pcsordernum TYPE zdeq2c_265_order_num,
+             shnumber    TYPE oig_shnum,
+             remessa     TYPE vbeln_vl,
+             item_remessa TYPE posnr_vl,
+           END OF ty_descarga_map.
+
+    DATA lt_hdr TYPE STANDARD TABLE OF ztq2c_pcs_det_d WITH EMPTY KEY.
+    DATA lt_itm TYPE STANDARD TABLE OF ztq2c_pcs_itm_d WITH EMPTY KEY.
+    DATA lt_ordernum TYPE RANGE OF zdeq2c_265_order_num.
+    DATA lt_descarga_map TYPE SORTED TABLE OF ty_descarga_map WITH UNIQUE KEY pcsordernum.
 
     IF ct_msg IS NOT INITIAL.
       RETURN.
     ENDIF.
 
+    LOOP AT gt_u301_h INTO DATA(ls_ordernum).
+      APPEND VALUE #( sign = 'I' option = 'EQ' low = ls_ordernum-ordernum ) TO lt_ordernum.
+    ENDLOOP.
+
+    IF lt_ordernum IS NOT INITIAL.
+      SELECT shnumber,
+             remessa,
+             itemremessa,
+             pcsordernum
+        FROM zi_q2c_descarga
+        WHERE pcsordernum IN @lt_ordernum
+        INTO TABLE @DATA(lt_descarga_raw).
+
+      LOOP AT lt_descarga_raw INTO DATA(ls_descarga_raw).
+        INSERT VALUE #( pcsordernum  = ls_descarga_raw-pcsordernum
+                        shnumber     = ls_descarga_raw-shnumber
+                        remessa      = ls_descarga_raw-remessa
+                        item_remessa = ls_descarga_raw-itemremessa )
+          INTO TABLE lt_descarga_map.
+      ENDLOOP.
+    ENDIF.
+
     LOOP AT gt_u301_h INTO DATA(ls_header).
+      READ TABLE lt_descarga_map INTO DATA(ls_map) WITH KEY pcsordernum = ls_header-ordernum.
+      IF sy-subrc <> 0.
+        zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '036' iv_v1 = ls_header-ordernum CHANGING ct_message = ct_msg ).
+        CONTINUE.
+      ENDIF.
+
       APPEND INITIAL LINE TO lt_hdr ASSIGNING FIELD-SYMBOL(<fs_hdr>).
       MOVE-CORRESPONDING ls_header TO <fs_hdr>.
+      <fs_hdr>-shnumber = ls_map-shnumber.
+      <fs_hdr>-remessa = ls_map-remessa.
+      <fs_hdr>-item_remessa = ls_map-item_remessa.
     ENDLOOP.
 
     LOOP AT gt_u301_s INTO DATA(ls_seal).
+      READ TABLE lt_descarga_map INTO ls_map WITH KEY pcsordernum = ls_seal-sordrnm.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
       APPEND INITIAL LINE TO lt_itm ASSIGNING FIELD-SYMBOL(<fs_itm>).
       MOVE-CORRESPONDING ls_seal TO <fs_itm>.
+      <fs_itm>-shnumber = ls_map-shnumber.
+      <fs_itm>-remessa = ls_map-remessa.
+      <fs_itm>-item_remessa = ls_map-item_remessa.
     ENDLOOP.
 
-    SORT lt_itm BY sordrnm.
+    IF line_exists( ct_msg[ type = 'E' ] ).
+      RETURN.
+    ENDIF.
+
+    SORT lt_itm BY shnumber remessa item_remessa.
     DATA lv_seqno TYPE n LENGTH 3.
-    DATA lv_current_ordernum TYPE zdeq2c_265_order_num.
+    DATA lv_shnumber TYPE oig_shnum.
+    DATA lv_remessa TYPE vbeln_vl.
+    DATA lv_item_remessa TYPE posnr_vl.
     LOOP AT lt_itm ASSIGNING <fs_itm>.
-      IF lv_current_ordernum <> <fs_itm>-sordrnm.
-        lv_current_ordernum = <fs_itm>-sordrnm.
+      IF lv_shnumber <> <fs_itm>-shnumber
+         OR lv_remessa <> <fs_itm>-remessa
+         OR lv_item_remessa <> <fs_itm>-item_remessa.
+        lv_shnumber = <fs_itm>-shnumber.
+        lv_remessa = <fs_itm>-remessa.
+        lv_item_remessa = <fs_itm>-item_remessa.
         CLEAR lv_seqno.
       ENDIF.
       lv_seqno = lv_seqno + 1.
@@ -328,15 +394,23 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
     ENDLOOP.
 
     LOOP AT gt_u301_h INTO ls_header.
-      DELETE FROM zdescarga_interface_pcs_i WHERE sordrnm = @ls_header-ordernum.
+      READ TABLE lt_descarga_map INTO ls_map WITH KEY pcsordernum = ls_header-ordernum.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      DELETE FROM ztq2c_pcs_itm_d
+        WHERE shnumber = @ls_map-shnumber
+          AND remessa = @ls_map-remessa
+          AND item_remessa = @ls_map-item_remessa.
     ENDLOOP.
 
     IF lt_hdr IS NOT INITIAL.
-      MODIFY zdescarga_interface_pcs FROM TABLE @lt_hdr.
+      MODIFY ztq2c_pcs_det_d FROM TABLE @lt_hdr.
     ENDIF.
 
     IF lt_itm IS NOT INITIAL.
-      MODIFY zdescarga_interface_pcs_i FROM TABLE @lt_itm.
+      MODIFY ztq2c_pcs_itm_d FROM TABLE @lt_itm.
     ENDIF.
 
     CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
@@ -345,14 +419,48 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD update_historico.
+    DATA lv_peso_inicial TYPE ztbq2c_descarga-peso_inicial.
+    DATA lv_peso_final TYPE ztbq2c_descarga-peso_final.
+
     LOOP AT gt_u301_h INTO DATA(ls_header).
+      TRY.
+          " V13 - RTIEZZI - conversao segura de peso antes da atualizacao no historico
+          lv_peso_inicial = convert_weight( CONV string( ls_header-trkintwt ) ).
+          lv_peso_final = convert_weight( CONV string( ls_header-trkfnlwt ) ).
+        CATCH cx_root.
+          zclq2c_265_desc_common=>add_error( EXPORTING iv_number = '025'
+                                                       iv_v1     = ls_header-ordernum
+                                                       iv_v2     = ls_header-trkintwt
+                                                       iv_name   = ls_header-ordernum
+                                             CHANGING  ct_message = ct_msg ).
+          CONTINUE.
+      ENDTRY.
+
       UPDATE ztbq2c_descarga
-        SET peso_inicial = @ls_header-trkintwt,
-            peso_final   = @ls_header-trkfnlwt,
+        SET peso_inicial = @lv_peso_inicial,
+            peso_final   = @lv_peso_final,
             aenam        = @sy-uname,
             aedat        = @sy-datum
         WHERE pcs_ordernum = @ls_header-ordernum.
     ENDLOOP.
+
+    " V13 - RTIEZZI - commit explicito para persistencia do update em ztbq2c_descarga
+    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+      EXPORTING
+        wait = abap_true.
+  ENDMETHOD.
+
+  METHOD convert_weight.
+    DATA lv_normalized TYPE string.
+    DATA lv_weight_dec TYPE decfloat34.
+
+    lv_normalized = iv_weight_raw.
+    CONDENSE lv_normalized NO-GAPS.
+
+    REPLACE ALL OCCURRENCES OF ',' IN lv_normalized WITH '.'.
+
+    lv_weight_dec = CONV decfloat34( lv_normalized ).
+    rv_weight = lv_weight_dec.
   ENDMETHOD.
 
   METHOD update_log.

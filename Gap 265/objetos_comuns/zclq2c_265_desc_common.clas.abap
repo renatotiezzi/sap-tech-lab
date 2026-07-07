@@ -16,7 +16,7 @@ CLASS zclq2c_265_desc_common DEFINITION
     CONSTANTS gc_msgid TYPE symsgid VALUE 'ZCL_Q2C_265_MSG_DG'.
 
     TYPES: BEGIN OF ty_message,
-             name     TYPE eps2filnam,
+             name     TYPE string,
              ordernum TYPE zdeq2c_265_order_num,
              id       TYPE symsgid,
              number   TYPE symsgno,
@@ -47,18 +47,18 @@ CLASS zclq2c_265_desc_common DEFINITION
     CLASS-METHODS add_error
       IMPORTING
         iv_number   TYPE symsgno
-        iv_v1       TYPE string OPTIONAL
-        iv_v2       TYPE string OPTIONAL
-        iv_name     TYPE eps2filnam OPTIONAL
+        iv_v1       TYPE any OPTIONAL
+        iv_v2       TYPE any OPTIONAL
+        iv_name     TYPE any OPTIONAL
       CHANGING
         ct_message  TYPE tt_message.
 
     CLASS-METHODS add_success
       IMPORTING
         iv_number   TYPE symsgno
-        iv_v1       TYPE string OPTIONAL
-        iv_v2       TYPE string OPTIONAL
-        iv_name     TYPE eps2filnam OPTIONAL
+        iv_v1       TYPE any OPTIONAL
+        iv_v2       TYPE any OPTIONAL
+        iv_name     TYPE any OPTIONAL
       CHANGING
         ct_message  TYPE tt_message.
 
@@ -80,23 +80,23 @@ CLASS zclq2c_265_desc_common IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_error.
-    APPEND VALUE #( name     = iv_name
+    APPEND VALUE #( name     = |{ iv_name }|
                     id       = gc_msgid
                     number   = iv_number
                     type     = 'E'
                     severity = if_abap_behv_message=>severity-error
-                    v1       = iv_v1
-                    v2       = iv_v2 ) TO ct_message.
+                    v1       = |{ iv_v1 }|
+                    v2       = |{ iv_v2 }| ) TO ct_message.
   ENDMETHOD.
 
   METHOD add_success.
-    APPEND VALUE #( name     = iv_name
+    APPEND VALUE #( name     = |{ iv_name }|
                     id       = gc_msgid
                     number   = iv_number
                     type     = 'S'
                     severity = if_abap_behv_message=>severity-success
-                    v1       = iv_v1
-                    v2       = iv_v2 ) TO ct_message.
+                    v1       = |{ iv_v1 }|
+                    v2       = |{ iv_v2 }| ) TO ct_message.
   ENDMETHOD.
 
 ENDCLASS.

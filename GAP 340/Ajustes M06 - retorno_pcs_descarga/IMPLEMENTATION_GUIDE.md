@@ -1,5 +1,7 @@
 # GAP 340 / M06 — Retorno PCS → SAP: Atualização de Pesos da Descarga
 
+> Superseded: este fluxo foi substituido pelo pipeline do GAP 265 via zclq2c_265_desc_ret_granel / zclq2c_265_desc_job. Nao criar os objetos deste guia (passos 0 a 6); manter apenas como referencia historica.
+
 **Classe:** `ZCL_Q2C_PCS_RETORNO`  
 **Runner:** `ZR_Q2C_PCS_RETORNO_RUNNER`  
 **Pacote sugerido:** `ZPQ2C_265` (confirmar com responsável do GAP 265)  
@@ -109,6 +111,8 @@ Criar com as mensagens abaixo. Os `&1..&4` são as variáveis de mensagem.
 
 **Atenção — `validate_pcs_enabled`:** Método tem TODO pendente. Quando GAP 265 adicionar o campo `envia_pcs` em `ZI_Q2C_DESCARGA`, substituir o corpo do método pela leitura real do campo. O comentário no código explica exatamente o que colocar.
 
+**Atenção — fallback sem `pcs_ordernum`:** O layout `U301-H` documentado neste ajuste não traz `shnumber`, `remessa` nem `item_remessa`. Portanto, nesta versão o processamento depende de `pcs_ordernum` preenchido no retorno. Se o PCS passar a enviar a chave da Descarga em versão futura, aí sim faz sentido implementar fallback técnico por esses três campos.
+
 ---
 
 ## Passo 4 — Report Runner ZR_Q2C_PCS_RETORNO_RUNNER
@@ -184,6 +188,8 @@ U301-H;<ORDERNUM>;<TRKINTWT>;<TRKFNLWT>;<LINEEMTY>;<PT_YRN>;...
 | 2 | `TRKINTWT` | `peso_inicial` | NUMC(6) kg, ex: `012000` |
 | 3 | `TRKFNLWT` | `peso_final` | NUMC(6) kg, ex: `008500` |
 | 4–20 | demais campos operacionais | não atualizados nesta versão | — |
+
+> Nesta versão não há campos de fallback para `shnumber` / `remessa` / `item_remessa` no header `U301-H` documentado. Sem esses dados, o fluxo correto e suportado é localizar a Descarga somente por `pcs_ordernum`.
 
 **Linhas de lacre (opcionais):**
 ```

@@ -104,75 +104,16 @@ Para `zstq2c_ret_granel_l301_h`:
 - Tratar como artefato de referencia pronto da primeira entrega.
 - Nao redesenhar estrutura; copiar e ajustar apenas campos realmente diferentes no fluxo de Descarga.
 
-### 3.1.1 Inventario de Data Elements
+### 3.1.1 Data Elements com acao no projeto
 
-Legenda:
+Use esta lista apenas para os elementos que exigem criacao/ajuste. Tudo que ja for identico ao baseline da Carga nao precisa aparecer aqui.
 
-- `Reusar` = ja existe na base da primeira entrega e deve ser copiado/reaproveitado.
-- `Criar` = nao existe no pacote base com o mesmo nome/uso e precisa ser criado a partir do molde equivalente.
+| Nome | Descricao simples | Tipo esperado | Acao | Origem / molde |
+|---|---|---|---|---|
+| `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(5/6) | Criar/ajustar | Copiar do molde de peso usado na Carga e ajustar ao layout U301-H |
+| `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(5/6) | Criar/ajustar | Copiar do molde de peso usado na Carga e ajustar ao layout U301-H |
 
-#### Reusar da base da primeira entrega
-
-| Nome | Descricao simples | Tipo | Status |
-|---|---|---|---|
-| `zdeq2c_265_order_num` | Order Number | CHAR(9) | Reusar |
-| `zdeq2c_265_origordn` | Ordem original | CHAR(9) | Reusar |
-| `zdeq2c_265_load_qty` | Quantidade de carga | QUAN/NUMC | Reusar |
-| `zdeq2c_265_sourcet` | Source Tank | CHAR(1) | Reusar |
-| `zdeq2c_265_prod_num` | Product Number | CHAR | Reusar |
-| `zdeq2c_265_prod_name` | Product Name | CHAR | Reusar |
-| `zdeq2c_265_prod_den` | Product Density | CHAR/DEC | Reusar |
-| `zdeq2c_265_load_line` | Line to use | CHAR(1) | Reusar |
-| `zdeq2c_265_load_ptfm` | Platform | CHAR | Reusar |
-| `zdeq2c_265_driver_nm` | Driver Name | CHAR | Reusar |
-| `zdeq2c_265_truck_id` | Truck Id | CHAR | Reusar |
-| `zdeq2c_265_clr_hose` | Color of hose | CHAR(1) | Reusar |
-| `zdeq2c_265_msgrcvtm` | Message receive time | CHAR/TIME | Reusar |
-| `zdeq2c_265_pprd_name` | Previous product name | CHAR | Reusar |
-| `zdeq2c_265_pprd_num` | Previous product number | CHAR | Reusar |
-| `zdeq2c_265_tankinsp` | Tank inspection | CHAR(1) | Reusar |
-| `zdeq2c_265_flush_arm` | Flush amount arm | CHAR(1) | Reusar |
-| `zdeq2c_265_fabs` | Flush before sample | CHAR(1) | Reusar |
-| `zdeq2c_265_sealclr` | Seal color | CHAR(1) | Reusar |
-| `zdeq2c_265_seal_num` | Seal number | CHAR | Reusar |
-| `zdeq2c_265_seal_qty` | Seal quantity | CHAR/NUMC | Reusar |
-| `zdeq2c_265_grp_name` | Group name | CHAR | Reusar |
-| `zdeq2c_265_desc_invoqtyl` | Invoice quantity L | QUAN | Reusar |
-| `zdeq2c_265_desc_invoqkg` | Invoice quantity KG | QUAN | Reusar |
-| `zdeq2c_265_desc_desttank` | Destination tank | CHAR | Reusar |
-| `zdeq2c_265_desc_sampleyn` | Sample Y/N | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_labman` | Lab man | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_ladapptm` | Loading appointment | CHAR/TIME | Reusar |
-| `zdeq2c_265_desc_invoicen` | Invoice number | CHAR | Reusar |
-| `zdeq2c_265_desc_batchids` | Batch IDs | CHAR | Reusar |
-| `zdeq2c_265_desc_cartid` | Cart ID | CHAR | Reusar |
-| `zdeq2c_265_desc_lineemty` | Line empty | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_pt_yrn` | PT YRN | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_desttyrn` | Destination YRN | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_trkidy2n` | Truck ID Y/N | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_avveryrn` | Availability Y/N | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_compdrop` | Comp drop | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_trkgdryn` | Truck grounded Y/N | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_trkbkact` | Truck back active | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_trkmtoff` | Truck motor off | CHAR(1) | Reusar |
-| `zdeq2c_265_desc_labinfo` | Lab info | CHAR | Reusar |
-| `zdeq2c_265_desc_avverend` | Avver end | CHAR | Reusar |
-| `zdeq2c_265_desc_starttme` | Start time | CHAR/TIME | Reusar |
-| `zdeq2c_265_desc_endtime` | End time | CHAR/TIME | Reusar |
-| `zdeq2c_265_desc_supname` | Supervisor name | CHAR | Reusar |
-| `zdeq2c_265_desc_opsname` | Operator name | CHAR | Reusar |
-| `zdeq2c_265_desc_sealcode` | Seal code | CHAR | Reusar |
-| `zdeq2c_265_desc_sealyrn` | Seal YRN | CHAR | Reusar |
-| `zdeq2c_status_moni` | Status monitor | CHAR(1) | Reusar |
-
-#### Criar por copia adaptada para Descarga
-
-| Nome | Descricao simples | Tipo | Status |
-|---|---|---|---|
-| `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(5/6) | Criar/ajustar por copia do baseline |
-| `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(5/6) | Criar/ajustar por copia do baseline |
-
-Observacao: os dois elementos de peso precisam seguir a decisao funcional do layout U301-H. Se a base da Carga estiver com tamanho diferente, manter a copia do molde e ajustar somente o tamanho tecnico.
+Observacao: se algum outro Data Element do fluxo de Descarga nao existir no ambiente no momento da copia, a regra e a mesma: copiar do baseline mais proximo e listar aqui apenas se houver acao tecnica real.
 
 ### 3.2 Persistencia
 

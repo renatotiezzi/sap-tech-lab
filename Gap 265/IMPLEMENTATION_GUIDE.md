@@ -119,25 +119,25 @@ Se nao existir, gerar/importar no pacote de Descarga.
 
 | Nome | Descricao simples | Tipo esperado | Origem no repo | Acao |
 |---|---|---|---|---|
-| `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkintwt.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkfnlwt.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_lineemty` | Line empty | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_lineemty.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_pt_yrn` | PT YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_pt_yrn.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_desttyrn` | Destination YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_desttyrn.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_trkidy2n` | Truck ID Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkidy2n.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_avveryrn` | Availability Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_avveryrn.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_compdrop` | Comp drop | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_compdrop.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_trkgdryn` | Truck grounded Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkgdryn.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_trkbkact` | Truck back active | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkbkact.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_trkmtoff` | Truck motor off | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkmtoff.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_labinfo` | Lab info | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_labinfo.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_avverend` | Avver end | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_avverend.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_starttme` | Start time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_starttme.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_endtime` | End time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_endtime.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_supname` | Supervisor name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_supname.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_opsname` | Operator name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_opsname.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_sealcode` | Seal code | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealcode.dtel.xml` | Gerar/importar se nao existir |
-| `zdeq2c_265_desc_sealyrn` | Seal YRN | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealyrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkintwt` | Peso inicial do caminhao | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkintwt.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkfnlwt` | Peso final do caminhao | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkfnlwt.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_lineemty` | Linha vazia | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_lineemty.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_pt_yrn` | Plataforma (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_pt_yrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_desttyrn` | Tanque destino (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_desttyrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkidy2n` | Identificacao do caminhao (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkidy2n.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_avveryrn` | Verificacao AV (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_avveryrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_compdrop` | Compartimento de descarga | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_compdrop.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkgdryn` | Caminhao aterrado (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkgdryn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkbkact` | Re de caminhao ativa (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkbkact.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkmtoff` | Motor do caminhao desligado (S/N) | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkmtoff.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_labinfo` | Informacoes de laboratorio | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_labinfo.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_avverend` | Fim da verificacao AV | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_avverend.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_starttme` | Hora de inicio | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_starttme.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_endtime` | Hora de fim | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_endtime.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_supname` | Nome do supervisor | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_supname.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_opsname` | Nome do operador | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_opsname.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_sealcode` | Codigo do lacre | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealcode.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_sealyrn` | Lacre presente (S/N) | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealyrn.dtel.xml` | Gerar/importar se nao existir |
 
 Observacao: esta secao lista apenas objetos com acao de geracao no escopo Descarga comum. Objetos da Carga usados por reuso nao devem aparecer aqui.
 

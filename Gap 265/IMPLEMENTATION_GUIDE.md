@@ -111,39 +111,35 @@ Para `zstq2c_ret_granel_l301_h`:
 
 ### 3.1.1 Data Elements com acao no projeto
 
-Use esta lista para saber exatamente de onde copiar/importar ou criar cada elemento usado em `ty_u301_h`.
+Lista somente com o que exige acao de geracao no escopo Descarga (objetos comuns inbound/outbound).
 
-Se o elemento ja existir no ambiente, nao recriar.
-Se for objeto comum da Descarga e nao existir, criar/importar primeiro como parte da entrega de Descarga e ativar.
-Se nao existir no repo, gerar o artefato equivalente no padrao da entrega.
+Itens de Carga reaproveitados (ex.: `zdeq2c_265_order_num`) nao entram aqui.
+Se o objeto abaixo ja existir no ambiente, apenas ativar/reutilizar.
+Se nao existir, gerar/importar no pacote de Descarga.
 
 | Nome | Descricao simples | Tipo esperado | Origem no repo | Acao |
 |---|---|---|---|---|
-| `zdeq2c_265_order_num` | Order Number | CHAR(9) | `Gap 265/ZPQ2C_265_20260703_082358/src/zdeq2c_265_order_num.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkintwt.dtel.xml` | Importar/reusar; ajustar tamanho so se funcional exigir |
-| `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkfnlwt.dtel.xml` | Importar/reusar; ajustar tamanho so se funcional exigir |
-| `zdeq2c_265_desc_lineemty` | Line empty | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_lineemty.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_pt_yrn` | PT YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_pt_yrn.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_desttyrn` | Destination YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_desttyrn.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_prod_num` | Product Number | CHAR | `Gap 265/ZPQ2C_265_20260703_082358/src/zdeq2c_265_prod_num.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_load_line` | Line to use | CHAR(1) | `Gap 265/ZPQ2C_265_20260703_082358/src/zdeq2c_265_load_line.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_trkidy2n` | Truck ID Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkidy2n.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_clr_hose` | Color of hose | CHAR(1) | `Gap 265/ZPQ2C_265_20260703_082358/src/zdeq2c_265_clr_hose.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_avveryrn` | Availability Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_avveryrn.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_compdrop` | Comp drop | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_compdrop.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_trkgdryn` | Truck grounded Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkgdryn.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_trkbkact` | Truck back active | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkbkact.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_trkmtoff` | Truck motor off | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkmtoff.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_labinfo` | Lab info | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_labinfo.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_avverend` | Avver end | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_avverend.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_starttme` | Start time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_starttme.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_endtime` | End time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_endtime.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_supname` | Supervisor name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_supname.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_opsname` | Operator name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_opsname.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_sealcode` | Seal code | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealcode.dtel.xml` | Importar/reusar |
-| `zdeq2c_265_desc_sealyrn` | Seal YRN | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealyrn.dtel.xml` | Importar/reusar |
+| `zdeq2c_265_desc_trkintwt` | Truck initial weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkintwt.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkfnlwt` | Truck final weight | NUMC(6) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkfnlwt.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_lineemty` | Line empty | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_lineemty.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_pt_yrn` | PT YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_pt_yrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_desttyrn` | Destination YRN | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_desttyrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkidy2n` | Truck ID Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkidy2n.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_avveryrn` | Availability Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_avveryrn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_compdrop` | Comp drop | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_compdrop.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkgdryn` | Truck grounded Y/N | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkgdryn.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkbkact` | Truck back active | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkbkact.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_trkmtoff` | Truck motor off | CHAR(1) | `Gap 265/objetos_comuns/zdeq2c_265_desc_trkmtoff.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_labinfo` | Lab info | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_labinfo.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_avverend` | Avver end | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_avverend.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_starttme` | Start time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_starttme.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_endtime` | End time | CHAR/TIME | `Gap 265/objetos_comuns/zdeq2c_265_desc_endtime.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_supname` | Supervisor name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_supname.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_opsname` | Operator name | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_opsname.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_sealcode` | Seal code | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealcode.dtel.xml` | Gerar/importar se nao existir |
+| `zdeq2c_265_desc_sealyrn` | Seal YRN | CHAR | `Gap 265/objetos_comuns/zdeq2c_265_desc_sealyrn.dtel.xml` | Gerar/importar se nao existir |
 
-Observacao: para `ty_u301_h`, o ponto de acao real nao e criar novos nomes de Data Element, e sim garantir que os XML acima estejam presentes/ativos no ambiente. Se algum deles nao existir no repo ou no ambiente, o guide deve apontar a criacao/importacao do arquivo equivalente, nao inventar um novo prefixo por processo.
+Observacao: esta secao lista apenas objetos com acao de geracao no escopo Descarga comum. Objetos da Carga usados por reuso nao devem aparecer aqui.
 
 ### 3.2 Persistencia
 

@@ -23,8 +23,8 @@ Observacao: os Domains nao estao exportados neste diretorio; devem existir/ser c
 
 ### 2.2 Objetos de persistencia
 
-- Tabela de interface inbound: `zdescarga_interface_pcs`.
-- Tabela indice/apoio inbound: `zdescarga_interface_pcs_i`.
+- Tabela de interface inbound: `ztq2c_pcs_det_d` (copia adaptada de `ZTQ2C_PCS_DET`).
+- Tabela indice/apoio inbound: `ztq2c_pcs_itm_d` (copia adaptada de `ZTQ2C_PCS_ITM`).
 - Tabela de log inbound/outbound descarga: `ztbq2c_descgralog`.
 - Tabela de log de retorno/carga de referencia: `ztbq2c_retgralog`.
 
@@ -76,7 +76,7 @@ Dependencias:
 1. Criar/confirmar Domains necessarios no ambiente (quando inexistentes).
 2. Criar Data Elements `ZDEQ2C_265_*`.
 3. Criar estrutura DDIC `zstq2c_ret_granel_l301_h`.
-4. Criar tabelas transparentes de interface/log (`zdescarga_interface_pcs`, `zdescarga_interface_pcs_i`, `ztbq2c_descgralog`, `ztbq2c_retgralog`).
+4. Criar tabelas transparentes de interface/log (`ztq2c_pcs_det_d`, `ztq2c_pcs_itm_d`, `ztbq2c_descgralog`, `ztbq2c_retgralog`).
 5. Criar message class comum (`zcl_q2c_265_msg_dg`).
 6. Criar classe comum (`zclq2c_265_desc_common`).
 7. Criar classes core de negocio (`zclq2c_265_descarga_granel` e `zclq2c_265_desc_ret_granel`).

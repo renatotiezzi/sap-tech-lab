@@ -23,9 +23,14 @@ Header de retorno PCS Granel.
 Chave:
 
 - `MANDT`
-- `SHNUMBER`
-- `REMESSA`
-- `ITEM_REMESSA`
+- `DELIVERY`  
+	Remessa funcional.
+- `PCSITEM`  
+	Item funcional da remessa.
+
+Campo complementar:
+
+- `SEQ_NMBR` representa a sequencia tecnica do header.
 
 Campos que precisam ser mantidos/avaliados:
 
@@ -65,16 +70,20 @@ Lacres de retorno PCS Granel.
 Chave:
 
 - `MANDT`
-- `SHNUMBER`
-- `REMESSA`
-- `ITEM_REMESSA`
-- `SEQNO`
+- `VBELN`  
+	Remessa funcional.
+- `PCSITEM`  
+	Item funcional da remessa.
 
 Campos importantes:
 
 - `SORDRNM` como nao-chave
 - `SEALCODE`
 - `SEALYRN`
+
+Campo de sequencia:
+
+- `TDITEM` representa a sequencia funcional dos lacres.
 
 ### `ZTBQ2C_DESCGRALOG`
 

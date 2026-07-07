@@ -308,9 +308,8 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
   METHOD update_retorno.
     TYPES: BEGIN OF ty_descarga_map,
              pcsordernum TYPE zdeq2c_265_order_num,
-             shnumber    TYPE oig_shnum,
-             remessa     TYPE vbeln_vl,
-             item_remessa TYPE posnr_vl,
+             delivery    TYPE ztq2c_pcs_det_d-delivery,
+             pcsitem     TYPE ztq2c_pcs_det_d-pcsitem,
            END OF ty_descarga_map.
 
     DATA lt_hdr TYPE STANDARD TABLE OF ztq2c_pcs_det_d WITH EMPTY KEY.
@@ -337,9 +336,8 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
 
       LOOP AT lt_descarga_raw INTO DATA(ls_descarga_raw).
         INSERT VALUE #( pcsordernum  = ls_descarga_raw-pcsordernum
-                        shnumber     = ls_descarga_raw-shnumber
-                        remessa      = ls_descarga_raw-remessa
-                        item_remessa = ls_descarga_raw-itemremessa )
+                        delivery     = ls_descarga_raw-remessa
+                        pcsitem      = ls_descarga_raw-itemremessa )
           INTO TABLE lt_descarga_map.
       ENDLOOP.
     ENDIF.
@@ -353,9 +351,10 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
 
       APPEND INITIAL LINE TO lt_hdr ASSIGNING FIELD-SYMBOL(<fs_hdr>).
       MOVE-CORRESPONDING ls_header TO <fs_hdr>.
-      <fs_hdr>-shnumber = ls_map-shnumber.
-      <fs_hdr>-remessa = ls_map-remessa.
-      <fs_hdr>-item_remessa = ls_map-item_remessa.
+      " V14 - RTIEZZI - uso dos nomes tecnicos reais da tabela DDIC de retorno
+      <fs_hdr>-delivery = ls_map-delivery.
+      <fs_hdr>-pcsitem = ls_map-pcsitem.
+      <fs_hdr>-seq_nmbr = sy-tabix.
     ENDLOOP.
 
     LOOP AT gt_u301_s INTO DATA(ls_seal).
@@ -366,31 +365,27 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
 
       APPEND INITIAL LINE TO lt_itm ASSIGNING FIELD-SYMBOL(<fs_itm>).
       MOVE-CORRESPONDING ls_seal TO <fs_itm>.
-      <fs_itm>-shnumber = ls_map-shnumber.
-      <fs_itm>-remessa = ls_map-remessa.
-      <fs_itm>-item_remessa = ls_map-item_remessa.
+      <fs_itm>-vbeln = ls_map-delivery.
+      <fs_itm>-pcsitem = ls_map-pcsitem.
     ENDLOOP.
 
     IF line_exists( ct_msg[ type = 'E' ] ).
       RETURN.
     ENDIF.
 
-    SORT lt_itm BY shnumber remessa item_remessa.
+    SORT lt_itm BY vbeln pcsitem tditem.
     DATA lv_seqno TYPE n LENGTH 3.
-    DATA lv_shnumber TYPE oig_shnum.
-    DATA lv_remessa TYPE vbeln_vl.
-    DATA lv_item_remessa TYPE posnr_vl.
+    DATA lv_vbeln TYPE vbeln_vl.
+    DATA lv_pcsitem TYPE oig_shitm.
     LOOP AT lt_itm ASSIGNING <fs_itm>.
-      IF lv_shnumber <> <fs_itm>-shnumber
-         OR lv_remessa <> <fs_itm>-remessa
-         OR lv_item_remessa <> <fs_itm>-item_remessa.
-        lv_shnumber = <fs_itm>-shnumber.
-        lv_remessa = <fs_itm>-remessa.
-        lv_item_remessa = <fs_itm>-item_remessa.
+      IF lv_vbeln <> <fs_itm>-vbeln
+         OR lv_pcsitem <> <fs_itm>-pcsitem.
+        lv_vbeln = <fs_itm>-vbeln.
+        lv_pcsitem = <fs_itm>-pcsitem.
         CLEAR lv_seqno.
       ENDIF.
       lv_seqno = lv_seqno + 1.
-      <fs_itm>-seqno = lv_seqno.
+      <fs_itm>-tditem = lv_seqno.
     ENDLOOP.
 
     LOOP AT gt_u301_h INTO ls_header.
@@ -400,9 +395,8 @@ CLASS zclq2c_265_desc_ret_granel IMPLEMENTATION.
       ENDIF.
 
       DELETE FROM ztq2c_pcs_itm_d
-        WHERE shnumber = @ls_map-shnumber
-          AND remessa = @ls_map-remessa
-          AND item_remessa = @ls_map-item_remessa.
+        WHERE vbeln = @ls_map-delivery
+          AND pcsitem = @ls_map-pcsitem.
     ENDLOOP.
 
     IF lt_hdr IS NOT INITIAL.

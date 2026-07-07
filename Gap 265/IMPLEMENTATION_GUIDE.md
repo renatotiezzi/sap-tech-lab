@@ -134,6 +134,37 @@ Permitido alterar somente:
 - Mensagens e textos funcionais da Descarga.
 - Pontos de validacao estritamente necessarios ao cenario U301.
 
+### 3.3.1 Fatoracao dos objetos tecnicos (resultado final esperado)
+
+Objetivo desta secao: deixar explicito como os objetos de codigo devem ficar no estado final, sempre por copia da base da Carga com delta minimo.
+
+- Origem: `zclq2c_265_carga_ret_granel` -> Destino final: `zclq2c_265_desc_ret_granel`
+	- Manter: desenho de classe, sequencia de processamento, leitura AL11, validacao e resumo.
+	- Ajustar minimo: trocar layouts de Carga para `U301-H`/`U301-S`.
+	- Ajustar minimo: persistir em `ztq2c_pcs_det_d` e `ztq2c_pcs_itm_d`.
+	- Ajustar minimo: log tecnico em `ztbq2c_descgralog` (mesmo conceito da Carga).
+	- Ajustar minimo: update de historico na `ztbq2c_descarga` por `pcs_ordernum`.
+
+- Origem: `zclq2c_265_job` -> Destino final: `zclq2c_265_desc_job`
+	- Manter: interfaces APJ (`if_apj_dt_exec_object` e `if_apj_rt_exec_object`) e padrao de execucao.
+	- Ajustar minimo: parametros do job para contexto de Descarga.
+	- Ajustar minimo: instanciar e executar `zclq2c_265_desc_ret_granel`.
+
+- Origem: `zrq2c_carga_ret_granel` -> Destino final: `zrq2c_desc_ret_granel`
+	- Manter: padrao de runner tecnico para execucao manual.
+	- Ajustar minimo: assinatura de parametros para retorno de Descarga.
+	- Ajustar minimo: chamada da classe `zclq2c_265_desc_ret_granel`.
+
+- Origem: `zclq2c_265_carga_granel` -> Destino final: `zclq2c_265_descarga_granel`
+	- Manter: arquitetura de validacao, montagem de arquivo e gravacao.
+	- Ajustar minimo: estruturas/layout de Descarga (`U200-H`/`U200-S` e cancelamento `U201`).
+	- Ajustar minimo: leitura de dados de negocio da Descarga via objetos existentes.
+	- Ajuste pontual em aberto: adotar `ZTBQ2C_CTRL_PCS` para controle de numeracao compartilhado.
+
+- Origem: `zcl_q2c_265_msg_cg` -> Destino final: `zcl_q2c_265_msg_dg`
+	- Manter: estrategia de classe de mensagens dedicada.
+	- Ajustar minimo: textos e codigos para semantica de Descarga.
+
 ### 3.4 Estruturas de saida (orientacao objetiva)
 
 Para evitar desenho do zero, usar sempre base de estrutura existente e aplicar delta:

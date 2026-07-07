@@ -2,7 +2,7 @@
 
 ## 1. Objetivo e premissas
 
-Este guide segue o principio de copiar o que ja foi entregue no pacote base da Carga e ajustar apenas o delta necessario para Descarga.
+Este guide segue o principio de copiar o que ja foi entregue na primeira entrega e ajustar apenas o delta necessario para Descarga.
 
 Pacote base (fonte de verdade):
 
@@ -28,7 +28,7 @@ Objetos da primeira entrega que devem ser referencia direta:
 - Estrutura de retorno: `zstq2c_ret_granel_l301_h`
 - Log tecnico: `ztbq2c_retgralog`
 
-Regra: para cada objeto novo de Descarga, apontar explicitamente de qual objeto da Carga ele foi copiado antes de qualquer ajuste.
+Regra: para cada objeto novo de Descarga, apontar explicitamente de qual objeto-base ele foi copiado antes de qualquer ajuste.
 
 ## 2.1 Mapa exato de copia (origem -> destino)
 
@@ -98,6 +98,8 @@ Nao criar do zero. Proceder assim:
 2. Se ja existir: reutilizar.
 3. Se nao existir no ambiente: transportar/copiar do pacote base exatamente como estao.
 4. Somente depois aplicar ajuste pontual exigido por layout (ex.: tamanho de campo confirmado com funcional).
+
+Observacao: os artefatos em `objetos_comuns` sao compartilhados entre inbound e outbound. Eles nao devem ser tratados como pertencentes a Carga ou Descarga; devem ser reutilizados enquanto o mesmo tipo de dado atender aos dois fluxos.
 
 Para `zstq2c_ret_granel_l301_h`:
 

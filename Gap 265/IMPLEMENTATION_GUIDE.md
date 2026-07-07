@@ -1,161 +1,140 @@
-# Projeto 265 - Guide de Implementacao
+# Projeto 265 - Guide de Implementacao (Copy-First)
 
-## 1. Visao geral
+## 1. Objetivo e premissas
 
-O GAP 265 implementa integracoes de Descarga com troca de arquivos PCS via AL11, cobrindo:
+Este guide segue o principio de copiar o que ja foi entregue no pacote base da Carga e ajustar apenas o delta necessario para Descarga.
 
-- Fluxo outbound SAP -> PCS (arquivos U200-H/U200-S e cancelamento U201).
-- Fluxo inbound PCS -> SAP (arquivos U301-H/U301-S com persistencia e log).
-- Reuso de objetos comuns para mensagem, TVARVC e utilitarios transversais.
+Pacote base (fonte de verdade):
 
-Objetivo deste guide: evitar criacao fora de ordem e erros de dependencia durante montagem/ativacao tecnica.
+- `ZPQ2C_265_20260703_082358`
 
-## 2. Mapa de dependencias
+Premissas obrigatorias:
 
-### 2.1 Objetos base
+- Nao recriar arquitetura.
+- Nao criar Data Element ou estrutura do zero se o equivalente ja existe na base.
+- Priorizar copia + ajuste minimo (add/remocao pontual).
+- Refatoracao somente quando inevitavel e minima (ex.: nomenclatura/chave de tabela para alinhamento com o padrao).
 
-Base DDIC (tipos primitivos usados por classes, tabelas e estruturas):
+## 2. Baseline da primeira entrega
 
-- Data Elements `ZDEQ2C_265_*` (ex.: `zdeq2c_265_order_num`, `zdeq2c_265_prod_num`, `zdeq2c_265_desc_*`).
-- Estrutura tecnica: `zstq2c_ret_granel_l301_h`.
+Objetos da primeira entrega que devem ser referencia direta:
 
-Observacao: os Domains nao estao exportados neste diretorio; devem existir/ser criados no ambiente antes dos Data Elements que dependem deles.
+- Core outbound: `zclq2c_265_carga_granel`
+- Core inbound retorno: `zclq2c_265_carga_ret_granel`
+- Job APJ: `zclq2c_265_job`
+- Runner manual: `zrq2c_carga_ret_granel`
+- Message class: `zcl_q2c_265_msg_cg`
+- DDIC base: `zdeq2c_265_*`
+- Estrutura de retorno: `zstq2c_ret_granel_l301_h`
+- Log tecnico: `ztbq2c_retgralog`
 
-### 2.2 Objetos de persistencia
+Regra: para cada objeto novo de Descarga, apontar explicitamente de qual objeto da Carga ele foi copiado antes de qualquer ajuste.
 
-- Tabela de interface inbound: `ztq2c_pcs_det_d` (copia adaptada de `ZTQ2C_PCS_DET`).
-- Tabela indice/apoio inbound: `ztq2c_pcs_itm_d` (copia adaptada de `ZTQ2C_PCS_ITM`).
-- Tabela de log inbound/outbound descarga: `ztbq2c_descgralog`.
-- Tabela de log de retorno/carga de referencia: `ztbq2c_retgralog`.
+## 3. Estrategia por tipo de objeto
 
-Dependencias:
+### 3.1 DDIC base (Data Elements e estrutura)
 
-- Todas dependem de Data Elements e, quando aplicavel, estruturas base.
-- Classes de processamento dependem destas tabelas estarem ativas.
+Nao criar do zero. Proceder assim:
 
-### 2.3 Objetos de regra/processamento
+1. Confirmar existencia no ambiente (SE11/ADT) dos `ZDEQ2C_265_*` necessarios.
+2. Se ja existir: reutilizar.
+3. Se nao existir no ambiente: transportar/copiar do pacote base exatamente como estao.
+4. Somente depois aplicar ajuste pontual exigido por layout (ex.: tamanho de campo confirmado com funcional).
 
-Objetos comuns:
+Para `zstq2c_ret_granel_l301_h`:
 
-- Classe comum: `zclq2c_265_desc_common`.
-- Message class comum: `zcl_q2c_265_msg_dg`.
+- Tratar como artefato de referencia pronto da primeira entrega.
+- Nao redesenhar estrutura; copiar e ajustar apenas campos realmente diferentes no fluxo de Descarga.
 
-Outbound:
+### 3.2 Persistencia
 
-- Classe core: `zclq2c_265_descarga_granel`.
-- Runner manual: `zrq2c_descarga_granel`.
+Padrao adotado:
 
-Inbound:
+- `ztq2c_pcs_det_d` = copia adaptada de `ZTQ2C_PCS_DET`
+- `ztq2c_pcs_itm_d` = copia adaptada de `ZTQ2C_PCS_ITM`
+- `ztbq2c_descgralog` = log tecnico da Descarga no mesmo conceito do log da Carga
 
-- Classe core: `zclq2c_265_desc_ret_granel`.
-- Classe de job: `zclq2c_265_desc_job`.
-- Runner manual: `zrq2c_desc_ret_granel`.
+Regras:
 
-Dependencias:
+- Nao inventar modelo novo de persistencia.
+- Manter chave orientada ao negocio SAP quando aplicavel.
+- Usar `ORDERNUM` como atributo de correlacao, nao como pilar de arquitetura.
 
-- `zclq2c_265_desc_common` deve existir antes de classes core e runners.
-- Classes core dependem de DDIC base + tabelas de persistencia + message class.
-- Runners dependem das classes core.
-- Classe de job depende da classe core inbound e objetos APJ.
+### 3.3 Classes, runner e job
 
-### 2.4 Objetos de exposicao/consumo
+Implementacao por copia controlada:
 
-No GAP 265 desta estrutura nao ha camada RAP/OData (CDS behavior/service binding) para este fluxo.
+- `zclq2c_265_descarga_granel` copia a arquitetura de `zclq2c_265_carga_granel`.
+- `zclq2c_265_desc_ret_granel` copia a arquitetura de `zclq2c_265_carga_ret_granel`.
+- `zclq2c_265_desc_job` copia a arquitetura de `zclq2c_265_job`.
+- `zrq2c_desc_ret_granel`/`zrq2c_descarga_granel` seguem o padrao do runner da Carga.
 
-Objetos de consumo tecnico identificados:
+Permitido alterar somente:
 
-- Template/definicao de job APJ: `zjce_265_int_carregamento.sajc.json`.
-- Variante/template APJ: `zjt_265_int_carregamento.sajt.json`.
+- Layouts e campos especificos de Descarga.
+- Tabelas de destino do retorno.
+- Mensagens e textos funcionais da Descarga.
+- Pontos de validacao estritamente necessarios ao cenario U301.
 
-Dependencias:
+## 4. Ordem recomendada (copy-first)
 
-- APJ deve ser criado somente apos classes de execucao (`zclq2c_265_desc_job`) estarem ativas.
+1. Confirmar no ambiente o que ja existe da primeira entrega (DDIC, classes, mensagens, APJ).
+2. Copiar/reutilizar DDIC base (`ZDEQ2C_265_*`, `zstq2c_ret_granel_l301_h`) sem redesenho.
+3. Copiar e ajustar somente o delta das tabelas de persistencia da Descarga.
+4. Copiar classe comum/mensagens e ajustar somente textos e numeros faltantes.
+5. Copiar classes core (outbound/inbound) da Carga e aplicar delta de Descarga.
+6. Copiar job e runners no mesmo padrao tecnico.
+7. Ajustar APJ/TVARVC mantendo naming e comportamento da entrega base.
+8. Ativar em blocos e validar fim a fim.
 
-## 3. Ordem recomendada de criacao
+## 5. Ordem de ativacao
 
-1. Criar/confirmar Domains necessarios no ambiente (quando inexistentes).
-2. Criar Data Elements `ZDEQ2C_265_*`.
-3. Criar estrutura DDIC `zstq2c_ret_granel_l301_h`.
-4. Criar tabelas transparentes de interface/log (`ztq2c_pcs_det_d`, `ztq2c_pcs_itm_d`, `ztbq2c_descgralog`, `ztbq2c_retgralog`).
-5. Criar message class comum (`zcl_q2c_265_msg_dg`).
-6. Criar classe comum (`zclq2c_265_desc_common`).
-7. Criar classes core de negocio (`zclq2c_265_descarga_granel` e `zclq2c_265_desc_ret_granel`).
-8. Criar classe de job (`zclq2c_265_desc_job`).
-9. Criar runners (`zrq2c_descarga_granel`, `zrq2c_desc_ret_granel`).
-10. Criar/ajustar objetos APJ (`*.sajc.json`, `*.sajt.json`) e validar execucao.
-11. Ativar lote final e executar validacoes tecnicas de ponta a ponta.
-
-## 4. Ordem de ativacao
-
-Ativar em blocos para reduzir erro em cascata:
-
-1. DDIC base: Domains -> Data Elements -> Estruturas.
-2. Persistencia: tabelas transparentes e indices.
-3. Mensagens e objetos comuns.
+1. DDIC reaproveitado/copiado (domains, data elements, estruturas).
+2. Tabelas de persistencia da Descarga.
+3. Message class e objetos comuns.
 4. Classes core (outbound/inbound).
-5. Classe de job e objetos APJ.
-6. Runners/programas.
-7. Ativacao em massa final do pacote para garantir consistencia cruzada.
+5. Job/APJ.
+6. Runners.
+7. Ativacao final em massa.
 
-Regra pratica: se um objeto referencia TYPE, TABLE, MESSAGE-ID, CLASS ou REPORT que ainda nao ativa, voltar uma etapa e ativar dependencia primeiro.
+Regra pratica: se houver dependencia quebrada, voltar para o objeto-base de onde deveria ter sido copiado e corrigir pelo mesmo padrao, sem redesign.
 
-## 5. Validacoes por etapa
+## 6. Validacoes obrigatorias
 
-### Etapa 1 - Base DDIC
+### 6.1 Alinhamento com baseline
 
-- Ativacao sem erro (SE11/ADT).
-- Where-used basico para garantir visibilidade dos tipos.
-- Verificar tamanho/tipo tecnico dos Data Elements conforme layout PCS.
+- Pipeline da Descarga segue o mesmo desenho da Carga.
+- Mesma estrategia de commit transacional.
+- Mesma abordagem de TVARVC/AL11.
+- Sem criacao de arquitetura paralela.
 
-### Etapa 2 - Persistencia
+### 6.2 Delta funcional minimo
 
-- Ativacao sem erro de chave, foreign key ou tipo.
-- Teste rapido de leitura/escrita tecnico (SE16N/SQL Console em ambiente de dev).
-- Conferir campos obrigatorios para log e rastreabilidade.
+- Diferencas limitadas a layout/fields/target tables da Descarga.
+- Se houver diferenca estrutural, documentar origem da copia e motivo do ajuste.
+- Em qualquer conflito com GAP 340, manter o GAP 265 como pipeline unico de retorno PCS para Descarga.
 
-### Etapa 3 - Mensagens e comum
+### 6.3 DDIC
 
-- Message class ativa e numeros utilizados pelas classes existentes.
-- Classe comum compila sem warnings criticos.
-- Teste rapido de leitura de parametro TVARVC (quando aplicavel).
+- Nenhum Data Element criado do zero sem justificativa tecnica e funcional formal.
+- Estruturas base copiadas/reutilizadas da primeira entrega.
+- Campos de peso validados com funcional antes de ativacao final (NUMC(5) x NUMC(6)).
 
-### Etapa 4 - Classes core
+## 7. O que nao fazer
 
-- Syntax check (Ctrl+F2/ATC local) sem erro.
-- Verificar dependencias de AL11, TVARVC e tabelas Z ativas.
-- Executar fluxo minimo com runner em modo controlado.
+- Nao iniciar por criar Data Element/estrutura do zero.
+- Nao refatorar classe/pipeline por preferencia tecnica.
+- Nao criar objetos duplicados do fluxo M06 em paralelo ao pipeline do GAP 265.
+- Nao alterar logica ja estavel fora do delta minimo de Descarga.
 
-### Etapa 5 - Job/APJ
+## 8. Checklist final
 
-- Classe de job ativa com interfaces APJ implementadas.
-- Objeto SAJC/SAJT consistente com classe de execucao.
-- Disparo tecnico de job com parametros minimos.
-
-### Etapa 6 - Runners e validacao final
-
-- Runner executa sem dump com parametros validos.
-- Conferir criacao/consumo de arquivo e log gravado.
-- Validar cenarios de sucesso e erro minimo.
-- Rodar ATC/check final no pacote do GAP 265.
-
-## 6. Observacoes tecnicas
-
-- Nao criar consumidores (runner/job) antes de classes base e DDIC.
-- Nao criar classes core antes de message class e tabelas de persistencia.
-- Nao iniciar APJ antes da classe de job ativa.
-- Evitar hardcode de textos de mensagem; usar message class/text elements.
-- Manter comentarios tecnicos relevantes e rastreaveis.
-- Padronizar cabecalho tecnico com Object Name, Object Title, WRICEF ID, Request/CHARM, Author e Date.
-- Author padrao para este pacote: RTiezzi.
-
-## 7. Checklist final
-
-- [ ] Objetos base criados e ativados.
-- [ ] Persistencia criada e ativada.
-- [ ] Classe/message comum criadas.
-- [ ] Classes principais de regra criadas.
-- [ ] Objetos de execucao (runner/job/APJ) criados.
-- [ ] Testes minimos executados (sucesso e erro).
-- [ ] Cabecalhos revisados.
-- [ ] Request preenchida nos cabecalhos.
-- [ ] Author corrigido para RTiezzi.
+- [ ] Baseline da primeira entrega identificado e usado como fonte de copia.
+- [ ] Data Elements e estrutura reaproveitados/copiados, sem criacao do zero.
+- [ ] Tabelas da Descarga derivadas por copia adaptada do modelo da Carga.
+- [ ] Classes, job e runners implementados por copia + delta minimo.
+- [ ] APJ/TVARVC alinhados ao padrao da primeira entrega.
+- [ ] Validacao de sintaxe/ativacao sem erros.
+- [ ] Teste minimo de sucesso e erro executado.
+- [ ] Rastreabilidade de ajustes mantida nos comentarios tecnicos.
+- [ ] Author padrao do pacote mantido como RTiezzi.

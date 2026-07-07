@@ -2,7 +2,7 @@
 
 ## 1. Objetivo e premissas
 
-Este guide segue o principio de copiar o que ja foi entregue na primeira entrega e ajustar apenas o delta necessario para Descarga.
+Este guide segue o principio de copiar o que ja foi entregue na primeira entrega e ajustar apenas o delta necessario para a entrega de Descarga.
 
 Pacote base (fonte de verdade):
 
@@ -29,6 +29,7 @@ Objetos da primeira entrega que devem ser referencia direta:
 - Log tecnico: `ztbq2c_retgralog`
 
 Regra: para cada objeto novo de Descarga, apontar explicitamente de qual objeto-base ele foi copiado antes de qualquer ajuste.
+Se o objeto for comum a inbound e outbound de Descarga, ele entra primeiro como objeto comum da entrega de Descarga e precisa estar documentado no guide.
 
 ## 2.1 Mapa exato de copia (origem -> destino)
 
@@ -99,7 +100,9 @@ Nao criar do zero. Proceder assim:
 3. Se nao existir no ambiente: transportar/copiar do pacote base exatamente como estao.
 4. Somente depois aplicar ajuste pontual exigido por layout (ex.: tamanho de campo confirmado com funcional).
 
-Observacao: os artefatos em `objetos_comuns` sao compartilhados entre inbound e outbound. Eles nao devem ser tratados como pertencentes a Carga ou Descarga; devem ser reutilizados enquanto o mesmo tipo de dado atender aos dois fluxos.
+Observacao: os artefatos em `objetos_comuns` sao parte da entrega de Descarga e servem como base compartilhada entre inbound e outbound.
+Se o objeto comum nao existir, ele deve ser criado dentro da entrega de Descarga e listado no guide antes de ser consumido pelos dois fluxos.
+Se ja existir no repo/ambiente, apenas reutilizar/ativar; nao redescobrir no escopo de Carga.
 
 Para `zstq2c_ret_granel_l301_h`:
 
@@ -108,9 +111,11 @@ Para `zstq2c_ret_granel_l301_h`:
 
 ### 3.1.1 Data Elements com acao no projeto
 
-Use esta lista para saber exatamente de onde copiar/importar cada elemento usado em `ty_u301_h`.
+Use esta lista para saber exatamente de onde copiar/importar ou criar cada elemento usado em `ty_u301_h`.
 
-Se o elemento ja existir no ambiente, nao recriar. Se nao existir, importar o XML indicado do repo e ativar.
+Se o elemento ja existir no ambiente, nao recriar.
+Se for objeto comum da Descarga e nao existir, criar/importar primeiro como parte da entrega de Descarga e ativar.
+Se nao existir no repo, gerar o artefato equivalente no padrao da entrega.
 
 | Nome | Descricao simples | Tipo esperado | Origem no repo | Acao |
 |---|---|---|---|---|

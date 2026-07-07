@@ -8,6 +8,12 @@ Este arquivo fica na raiz do Gap 265 para orientar a refatoracao.
 - O ponto a tratar agora e Dicionario de Dados / ativacao, ou descompasso entre codigo e tabela no ambiente externo.
 - Se houver algo alem de DDIC, nao entra aqui.
 
+## Codigo observado
+
+- O retorno ja referencia `remessa`, `item_remessa` e `seqno` no codigo atual.
+- `ZTBQ2C_DESCGRALOG` tambem ja e usada como tipo e alvo de `MODIFY` no retorno.
+- Portanto, o que aparece na tela do Eclipse nao bate com o texto atual do workspace e parece ser ativacao/stale state, nao refatoracao funcional pendente no ABAP.
+
 ## Tabelas reais
 
 ### `ZTQ2C_PCS_DET_D`

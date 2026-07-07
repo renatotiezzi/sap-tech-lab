@@ -39,4 +39,4 @@ Usar como guia:
 
 ## Observacao tecnica
 
-Se a definicao oficial da tabela `ZDESCARGA_INTERFACE_PCS` existir no ambiente, ela deve ser usada como fonte de verdade para persistencia. Nao criar tabela paralela sem necessidade.
+Persistencia do inbound deve usar `ZTQ2C_PCS_DET_D` (header) e `ZTQ2C_PCS_ITM_D` (itens), como copias adaptadas de `ZTQ2C_PCS_DET` e `ZTQ2C_PCS_ITM` da Carga.

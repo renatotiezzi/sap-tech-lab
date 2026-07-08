@@ -21,30 +21,30 @@ Escopo da matriz: dependencias DDIC usadas diretamente em ZCLQ2C_265_DESCARGA_GR
 
 | Objeto | Tipo DDIC | Tipo base | Tamanho | Decimais | Descricao | Criar ou reutilizar |
 |---|---|---|---|---|---|---|
-| ZDEQ2C_265_DESC_DESTTANK | Data Element | CHAR | 10 | 0 | Destination Tank | Criar ou transportar se nao existir no ambiente |
-| ZDEQ2C_265_DESC_INVOQTYL | Data Element | DEC | 13 | 3 | Invoice Quantity Liters | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_INVOQKG | Data Element | DEC | 13 | 3 | Invoice Weight KG | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_INVOICEN | Data Element | CHAR | 20 | 0 | Invoice Number | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_BATCHIDS | Data Element | CHAR | 20 | 0 | Batch IDs | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_CARTID | Data Element | CHAR | 10 | 0 | Trailer Plate | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_COLORYN | Data Element | CHAR | 1 | 0 | Color YN | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_SAMPLEYN | Data Element | CHAR | 1 | 0 | Sample YN | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_LABMAN | Data Element | CHAR | 12 | 0 | Lab Manager | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_LADAPPTM | Data Element | CHAR | 17 | 0 | Lab Approval Timestamp | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_SEALCODE | Data Element | CHAR | 10 | 0 | Seal Code | Reutilizar objetos_comuns |
-| ZDEQ2C_265_ORDER_NUM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Order Number | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_NUM | Data Element | CHAR | 18 | 0 | Product Number | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_NAME | Data Element | CHAR | 18 | 0 | Product Name | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_DEN | Data Element | QUAN | 6 | 0 | Product Density | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_LOAD_LINE | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Line to Load/Unload | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_LOAD_PTFM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Load Platform | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_TRUCK_ID | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Truck ID | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_MSGRCVTM | Data Element | CHAR | 17 | 0 | Date and Time Received | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PPRD_NAME | Data Element | CHAR | 18 | 0 | Previous Product Name | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PPRD_NUM | Data Element | CHAR | 18 | 0 | Previous Product Number | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEALCLR | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Seal Color | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEAL_NUM | Data Element | NUMC | 8 | 0 | Seal Number | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEAL_QTY | Data Element | NUMC | 2 | 0 | Seal Quantity | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_DESC_DESTTANK | Data Element | CHAR | 10 | 0 | Tanque de destino | Criar ou transportar se nao existir no ambiente |
+| ZDEQ2C_265_DESC_INVOQTYL | Data Element | DEC | 13 | 3 | Quantidade da nota em litros | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_INVOQKG | Data Element | DEC | 13 | 3 | Peso da nota em kg | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_INVOICEN | Data Element | CHAR | 20 | 0 | Numero da nota fiscal | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_BATCHIDS | Data Element | CHAR | 20 | 0 | Lotes | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_CARTID | Data Element | CHAR | 10 | 0 | Placa do carreto | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_COLORYN | Data Element | CHAR | 1 | 0 | Cor informada (S/N) | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_SAMPLEYN | Data Element | CHAR | 1 | 0 | Amostra coletada (S/N) | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_LABMAN | Data Element | CHAR | 12 | 0 | Responsavel do laboratorio | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_LADAPPTM | Data Element | CHAR | 17 | 0 | Data/hora aprovacao laboratorio | Reutilizar objetos_comuns |
+| ZDEQ2C_265_DESC_SEALCODE | Data Element | CHAR | 10 | 0 | Codigo do lacre | Reutilizar objetos_comuns |
+| ZDEQ2C_265_ORDER_NUM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Numero da ordem | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_PROD_NUM | Data Element | CHAR | 18 | 0 | Numero do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_PROD_NAME | Data Element | CHAR | 18 | 0 | Nome do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_PROD_DEN | Data Element | QUAN | 6 | 0 | Densidade do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_LOAD_LINE | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Linha de carga/descarga | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_LOAD_PTFM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Plataforma de carga | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_TRUCK_ID | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Identificacao do caminhao | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_MSGRCVTM | Data Element | CHAR | 17 | 0 | Data e hora de recebimento | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_PPRD_NAME | Data Element | CHAR | 18 | 0 | Nome do produto anterior | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_PPRD_NUM | Data Element | CHAR | 18 | 0 | Numero do produto anterior | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_SEALCLR | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Cor do lacre | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_SEAL_NUM | Data Element | NUMC | 8 | 0 | Numero do lacre | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
+| ZDEQ2C_265_SEAL_QTY | Data Element | NUMC | 2 | 0 | Quantidade de lacres | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
 
 Nota de tamanho para DESTTANK:
 - Evidencia tecnica atual do repositorio: ZDEQ2C_265_DESC_DESTTANK esta definido como CHAR(10) em objetos_comuns.

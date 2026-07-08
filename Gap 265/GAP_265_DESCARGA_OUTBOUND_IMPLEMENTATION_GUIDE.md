@@ -1,85 +1,78 @@
-# GAP 265 - Descarga Outbound - Action Guide
+# GAP 265 - Descarga Outbound - Action Guide Revisado
 
 Author: RTiezzi  
 Request/CHARM: ZPQ2C_265_20260703_082358
 
-## 1. Objetivo
-Ativar e finalizar o fluxo Descarga Outbound agora, removendo o bloqueio de ativacao da classe ZCLQ2C_265_DESCARGA_GRANEL por ausencia de DDIC no ambiente.
+## 1. Bloqueio atual
+Erro de ativacao na classe ZCLQ2C_265_DESCARGA_GRANEL:
 
-## 2. Acoes necessarias
-| Ordem | Acao | Objeto | Tipo | Observacao |
-|---|---|---|---|---|
-| 1 | Validar existencia no ambiente | ZDEQ2C_265_DESC_DESTTANK | Data Element | Bloqueio atual de ativacao |
-| 2 | Criar ou transportar (se ausente) | ZDEQ2C_265_DESC_DESTTANK | Data Element | Necessario para ativar ZCLQ2C_265_DESCARGA_GRANEL |
-| 3 | Ativar | ZDEQ2C_265_DESC_DESTTANK | Data Element | Ativar DDIC antes da classe |
-| 4 | Ativar | ZCLQ2C_265_DESCARGA_GRANEL | Classe | Deve compilar sem erro de tipo desconhecido |
-| 5 | Ativar | ZRQ2C_DESCARGA_GRANEL | Report | Runner manual outbound |
-| 6 | Validar execucao | ZRQ2C_DESCARGA_GRANEL | Report | Teste minimo de geracao U200-H/U200-S |
-
-## 3. Matriz DDIC necessaria
-Escopo da matriz: dependencias DDIC usadas diretamente em ZCLQ2C_265_DESCARGA_GRANEL (tipos TYPE zdeq2c_265_*).
-
-| Objeto | Tipo DDIC | Tipo base | Tamanho | Decimais | Descricao | Criar ou reutilizar |
-|---|---|---|---|---|---|---|
-| ZDEQ2C_265_DESC_DESTTANK | Data Element | CHAR | 10 | 0 | Tanque de destino | Criar ou transportar se nao existir no ambiente |
-| ZDEQ2C_265_DESC_INVOQTYL | Data Element | DEC | 13 | 3 | Quantidade da nota em litros | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_INVOQKG | Data Element | DEC | 13 | 3 | Peso da nota em kg | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_INVOICEN | Data Element | CHAR | 20 | 0 | Numero da nota fiscal | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_BATCHIDS | Data Element | CHAR | 20 | 0 | Lotes | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_CARTID | Data Element | CHAR | 10 | 0 | Placa do carreto | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_COLORYN | Data Element | CHAR | 1 | 0 | Cor informada (S/N) | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_SAMPLEYN | Data Element | CHAR | 1 | 0 | Amostra coletada (S/N) | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_LABMAN | Data Element | CHAR | 12 | 0 | Responsavel do laboratorio | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_LADAPPTM | Data Element | CHAR | 17 | 0 | Data/hora aprovacao laboratorio | Reutilizar objetos_comuns |
-| ZDEQ2C_265_DESC_SEALCODE | Data Element | CHAR | 10 | 0 | Codigo do lacre | Reutilizar objetos_comuns |
-| ZDEQ2C_265_ORDER_NUM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Numero da ordem | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_NUM | Data Element | CHAR | 18 | 0 | Numero do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_NAME | Data Element | CHAR | 18 | 0 | Nome do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PROD_DEN | Data Element | QUAN | 6 | 0 | Densidade do produto | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_LOAD_LINE | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Linha de carga/descarga | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_LOAD_PTFM | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Plataforma de carga | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_TRUCK_ID | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Identificacao do caminhao | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_MSGRCVTM | Data Element | CHAR | 17 | 0 | Data e hora de recebimento | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PPRD_NAME | Data Element | CHAR | 18 | 0 | Nome do produto anterior | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_PPRD_NUM | Data Element | CHAR | 18 | 0 | Numero do produto anterior | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEALCLR | Data Element | Conforme objeto fonte | Conforme objeto fonte | Conforme objeto fonte | Cor do lacre | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEAL_NUM | Data Element | NUMC | 8 | 0 | Numero do lacre | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-| ZDEQ2C_265_SEAL_QTY | Data Element | NUMC | 2 | 0 | Quantidade de lacres | Reutilizar pacote base ZPQ2C_265_20260703_082358 |
-
-Nota de tamanho para DESTTANK:
-- Evidencia tecnica atual do repositorio: ZDEQ2C_265_DESC_DESTTANK esta definido como CHAR(10) em objetos_comuns.
-- Validacao funcional obrigatoria: confirmar o tamanho no layout U200-H oficial antes de transporte final.
-- Regra pratica: se layout oficial exigir CHAR(7), ajustar para CHAR(7); se nao houver evidencia diferente, manter CHAR(10) para alinhar com o objeto fonte do pacote.
-
-## 4. Correcao do erro atual
-Erro atual:
 Type "ZDEQ2C_265_DESC_DESTTANK" is unknown.
 
-Acao:
-Criar ou transportar o Data Element ZDEQ2C_265_DESC_DESTTANK antes de ativar a classe ZCLQ2C_265_DESCARGA_GRANEL.
+Objeto afetado: ZCLQ2C_265_DESCARGA_GRANEL (estrutura ty_u200_h, campo DESTTANK).
 
-Este ponto e bloqueio de ativacao, nao observacao.
+## 2. Analise obrigatoria antes de criar DDIC
+| Campo | Tipo usado na classe | Existe no Inbound? | Existe em objetos comuns? | Existe equivalente na Carga? | Decisao | Acao |
+|---|---|---|---|---|---|---|
+| ORDERNUM | ZDEQ2C_265_ORDER_NUM | Sim | Nao | Sim (mesmo) | Reutilizar | Nao criar; garantir ativo no ambiente |
+| INVOQTYL | ZDEQ2C_265_DESC_INVOQTYL | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| INVOQTYKG | ZDEQ2C_265_DESC_INVOQKG | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| DESTTANK | ZDEQ2C_265_DESC_DESTTANK | Nao | Sim | Parcial (SOURCET na Carga, sem mesma semantica) | Reutilizar nome atual | Nao criar novo por padrao; transportar/ativar ZDEQ2C_265_DESC_DESTTANK de objetos_comuns |
+| PRODNUM | ZDEQ2C_265_PROD_NUM | Sim | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| PRODNAME | ZDEQ2C_265_PROD_NAME | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| PRODDEN | ZDEQ2C_265_PROD_DEN | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| UNLOADLN | ZDEQ2C_265_LOAD_LINE | Sim (LINE2USE) | Nao | Sim (LOADLINE) | Reutilizar | Nao criar |
+| UNLOADPT | ZDEQ2C_265_LOAD_PTFM | Nao | Nao | Sim (LOADPTFM) | Reutilizar | Nao criar |
+| TRUCKID | ZDEQ2C_265_TRUCK_ID | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| COLORYN | ZDEQ2C_265_DESC_COLORYN | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| PPRDNAME | ZDEQ2C_265_PPRD_NAME | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| PPRODNUM | ZDEQ2C_265_PPRD_NUM | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| SAMPLEYN | ZDEQ2C_265_DESC_SAMPLEYN | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| LABMAN | ZDEQ2C_265_DESC_LABMAN | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| LADAPPTM | ZDEQ2C_265_DESC_LADAPPTM | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| INVOICEN | ZDEQ2C_265_DESC_INVOICEN | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| BATCHIDS | ZDEQ2C_265_DESC_BATCHIDS | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| MSGRCVTM | ZDEQ2C_265_MSGRCVTM | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| CARTID | ZDEQ2C_265_DESC_CARTID | Nao | Sim | Nao | Reutilizar | Transportar de objetos_comuns se ausente |
+| SORDRNM | ZDEQ2C_265_ORDER_NUM | Sim | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| SEALCODE | ZDEQ2C_265_DESC_SEALCODE | Sim | Sim | Nao | Reutilizar | Nao criar novo |
+| SCOLOR | ZDEQ2C_265_SEALCLR | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| SSEALID | ZDEQ2C_265_SEAL_NUM | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
+| SSEALQTY | ZDEQ2C_265_SEAL_QTY | Nao | Nao | Sim (mesmo) | Reutilizar | Nao criar |
 
-## 5. Ordem de implementacao
-1. Validar no SE11/ADT se ZDEQ2C_265_DESC_DESTTANK existe.
-2. Se nao existir, criar ou transportar ZDEQ2C_265_DESC_DESTTANK com tipo/tamanho correto do layout.
-3. Ativar ZDEQ2C_265_DESC_DESTTANK.
-4. Ativar ZCLQ2C_265_DESCARGA_GRANEL.
-5. Ativar ZRQ2C_DESCARGA_GRANEL.
-6. Executar teste minimo de geracao do outbound (U200-H e U200-S).
+Decisao especifica para DESTTANK:
+- Campo nao existe no layout de Inbound U301-H como DESTTANK; Inbound usa DESTTYRN (S/N) e COMPDROP, que nao substituem tanque destino.
+- Nome tecnico ZDEQ2C_265_DESC_DESTTANK existe em objetos_comuns e esta coerente com o delta U200-H do Outbound.
+- Tipo/tamanho com evidencia de repositorio: CHAR(10) no objeto comum.
+- Acao correta: transportar/ativar o objeto comum; criar do zero apenas se o objeto comum estiver inconsistente/inexistente no baseline do pacote.
 
-## 6. Ajustes ABAP
-| Objeto | Acao | Detalhe |
-|---|---|---|
-| ZCLQ2C_265_DESCARGA_GRANEL | Ativar/corrigir tipagem | Corrigir dependencias DDIC ausentes (principalmente DESTTANK) |
-| ZCLQ2C_265_DESC_COMMON | Reutilizar | Nao duplicar metodos comuns de TVARVC e mensagens |
-| ZRQ2C_DESCARGA_GRANEL | Validar execucao | Runner manual do outbound |
+## 3. Objetos com acao real
+| Ordem | Objeto | Tipo | Acao | Detalhe tecnico |
+|---|---|---|---|---|
+| 1 | ZDEQ2C_265_DESC_DESTTANK | Data Element | Corrigir dependencia | Objeto existe em objetos_comuns; transportar/ativar no ambiente antes da classe |
+| 2 | ZDEQ2C_265_DESC_* usados no Outbound (INVOQTYL, INVOQKG, COLORYN, SAMPLEYN, LABMAN, LADAPPTM, INVOICEN, BATCHIDS, CARTID, SEALCODE) | Data Elements | Validar presenca e ativar | Mesma fonte comum usada no Inbound; nao recriar |
+| 3 | ZCLQ2C_265_DESCARGA_GRANEL | Classe | Ativar | Ativar apos DDIC comum ativo |
+| 4 | ZRQ2C_DESCARGA_GRANEL | Report | Ativar/testar | Runner manual do Outbound |
 
-## 7. Checklist final
-- [ ] Data Element ZDEQ2C_265_DESC_DESTTANK criado ou transportado
-- [ ] Data Element ativo
-- [ ] Classe ZCLQ2C_265_DESCARGA_GRANEL ativa
-- [ ] Runner ZRQ2C_DESCARGA_GRANEL ativo
-- [ ] Payload outbound gerado
-- [ ] Descarga Inbound nao impactada
-- [ ] Carga nao impactada
+## 4. Matriz de criacao DDIC, somente se criacao for inevitavel
+No estado atual, nao ha criacao DDIC inevitavel confirmada.
+
+| Objeto | Tipo DDIC | Tipo base | Tamanho | Decimais | Descricao | Evidencia |
+|---|---|---|---|---|---|---|
+| Nenhum (por enquanto) | - | - | - | - | Nao criar ainda | Todos os tipos de acao do Outbound possuem fonte em objetos_comuns ou pacote base |
+
+## 5. Ordem correta de acao
+1. Comparar tipos da classe Outbound com Inbound e objetos_comuns (copy-first).
+2. Confirmar em SE11/ADT se ZDEQ2C_265_DESC_DESTTANK existe no ambiente.
+3. Se ausente, transportar/ativar ZDEQ2C_265_DESC_DESTTANK do pacote comum (nao criar novo inicialmente).
+4. Validar os demais ZDEQ2C_265_DESC_* usados no Outbound e transportar apenas os ausentes.
+5. Ativar DDIC.
+6. Ativar ZCLQ2C_265_DESCARGA_GRANEL.
+7. Ativar ZRQ2C_DESCARGA_GRANEL.
+8. Testar geracao U200-H/U200-S.
+
+## 6. O que nao fazer
+- Nao recriar Data Element sem comparar com Inbound e objetos_comuns.
+- Nao criar novo objeto so porque a classe nao ativa.
+- Nao listar objetos sem acao real.
+- Nao assumir CHAR(10), CHAR(7), DEC ou NUMC sem evidencia de layout/objeto-base.
+- Nao divergir do copy-first ja adotado no Inbound.

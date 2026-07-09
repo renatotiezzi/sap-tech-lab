@@ -26,17 +26,17 @@ classe não ativa e o report `ZRQ2C_DESCARGA_GRANEL` também não.
 
 | # | Data Element | Tipo | Tamanho | Desc | Estrutura |
 |---|---|---|---|---|---|
-| 1 | `ZDEQ2C_265_DESC_DESTTANK` | CHAR | 10 | Destination Tank | `TY_U200_H-DESTTANK` |
-| 2 | `ZDEQ2C_265_DESC_INVOQTYL` | DEC | 13,3 | Invoice Quantity Liters | `TY_U200_H-INVOQTYL` |
-| 3 | `ZDEQ2C_265_DESC_INVOQKG` | DEC | 13,3 | Invoice Weight KG | `TY_U200_H-INVOQTYKG` |
-| 4 | `ZDEQ2C_265_DESC_COLORYN` | CHAR | 1 | Color YN | `TY_U200_H-COLORYN` |
-| 5 | `ZDEQ2C_265_DESC_SAMPLEYN` | CHAR | 1 | Sample YN | `TY_U200_H-SAMPLEYN` |
-| 6 | `ZDEQ2C_265_DESC_LABMAN` | CHAR | 12 | Lab Manager | `TY_U200_H-LABMAN` |
-| 7 | `ZDEQ2C_265_DESC_LADAPPTM` | CHAR | 17 | Lab Approval Timestamp | `TY_U200_H-LADAPPTM` |
-| 8 | `ZDEQ2C_265_DESC_INVOICEN` | CHAR | 20 | Invoice Number | `TY_U200_H-INVOICEN` |
-| 9 | `ZDEQ2C_265_DESC_BATCHIDS` | CHAR | 20 | Batch IDs | `TY_U200_H-BATCHIDS` |
-| 10 | `ZDEQ2C_265_DESC_CARTID` | CHAR | 10 | Trailer Plate | `TY_U200_H-CARTID` |
-| 11 | `ZDEQ2C_265_DESC_SEALCODE` | CHAR | 10 | Seal Code | `TY_U200_S-SEALCODE` |
+| 1 | `ZDEQ2C_265_DESC_DESTTANK` | CHAR | 10 | Tanque de destino | `TY_U200_H-DESTTANK` |
+| 2 | `ZDEQ2C_265_DESC_INVOQTYL` | DEC | 13,3 | Quantidade faturada em litros | `TY_U200_H-INVOQTYL` |
+| 3 | `ZDEQ2C_265_DESC_INVOQKG` | DEC | 13,3 | Peso faturado em KG | `TY_U200_H-INVOQTYKG` |
+| 4 | `ZDEQ2C_265_DESC_COLORYN` | CHAR | 1 | Cor S/N | `TY_U200_H-COLORYN` |
+| 5 | `ZDEQ2C_265_DESC_SAMPLEYN` | CHAR | 1 | Amostra S/N | `TY_U200_H-SAMPLEYN` |
+| 6 | `ZDEQ2C_265_DESC_LABMAN` | CHAR | 12 | Responsável de laboratório | `TY_U200_H-LABMAN` |
+| 7 | `ZDEQ2C_265_DESC_LADAPPTM` | CHAR | 17 | Timestamp aprovação laboratório | `TY_U200_H-LADAPPTM` |
+| 8 | `ZDEQ2C_265_DESC_INVOICEN` | CHAR | 20 | Número da nota fiscal | `TY_U200_H-INVOICEN` |
+| 9 | `ZDEQ2C_265_DESC_BATCHIDS` | CHAR | 20 | IDs de lote | `TY_U200_H-BATCHIDS` |
+| 10 | `ZDEQ2C_265_DESC_CARTID` | CHAR | 10 | Placa do reboque | `TY_U200_H-CARTID` |
+| 11 | `ZDEQ2C_265_DESC_SEALCODE` | CHAR | 10 | Código do lacre | `TY_U200_S-SEALCODE` |
 
 Os demais Data Elements da classe (`ZDEQ2C_265_ORDER_NUM`, `ZDEQ2C_265_PROD_NUM`,
 `ZDEQ2C_265_LOAD_LINE`, `ZDEQ2C_265_TRUCK_ID`, etc.) vêm de

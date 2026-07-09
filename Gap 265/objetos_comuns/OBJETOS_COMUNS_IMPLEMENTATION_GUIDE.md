@@ -8,7 +8,7 @@ Request/CHARM: ZPQ2C_265_20260703_082358
 ## 1. Objetivo
 
 Documentar os objetos comuns não ABAP necessários ao GAP 265, principalmente DDIC e
-message class. Os artefatos técnicos de versionamento estão em `abapgit_xml/`.
+message class.
 
 ---
 
@@ -106,7 +106,7 @@ Nenhum outro objeto comum necessário.
 
 ## 8. Ordem de criação/ativação
 
-1. Data Elements (seções 2 e 3) — importar via abapGit pull em `abapgit_xml/`.
+1. Data Elements (seções 2 e 3) — criar manualmente no SAP via SE11 ou importar conforme os dados das tabelas acima.
 2. Message Class `ZCL_Q2C_265_MSG_DG`.
 3. Classe comum `ZCLQ2C_265_DESC_COMMON`.
 4. Objetos específicos de Outbound e Inbound (ver guides respectivos).
@@ -121,4 +121,3 @@ Nenhum outro objeto comum necessário.
 - [ ] Mensagens documentadas em PT-BR
 - [ ] Classe comum `ZCLQ2C_265_DESC_COMMON` ativa
 - [ ] Descrições em PT-BR conferidas
-- [ ] XMLs em `abapgit_xml/` tratados como artefatos técnicos

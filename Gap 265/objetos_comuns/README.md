@@ -2,10 +2,7 @@
 
 Esta pasta contém objetos comuns usados pelos fluxos de Descarga.
 
-Os arquivos em `abapgit_xml/` são artefatos técnicos necessários para abapGit/importação no SAP.
-Eles não são a documentação de implementação.
-
-A documentação humana dos objetos comuns está em:
+A documentação dos objetos está em:
 
 → [`OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md)
 

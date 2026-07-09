@@ -1,4 +1,4 @@
-# GAP 265 - Objetos Comuns - Implementation Guide
+﻿# GAP 265 - Objetos Comuns - Implementation Guide
 
 Author: RTiezzi  
 Request/CHARM: ZPQ2C_265_20260703_082358
@@ -7,18 +7,16 @@ Request/CHARM: ZPQ2C_265_20260703_082358
 
 ## 1. Objetivo
 
-Este guide concentra os objetos técnicos de apoio compartilhados entre os fluxos do
-GAP 265 (Descarga Outbound e Descarga Inbound/Retorno). Inclui Data Elements,
-message class e classe comum. Os arquivos `.xml` nesta pasta são artefatos técnicos
-de importação abapGit — este guide é a fonte humana de leitura e implementação.
+Documentar os objetos comuns não ABAP necessários ao GAP 265, principalmente DDIC e
+message class. Os artefatos técnicos de versionamento estão em `abapgit_xml/`.
 
 ---
 
-## 2. Data Elements — Descarga Outbound
+## 2. Data Elements - Descarga Outbound
 
-Usados diretamente em `ZCLQ2C_265_DESCARGA_GRANEL` (`TY_U200_H` e `TY_U200_S`).
+Usados em `ZCLQ2C_265_DESCARGA_GRANEL` (`TY_U200_H` e `TY_U200_S`).
 
-| Ordem | Objeto | Tipo base | Tamanho | Decimais | Descrição | Usado em |
+| Ordem | Objeto | Tipo base | Tamanho | Decimais | Descrição PT-BR | Usado em |
 |---|---|---|---|---|---|---|
 | 1 | `ZDEQ2C_265_DESC_DESTTANK` | CHAR | 10 | 0 | Tanque de destino | `TY_U200_H-DESTTANK` |
 | 2 | `ZDEQ2C_265_DESC_INVOQTYL` | DEC | 13 | 3 | Quantidade faturada em litros | `TY_U200_H-INVOQTYL` |
@@ -30,15 +28,15 @@ Usados diretamente em `ZCLQ2C_265_DESCARGA_GRANEL` (`TY_U200_H` e `TY_U200_S`).
 | 8 | `ZDEQ2C_265_DESC_INVOICEN` | CHAR | 20 | 0 | Número da nota fiscal | `TY_U200_H-INVOICEN` |
 | 9 | `ZDEQ2C_265_DESC_BATCHIDS` | CHAR | 20 | 0 | IDs de lote | `TY_U200_H-BATCHIDS` |
 | 10 | `ZDEQ2C_265_DESC_CARTID` | CHAR | 10 | 0 | Placa do reboque | `TY_U200_H-CARTID` |
-| 11 | `ZDEQ2C_265_DESC_SEALCODE` | CHAR | 10 | 0 | Código do lacre | `TY_U200_H-SEALCODE` / `TY_U200_S-SEALCODE` / `TY_U301_S-SEALCODE` |
+| 11 | `ZDEQ2C_265_DESC_SEALCODE` | CHAR | 10 | 0 | Código do lacre | `TY_U200_S-SEALCODE` |
 
 ---
 
-## 3. Data Elements — Descarga Inbound/Retorno
+## 3. Data Elements - Descarga Inbound
 
-Usados diretamente em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
+Usados em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
 
-| Ordem | Objeto | Tipo base | Tamanho | Decimais | Descrição | Usado em |
+| Ordem | Objeto | Tipo base | Tamanho | Decimais | Descrição PT-BR | Usado em |
 |---|---|---|---|---|---|---|
 | 1 | `ZDEQ2C_265_DESC_TRKINTWT` | NUMC | 6 | 0 | Peso inicial do caminhão | `TY_U301_H-TRKINTWT` |
 | 2 | `ZDEQ2C_265_DESC_TRKFNLWT` | NUMC | 6 | 0 | Peso final do caminhão | `TY_U301_H-TRKFNLWT` |
@@ -67,7 +65,9 @@ Usados diretamente em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
 |---|---|---|---|
 | `ZCL_Q2C_265_MSG_DG` | Message Class | Descarga Granel | `ZCLQ2C_265_DESC_COMMON` |
 
-### Mensagens
+---
+
+## 5. Mensagens
 
 | Nº | Tipo | Texto PT-BR | Usado em |
 |---|---|---|---|
@@ -90,32 +90,35 @@ Usados diretamente em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
 
 ---
 
-## 5. Classe comum
+## 6. Classe comum
 
 | Objeto | Tipo | Responsabilidade | Usado por |
 |---|---|---|---|
-| `ZCLQ2C_265_DESC_COMMON` | Classe | Métodos compartilhados: `add_error`, `add_success`, `get_tvarvc_value`. Constante `gc_msgid = ZCL_Q2C_265_MSG_DG`. | `ZCLQ2C_265_DESCARGA_GRANEL` e `ZCLQ2C_265_DESC_RET_GRANEL` |
+| `ZCLQ2C_265_DESC_COMMON` | Classe | `add_error`, `add_success`, `get_tvarvc_value`. Constante `gc_msgid = ZCL_Q2C_265_MSG_DG` | `ZCLQ2C_265_DESCARGA_GRANEL` e `ZCLQ2C_265_DESC_RET_GRANEL` |
 
 ---
 
-## 6. Ordem de criação/ativação
+## 7. Outros objetos não ABAP
 
-1. Criar/ativar os 11 Data Elements do Descarga Outbound (seção 2).
-2. Criar/ativar os 18 Data Elements do Descarga Inbound (seção 3).
-3. Criar/ativar a Message Class `ZCL_Q2C_265_MSG_DG` com todas as 16 mensagens.
-4. Ativar `ZCLQ2C_265_DESC_COMMON`.
-5. Prosseguir para os guides específicos de Outbound e Inbound.
-
-> Todos os objetos desta pasta já existem como artefatos abapGit.
-> Usar abapGit pull nesta pasta para importar tudo em massa.
+Nenhum outro objeto comum necessário.
 
 ---
 
-## 7. Checklist
+## 8. Ordem de criação/ativação
 
-- [ ] Data Elements do Descarga Outbound disponíveis no SAP (seção 2)
-- [ ] Data Elements do Descarga Inbound disponíveis no SAP (seção 3)
-- [ ] `ZCL_Q2C_265_MSG_DG` ativa com 16 mensagens
-- [ ] `ZCLQ2C_265_DESC_COMMON` ativa
+1. Data Elements (seções 2 e 3) — importar via abapGit pull em `abapgit_xml/`.
+2. Message Class `ZCL_Q2C_265_MSG_DG`.
+3. Classe comum `ZCLQ2C_265_DESC_COMMON`.
+4. Objetos específicos de Outbound e Inbound (ver guides respectivos).
+
+---
+
+## 9. Checklist
+
+- [ ] Data Elements do Outbound documentados e disponíveis no SAP
+- [ ] Data Elements do Inbound documentados e disponíveis no SAP
+- [ ] Message Class `ZCL_Q2C_265_MSG_DG` ativa
+- [ ] Mensagens documentadas em PT-BR
+- [ ] Classe comum `ZCLQ2C_265_DESC_COMMON` ativa
 - [ ] Descrições em PT-BR conferidas
-- [ ] Nenhum objeto comum sem documentação
+- [ ] XMLs em `abapgit_xml/` tratados como artefatos técnicos

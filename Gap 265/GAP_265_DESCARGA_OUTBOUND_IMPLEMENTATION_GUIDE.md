@@ -7,71 +7,49 @@ Request/CHARM: ZPQ2C_265_20260703_082358
 
 ## 1. Objetivo
 
-Garantir a ativação e execução do fluxo Descarga Outbound, responsável por gerar
-os arquivos `U200-H` e `U200-S` a partir de uma ordem de descarga SAP com status `03`.
+Garantir ativação e execução do fluxo Descarga Outbound, responsável pela geração
+dos arquivos U200-H e U200-S.
 
 ---
 
-## 2. Objetos do Outbound Descarga
+## 2. Objetos ABAP do Outbound
 
 | Ordem | Objeto | Tipo | Ação | Observação |
 |---|---|---|---|---|
-| 1 | `ZCLQ2C_265_DESCARGA_GRANEL` | Classe | Ativar | Classe principal do Outbound |
-| 2 | `ZRQ2C_DESCARGA_GRANEL` | Report | Ativar/testar | Runner manual do Outbound |
-| 3 | `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 de saída |
-| 4 | `ZI_Q2C_DESCARGA` | CDS View | Verificar ativo | Fonte de dados da descarga (GAP 340) |
-| 5 | `ZI_Q2C_MONI_DESCARGA` | CDS View | Verificar ativo | Fonte de monitoramento (GAP 340) |
-
-> Data Elements do payload U200-H/U200-S estão documentados em
-> [`objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md).
+| 1 | `ZCLQ2C_265_DESCARGA_GRANEL` | Classe | Ativar/testar | Classe principal do Outbound Descarga |
+| 2 | `ZRQ2C_DESCARGA_GRANEL` | Report | Ativar/testar | Runner manual do Outbound Descarga |
 
 ---
 
-## 3. Classe Outbound
+## 3. Objetos não ABAP necessários
 
-| Objeto | Ação | Detalhe |
-|---|---|---|
-| `ZCLQ2C_265_DESCARGA_GRANEL` | Ativar | Monta `TY_U200_H`/`TY_U200_S` e grava arquivos no diretório TVARVC |
-
-Nenhuma alteração de código necessária.
-
----
-
-## 4. Runner Outbound
-
-| Objeto | Ação | Detalhe |
-|---|---|---|
-| `ZRQ2C_DESCARGA_GRANEL` | Ativar/testar | Executa o Outbound Descarga; parâmetros: referência da ordem e flag de job |
+| Ordem | Objeto | Tipo | Ação | Observação |
+|---|---|---|---|---|
+| 1 | Data Elements U200-H/U200-S | DDIC | Garantir no ambiente | Detalhados em `objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md` seção 2 |
+| 2 | `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 de saída |
+| 3 | `ZI_Q2C_DESCARGA` | CDS/View | Verificar ativo | Fonte de dados (GAP 340) |
+| 4 | `ZI_Q2C_MONI_DESCARGA` | CDS/View | Verificar ativo | Fonte de dados (GAP 340) |
 
 ---
 
-## 5. Configuração
+## 4. Ordem de execução
 
-| Item | Tipo | Ação | Observação |
-|---|---|---|---|
-| `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 onde U200-H e U200-S serão gravados |
-| `ZI_Q2C_DESCARGA` | CDS View (GAP 340) | Verificar ativo | Fonte principal de dados da ordem de descarga |
-| `ZI_Q2C_MONI_DESCARGA` | CDS View (GAP 340) | Verificar ativo | Fonte de monitoramento (veículo, lote, produto) |
-
----
-
-## 6. Ordem de execução
-
-1. Importar `objetos_comuns/` via abapGit pull (ativa DTELs, message class e `ZCLQ2C_265_DESC_COMMON`).
-2. Verificar CDS `ZI_Q2C_DESCARGA` e `ZI_Q2C_MONI_DESCARGA` ativas (GAP 340).
-3. Configurar TVARVC `ZQ2C_DESCARGA_PCS_OUT` com o diretório AL11 de saída.
+1. Garantir Data Elements do payload U200-H/U200-S no ambiente.
+2. Configurar TVARVC `ZQ2C_DESCARGA_PCS_OUT`.
+3. Verificar CDS/views de leitura.
 4. Ativar `ZCLQ2C_265_DESCARGA_GRANEL`.
 5. Ativar `ZRQ2C_DESCARGA_GRANEL`.
-6. Executar teste com uma referência de descarga válida (status `03`).
+6. Executar teste com referência de descarga válida (status `03`).
 7. Validar geração dos arquivos U200-H e U200-S na AL11.
 
 ---
 
-## 7. Checklist final
+## 5. Checklist final
 
-- [ ] Objetos comuns ativos (ver `objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`)
-- [ ] CDS `ZI_Q2C_DESCARGA` e `ZI_Q2C_MONI_DESCARGA` ativas
-- [ ] TVARVC `ZQ2C_DESCARGA_PCS_OUT` configurada
+- [ ] Data Elements do U200-H/U200-S disponíveis no SAP
+- [ ] `ZQ2C_DESCARGA_PCS_OUT` configurada
+- [ ] `ZI_Q2C_DESCARGA` ativa
+- [ ] `ZI_Q2C_MONI_DESCARGA` ativa
 - [ ] `ZCLQ2C_265_DESCARGA_GRANEL` ativa
 - [ ] `ZRQ2C_DESCARGA_GRANEL` ativo
 - [ ] U200-H gerado

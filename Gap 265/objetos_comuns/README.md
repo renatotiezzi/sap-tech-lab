@@ -1,7 +1,13 @@
-# objetos_comuns — GAP 265
+# Objetos Comuns - GAP 265
 
-Objetos técnicos de apoio **compartilhados** entre Descarga Outbound e Descarga
-Inbound/Retorno do GAP 265.
+Esta pasta contém objetos comuns usados pelos fluxos de Descarga.
+
+Os arquivos em `abapgit_xml/` são artefatos técnicos necessários para abapGit/importação no SAP.
+Eles não são a documentação de implementação.
+
+A documentação humana dos objetos comuns está em:
+
+→ [`OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md)
 
 ## Conteúdo
 

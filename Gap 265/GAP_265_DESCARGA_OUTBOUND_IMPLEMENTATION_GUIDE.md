@@ -5,7 +5,115 @@ Request/CHARM: ZPQ2C_265_20260703_082358
 
 ---
 
-## 1. Bloqueio atual
+## 1. Objetivo
+
+Garantir a ativação e execução do fluxo Descarga Outbound, responsável por gerar os
+arquivos `U200-H` e `U200-S` a partir de uma ordem de descarga SAP com status `03`.
+
+---
+
+## 2. Objetos necessários para o Outbound Descarga
+
+| Ordem | Objeto | Tipo | Ação | Observação |
+|---|---|---|---|---|
+| 1 | `ZDEQ2C_265_DESC_DESTTANK` | Data Element | Garantir no ambiente SAP | `TY_U200_H-DESTTANK` |
+| 2 | `ZDEQ2C_265_DESC_INVOQTYL` | Data Element | Garantir no ambiente SAP | `TY_U200_H-INVOQTYL` |
+| 3 | `ZDEQ2C_265_DESC_INVOQKG` | Data Element | Garantir no ambiente SAP | `TY_U200_H-INVOQTYKG` |
+| 4 | `ZDEQ2C_265_DESC_COLORYN` | Data Element | Garantir no ambiente SAP | `TY_U200_H-COLORYN` |
+| 5 | `ZDEQ2C_265_DESC_SAMPLEYN` | Data Element | Garantir no ambiente SAP | `TY_U200_H-SAMPLEYN` |
+| 6 | `ZDEQ2C_265_DESC_LABMAN` | Data Element | Garantir no ambiente SAP | `TY_U200_H-LABMAN` |
+| 7 | `ZDEQ2C_265_DESC_LADAPPTM` | Data Element | Garantir no ambiente SAP | `TY_U200_H-LADAPPTM` |
+| 8 | `ZDEQ2C_265_DESC_INVOICEN` | Data Element | Garantir no ambiente SAP | `TY_U200_H-INVOICEN` |
+| 9 | `ZDEQ2C_265_DESC_BATCHIDS` | Data Element | Garantir no ambiente SAP | `TY_U200_H-BATCHIDS` |
+| 10 | `ZDEQ2C_265_DESC_CARTID` | Data Element | Garantir no ambiente SAP | `TY_U200_H-CARTID` |
+| 11 | `ZDEQ2C_265_DESC_SEALCODE` | Data Element | Garantir no ambiente SAP | `TY_U200_S-SEALCODE` |
+| 12 | `ZCL_Q2C_265_MSG_DG` | Message Class | Garantir no ambiente SAP | Dependência de `ZCLQ2C_265_DESC_COMMON` |
+| 13 | `ZCLQ2C_265_DESC_COMMON` | Classe | Ativar | Dependência direta da classe principal |
+| 14 | `ZCLQ2C_265_DESCARGA_GRANEL` | Classe | Ativar | Classe principal do Outbound |
+| 15 | `ZRQ2C_DESCARGA_GRANEL` | Report | Ativar/testar | Runner manual do Outbound |
+| 16 | `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 de saída dos arquivos |
+
+> Todos os objetos das linhas 1–13 já existem no repositório em `objetos_comuns/`.
+> Não precisam ser criados do zero — apenas importados/ativados no ambiente via abapGit pull.
+
+---
+
+## 3. Data Elements do payload Outbound
+
+Apenas os Data Elements específicos dos tipos `TY_U200_H` e `TY_U200_S` que estão em
+`objetos_comuns/` e precisam ser garantidos no ambiente SAP.
+
+| Campo | Data Element | Tipo | Tamanho | Descrição |
+|---|---|---|---|---|
+| `DESTTANK` | `ZDEQ2C_265_DESC_DESTTANK` | CHAR | 10 | Tanque de destino |
+| `INVOQTYL` | `ZDEQ2C_265_DESC_INVOQTYL` | DEC | 13,3 | Quantidade faturada em litros |
+| `INVOQTYKG` | `ZDEQ2C_265_DESC_INVOQKG` | DEC | 13,3 | Peso faturado em KG |
+| `COLORYN` | `ZDEQ2C_265_DESC_COLORYN` | CHAR | 1 | Cor S/N |
+| `SAMPLEYN` | `ZDEQ2C_265_DESC_SAMPLEYN` | CHAR | 1 | Amostra S/N |
+| `LABMAN` | `ZDEQ2C_265_DESC_LABMAN` | CHAR | 12 | Responsável de laboratório |
+| `LADAPPTM` | `ZDEQ2C_265_DESC_LADAPPTM` | CHAR | 17 | Timestamp aprovação laboratório |
+| `INVOICEN` | `ZDEQ2C_265_DESC_INVOICEN` | CHAR | 20 | Número da nota fiscal |
+| `BATCHIDS` | `ZDEQ2C_265_DESC_BATCHIDS` | CHAR | 20 | IDs de lote |
+| `CARTID` | `ZDEQ2C_265_DESC_CARTID` | CHAR | 10 | Placa do reboque |
+| `SEALCODE` | `ZDEQ2C_265_DESC_SEALCODE` | CHAR | 10 | Código do lacre |
+
+> Os demais campos do payload (`ORDERNUM`, `PRODNUM`, `PRODNAME`, `UNLOADLN`,
+> `TRUCKID`, `SEALCLR`, etc.) usam Data Elements de `ZPQ2C_265_20260703_082358/src/`
+> já ativos no ambiente desde a primeira entrega.
+
+---
+
+## 4. Classe Outbound
+
+| Objeto | Ação | Detalhe |
+|---|---|---|
+| `ZCLQ2C_265_DESCARGA_GRANEL` | Ativar | Monta `TY_U200_H`/`TY_U200_S`, grava arquivos no diretório TVARVC |
+
+Nenhuma alteração de código necessária.
+
+---
+
+## 5. Runner Outbound
+
+| Objeto | Ação | Detalhe |
+|---|---|---|
+| `ZRQ2C_DESCARGA_GRANEL` | Ativar/testar | Executa o Outbound Descarga; parâmetros: referência da ordem e flag de job |
+
+---
+
+## 6. Configuração necessária
+
+| Item | Tipo | Ação | Observação |
+|---|---|---|---|
+| `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 onde U200-H e U200-S serão gravados |
+| `ZI_Q2C_DESCARGA` | CDS View (GAP 340) | Verificar ativo | Fonte principal de dados da ordem de descarga |
+| `ZI_Q2C_MONI_DESCARGA` | CDS View (GAP 340) | Verificar ativo | Fonte de dados de monitoramento (veículo, lote, produto) |
+
+---
+
+## 7. Ordem de implementação
+
+1. Importar `objetos_comuns/` via abapGit pull — ativa em massa os 11 DTELs, a message class e `ZCLQ2C_265_DESC_COMMON`.
+2. Verificar CDS `ZI_Q2C_DESCARGA` e `ZI_Q2C_MONI_DESCARGA` ativas (GAP 340).
+3. Configurar TVARVC `ZQ2C_DESCARGA_PCS_OUT` com o diretório de saída AL11.
+4. Ativar `ZCLQ2C_265_DESCARGA_GRANEL`.
+5. Ativar `ZRQ2C_DESCARGA_GRANEL`.
+6. Executar teste com uma referência de descarga válida (status `03`).
+7. Validar geração dos arquivos U200-H e U200-S na AL11.
+
+---
+
+## 8. Checklist final
+
+- [ ] Data Elements do payload Outbound Descarga disponíveis no SAP
+- [ ] `ZCL_Q2C_265_MSG_DG` ativa
+- [ ] `ZCLQ2C_265_DESC_COMMON` ativa
+- [ ] `ZCLQ2C_265_DESCARGA_GRANEL` ativa
+- [ ] `ZRQ2C_DESCARGA_GRANEL` ativo
+- [ ] TVARVC `ZQ2C_DESCARGA_PCS_OUT` configurada
+- [ ] CDS `ZI_Q2C_DESCARGA` e `ZI_Q2C_MONI_DESCARGA` ativas
+- [ ] U200-H gerado
+- [ ] U200-S gerado
 
 Erro de ativação na classe `ZCLQ2C_265_DESCARGA_GRANEL`:
 

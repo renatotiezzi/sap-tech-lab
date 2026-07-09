@@ -1,23 +1,30 @@
-# GAP 265 - Objetos Comuns
+# objetos_comuns — GAP 265
 
-Este diretorio deve conter tudo que for compartilhado entre inbound e outbound da Descarga.
+Objetos técnicos de apoio **compartilhados** entre Descarga Outbound e Descarga
+Inbound/Retorno do GAP 265.
 
-## Criterio de inclusao
+## Conteúdo
 
-Colocar aqui apenas o que for reutilizado nos dois fluxos ou o que for base tecnica transversal do GAP.
+| Tipo | Quantidade | Descrição |
+|---|---|---|
+| `.dtel.xml` | 29 | Data Elements dos payloads U200-H/U200-S (Outbound) e U301-H/U301-S (Inbound) |
+| `.msag.xml` | 1 | Message Class `ZCL_Q2C_265_MSG_DG` |
+| `.clas.abap` / `.clas.xml` | 1 | Classe comum `ZCLQ2C_265_DESC_COMMON` |
 
-## Candidatos naturais
+## Sobre os arquivos `.xml`
 
-- classe de mensagens comum, se o desenho final optar por uma so message class para o GAP
-- constantes e tipos compartilhados de layout PCS
-- utilitarios de TVARVC e AL11 que nao sejam exclusivos de um fluxo
-- estruturas de dominio e tipos auxiliares comuns
-- definicoes de log ou helper de resumo de execucao
+São artefatos técnicos de importação abapGit. Não editar manualmente.
+Para importar no SAP, usar abapGit pull nesta pasta.
 
-## Regra de segregacao
+A documentação funcional e técnica está em:
 
-- se a logica so existe no outbound, fica em `outbound`
-- se a logica so existe no inbound, fica em `inbound`
+→ [`OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md)
+
+## Regra de segregação
+
+- lógica exclusiva do Outbound → pasta `outbound/`
+- lógica exclusiva do Inbound → pasta `inbound/`
+- DDIC, message class e classe comum → esta pasta
 - se a logica e compartilhada ou transversal, fica aqui
 
 ## Repositorio tecnico

@@ -12,16 +12,18 @@ os arquivos `U200-H` e `U200-S` a partir de uma ordem de descarga SAP com status
 
 ---
 
-## 2. Pré-requisitos
+## 2. Objetos do Outbound Descarga
 
-Os Data Elements, message class e classe comum necessários para este fluxo estão
-documentados e versionados em:
+| Ordem | Objeto | Tipo | Ação | Observação |
+|---|---|---|---|---|
+| 1 | `ZCLQ2C_265_DESCARGA_GRANEL` | Classe | Ativar | Classe principal do Outbound |
+| 2 | `ZRQ2C_DESCARGA_GRANEL` | Report | Ativar/testar | Runner manual do Outbound |
+| 3 | `ZQ2C_DESCARGA_PCS_OUT` | TVARVC | Configurar | Diretório AL11 de saída |
+| 4 | `ZI_Q2C_DESCARGA` | CDS View | Verificar ativo | Fonte de dados da descarga (GAP 340) |
+| 5 | `ZI_Q2C_MONI_DESCARGA` | CDS View | Verificar ativo | Fonte de monitoramento (GAP 340) |
 
-→ [`objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md)
-
-Antes de ativar a classe e o report abaixo, garantir que todos os objetos da seção 2
-(Data Elements Outbound) e seção 4 (`ZCLQ2C_265_DESC_COMMON`) daquele guide estejam
-ativos no ambiente SAP.
+> Data Elements do payload U200-H/U200-S estão documentados em
+> [`objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md`](objetos_comuns/OBJETOS_COMUNS_IMPLEMENTATION_GUIDE.md).
 
 ---
 
@@ -43,7 +45,7 @@ Nenhuma alteração de código necessária.
 
 ---
 
-## 5. Configuração necessária
+## 5. Configuração
 
 | Item | Tipo | Ação | Observação |
 |---|---|---|---|
@@ -53,7 +55,7 @@ Nenhuma alteração de código necessária.
 
 ---
 
-## 6. Ordem de implementação
+## 6. Ordem de execução
 
 1. Importar `objetos_comuns/` via abapGit pull (ativa DTELs, message class e `ZCLQ2C_265_DESC_COMMON`).
 2. Verificar CDS `ZI_Q2C_DESCARGA` e `ZI_Q2C_MONI_DESCARGA` ativas (GAP 340).

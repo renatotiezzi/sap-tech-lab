@@ -63,34 +63,34 @@ Usados diretamente em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
 
 ## 4. Message Class
 
-| Objeto | Tipo | Descrição | Usado por |
+| Objeto | Tipo | Descrição PT-BR | Usado em |
 |---|---|---|---|
-| `ZCL_Q2C_265_MSG_DG` | Message Class | Descarga Granel | `ZCLQ2C_265_DESC_COMMON` → Descarga Outbound e Inbound |
+| `ZCL_Q2C_265_MSG_DG` | Message Class | Descarga Granel | `ZCLQ2C_265_DESC_COMMON` |
 
 ### Mensagens
 
-| Nº | Texto | Usado por |
-|---|---|---|
-| 001 | Job Descarga iniciado: dir &1 | Descarga Inbound (job start) |
-| 010 | Processando ordem: &1 | Descarga Inbound |
-| 011 | Arquivo &1 gravado com sucesso | Descarga Outbound |
-| 012 | Referência da descarga não informada: &1 | Descarga Outbound |
-| 020 | Diretório TVARVC inválido: &1 | Outbound e Inbound |
-| 030 | ORDERNUM inválido: &1 | Outbound e Inbound |
-| 031 | Campo obrigatório não preenchido: &1 | Descarga Outbound |
-| 032 | Lacres da descarga não informados para a ordem &1 | Descarga Outbound |
-| 033 | Status da ordem não identificado: &1 | Descarga Outbound |
-| 034 | Status inválido para envio PCS: &1 | Descarga Outbound |
-| 035 | Cancelamento permitido apenas no status 03. Atual: &1 | Descarga Outbound |
-| 036 | ORDERNUM não existe no SAP: &1 | Descarga Inbound |
-| 037 | Inconsistência de arquivos de retorno: &1 | Descarga Inbound |
-| 040 | Erro ao gravar arquivo: &1 | Descarga Outbound |
-| 041 | Erro ao ler arquivo: &1 | Descarga Inbound |
-| 099 | Job Descarga concluído: &1 OK / &2 erro(s) | Descarga Inbound (job end) |
+| Nº | Tipo | Texto PT-BR | Usado em |
+|---|---|---|---|
+| 001 | I | Job Descarga iniciado: dir &1 | Descarga Inbound |
+| 010 | I | Processando ordem: &1 | Descarga Inbound |
+| 011 | S | Arquivo &1 gravado com sucesso | Descarga Outbound |
+| 012 | E | Referência da descarga não informada: &1 | Descarga Outbound |
+| 020 | E | Diretório TVARVC inválido: &1 | Outbound e Inbound |
+| 030 | E | ORDERNUM inválido: &1 | Outbound e Inbound |
+| 031 | E | Campo obrigatório não preenchido: &1 | Descarga Outbound |
+| 032 | E | Lacres da descarga não informados para a ordem &1 | Descarga Outbound |
+| 033 | E | Status da ordem não identificado: &1 | Descarga Outbound |
+| 034 | E | Status inválido para envio PCS: &1 | Descarga Outbound |
+| 035 | E | Cancelamento permitido apenas no status 03. Atual: &1 | Descarga Outbound |
+| 036 | E | ORDERNUM não existe no SAP: &1 | Descarga Inbound |
+| 037 | E | Inconsistência de arquivos de retorno: &1 | Descarga Inbound |
+| 040 | E | Erro ao gravar arquivo: &1 | Descarga Outbound |
+| 041 | E | Erro ao ler arquivo: &1 | Descarga Inbound |
+| 099 | S | Job Descarga concluído: &1 OK / &2 erro(s) | Descarga Inbound |
 
 ---
 
-## 5. Classes comuns
+## 5. Classe comum
 
 | Objeto | Tipo | Responsabilidade | Usado por |
 |---|---|---|---|
@@ -98,15 +98,7 @@ Usados diretamente em `ZCLQ2C_265_DESC_RET_GRANEL` (`TY_U301_H` e `TY_U301_S`).
 
 ---
 
-## 6. Outros objetos comuns
-
-Nenhum Domain, Structure, Table Type ou Job Catalog está nesta pasta.
-Os objetos de tabela (`ZTBQ2C_DESCGRALOG`, `ZTQ2C_PCS_DET_D`, `ZTQ2C_PCS_ITM_D`)
-pertencem ao fluxo de Descarga Inbound e estão documentados no guide de Inbound.
-
----
-
-## 7. Ordem de criação/ativação
+## 6. Ordem de criação/ativação
 
 1. Criar/ativar os 11 Data Elements do Descarga Outbound (seção 2).
 2. Criar/ativar os 18 Data Elements do Descarga Inbound (seção 3).
@@ -119,7 +111,7 @@ pertencem ao fluxo de Descarga Inbound e estão documentados no guide de Inbound
 
 ---
 
-## 8. Checklist
+## 7. Checklist
 
 - [ ] Data Elements do Descarga Outbound disponíveis no SAP (seção 2)
 - [ ] Data Elements do Descarga Inbound disponíveis no SAP (seção 3)

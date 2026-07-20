@@ -39,7 +39,35 @@ Ela so monta a estrutura de mensagem com:
 
 Isso significa que o numero usado no codigo precisa existir na Message Class associada.
 
+## 2.1 Como interpretar a origem das mensagens
+
+- `zclq2c_265_descarga_granel` e `zclq2c_265_desc_ret_granel` sao os emissores reais dos erros e sucessos.
+- `zclq2c_265_desc_common` apenas centraliza o append na tabela de mensagens.
+- No repo atual, a classe de mensagens efetivamente exportada para o SAP aparece como `ZCL_Q2C_265_MSG_CG`.
+- A descarga referencia `ZCL_Q2C_265_MSG_DG` no helper comum, mas o `.msag.xml` dessa classe nao apareceu no repo; por isso, os numeros abaixo foram levantados do codigo-fonte e precisam ser conferidos no SE91.
+
 ## 3. Inventario de mensagens encontradas no codigo
+
+### 3.0 Inventario consolidado
+
+| Classe | Numero | Tipo | Texto recomendado / usado no codigo | Origem |
+|---|---|---|---|---|
+| `ZCL_Q2C_265_MSG_DG` | 011 | S | Arquivo gravado com sucesso / Arquivo processado com sucesso | Outbound / Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 012 | E | Referencia da ordem nao informada | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 020 | E | Diretório/TVARVC obrigatorio nao preenchido | Outbound / Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 025 | E | Erro de conversao de peso / valor numerico | Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 030 | E | Referencia nao encontrada / ORDERNUM nao localizado | Outbound / Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 031 | E | Campo obrigatorio nao preenchido | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 032 | E | Lacres da descarga nao informados | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 033 | E | Status da ordem nao identificado | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 034 | E | Status invalido para envio PCS | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 035 | E | Cancelamento permitido apenas no status 03 | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 036 | E | Referencia nao encontrada / ORDERNUM nao existe no SAP | Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 037 | E | Inconsistencia de arquivos de retorno | Inbound |
+| `ZCL_Q2C_265_MSG_DG` | 040 | E | Erro ao gravar arquivo | Outbound |
+| `ZCL_Q2C_265_MSG_DG` | 041 | E | Erro ao ler arquivo | Inbound |
+
+### 3.1 Consolidado por classe e numero de uso
 
 ### 3.1 Outbound - `zclq2c_265_descarga_granel`
 
@@ -56,6 +84,16 @@ Isso significa que o numero usado no codigo precisa existir na Message Class ass
 | 035 | E | Cancelamento permitido apenas no status 03 |
 | 040 | E | Erro ao gravar arquivo |
 
+### 3.1.1 Como a mensagem deve ficar na pratica
+
+Para cada chamada de `add_error` ou `add_success`, o numero indicado no codigo deve apontar para um texto T100 claro e curto. Exemplo:
+
+| Numero | Texto sugerido |
+|---|---|
+| 012 | Referencia da ordem nao informada |
+| 030 | Referencia nao encontrada: &1 |
+| 040 | Erro ao gravar arquivo: &1 |
+
 ### 3.2 Inbound - `zclq2c_265_desc_ret_granel`
 
 | Numero | Tipo | Uso observado |
@@ -67,6 +105,16 @@ Isso significa que o numero usado no codigo precisa existir na Message Class ass
 | 036 | E | Referencia nao encontrada / ORDERNUM nao existe no SAP |
 | 037 | E | Inconsistencia de arquivos de retorno |
 | 041 | E | Erro ao ler arquivo |
+
+### 3.2.1 Como a mensagem deve ficar na pratica
+
+| Numero | Texto sugerido |
+|---|---|
+| 011 | Arquivo &1 processado com sucesso |
+| 025 | Erro de conversao de peso / valor numerico: &1 |
+| 036 | ORDERNUM nao existe no SAP: &1 |
+| 037 | Inconsistencia de arquivos de retorno: &1 |
+| 041 | Erro ao ler arquivo: &1 |
 
 ## 4. Resposta objetiva sobre a mensagem 012
 
@@ -88,6 +136,12 @@ Se essa mensagem nao existir em `ZCL_Q2C_265_MSG_DG`, o runtime vai carregar um 
 | Numero | Tipo | Texto sugerido |
 |---|---|---|
 | 012 | E | Referencia da ordem nao informada |
+
+### Regra pratica de numero
+
+- Se o codigo ja chama um numero, o numero precisa existir na classe de mensagem.
+- Se quiser padronizar melhor o GAP 265, a `012` pode ser mantida como numero funcional da Descarga.
+- Nao ha evidência no repo de uma `ZCL_Q2C_265_MSG_DG.msag.xml`; entao a confirmacao final precisa ser feita no SE91.
 
 ## 5. Exemplo de padrao para classe de mensagem
 

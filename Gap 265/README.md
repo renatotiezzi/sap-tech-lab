@@ -6,6 +6,7 @@ Este diretorio consolida a nova implementacao de Descarga do GAP 265 usando a ca
 
 - [EF_GAP_265_DESCARGA.md](../EF_GAP_265_DESCARGA.md)
 - [ESTRUTURA_GAP_265.md](ESTRUTURA_GAP_265.md)
+- [MENSAGENS_GAP_265.md](MENSAGENS_GAP_265.md)
 - Pacote base da carga: `ZPQ2C_265_20260703_082358`
 
 ## Organizacao

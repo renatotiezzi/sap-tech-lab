@@ -1,0 +1,70 @@
+managed implementation in class ZBP_Q2C_ArqMgr unique;
+strict ( 2 );
+
+define behavior for ZI_Q2C_ArqMgr alias ArqMgr
+persistent table ztbq2c_arq_mgr
+lock master
+authorization master ( instance )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly ) Uuid, CreatedBy, CreatedAt, ChangedBy, ChangedAt, LocalLastChangedAt;
+  field ( mandatory : create ) Filename;
+  field ( mandatory ) Status;
+
+  determination setUuidOnCreate      on modify { create; }
+  determination setAdminFieldsOnSave on save   { create; update; }
+
+  validation validateStatus on save { create; update; }
+
+  association _Log { create; }
+
+  mapping for ztbq2c_arq_mgr
+  {
+    Uuid                = uuid;
+    Status              = status;
+    Filename            = filename;
+    Filetype            = filetype;
+    Filesize            = filesize;
+    ContentType         = content_type;
+    Source              = source;
+    Bukrs               = bukrs;
+    CreatedBy           = created_by;
+    CreatedAt           = created_at;
+    ChangedBy           = changed_by;
+    ChangedAt           = changed_at;
+    LocalLastChangedAt  = local_last_changed_at;
+  }
+}
+
+define behavior for ZI_Q2C_LogMgr alias LogMgr
+persistent table ztbq2c_log_mgr
+lock dependent by _ArqMgr
+authorization dependent by _ArqMgr
+etag dependent by _ArqMgr
+{
+  update;
+  delete;
+
+  field ( readonly )            Uuid, ArqUuid, CreatedBy, CreatedAt;
+  field ( mandatory : create )  LogType, LogMsg;
+
+  determination setUuidOnCreate      on modify { create; }
+  determination setAdminFieldsOnSave on save   { create; }
+
+  association _ArqMgr;
+
+  mapping for ztbq2c_log_mgr
+  {
+    Uuid       = uuid;
+    ArqUuid    = arq_uuid;
+    LogType    = log_type;
+    LogMsg     = log_msg;
+    DetailMsg  = detail_msg;
+    CreatedBy  = created_by;
+    CreatedAt  = created_at;
+  }
+}

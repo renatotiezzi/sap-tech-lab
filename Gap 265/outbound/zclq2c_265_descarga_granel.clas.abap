@@ -204,6 +204,8 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
   METHOD load_order_data.
     DATA lv_reference TYPE string.
     DATA ls_moni_descarga TYPE zi_q2c_moni_descarga.
+    DATA lv_lab_date TYPE string.
+    DATA lv_lab_time TYPE string.
 
     CLEAR: cs_u200_h, ct_u200_s.
     CLEAR ms_descarga.
@@ -239,9 +241,39 @@ CLASS zclq2c_265_descarga_granel IMPLEMENTATION.
     cs_u200_h-desttank = ms_descarga-lgortdestino.
     cs_u200_h-prodnum = ms_descarga-matnr.
     cs_u200_h-prodname = ls_moni_descarga-arktx.
+    " V15 - RTIEZZI - preencher densidade do U200-H com fallback para densidade da NF-e
+    cs_u200_h-prodden = COND #( WHEN ms_descarga-densidade IS NOT INITIAL
+                                THEN ms_descarga-densidade
+                                ELSE ms_descarga-densidadenfe ).
     cs_u200_h-unloadln = ms_descarga-linhadescarga.
     cs_u200_h-unloadpt = ms_descarga-plataforma.
     cs_u200_h-coloryn = ms_descarga-mangote.
+
+    " V15 - RTIEZZI - sem origem funcional/DDIC comprovada para produto anterior nesta CDS
+    CLEAR: cs_u200_h-pprdname,
+           cs_u200_h-pprodnum.
+
+    " V15 - RTIEZZI - indicador de amostra/laboratorio derivado dos campos de amostra da Descarga
+    cs_u200_h-sampleyn = COND #( WHEN ms_descarga-qtdamostra   IS NOT INITIAL
+                                   OR ms_descarga-volumeamostra IS NOT INITIAL
+                                 THEN 'Y'
+                                 ELSE 'N' ).
+
+    " V15 - RTIEZZI - responsavel de laboratorio com preferencia pelo usuario da amostra
+    cs_u200_h-labman = COND #( WHEN ms_descarga-usuarioamostra IS NOT INITIAL
+                               THEN ms_descarga-usuarioamostra
+                               ELSE ms_descarga-usuariomedicao ).
+
+    " V15 - RTIEZZI - data/hora de aprovacao com fallback para data/hora da amostra
+    IF ms_descarga-dtconf IS NOT INITIAL OR ms_descarga-hrconf IS NOT INITIAL.
+      lv_lab_date = |{ ms_descarga-dtconf }|.
+      lv_lab_time = |{ ms_descarga-hrconf }|.
+    ELSE.
+      lv_lab_date = |{ ms_descarga-dtamostra }|.
+      lv_lab_time = |{ ms_descarga-hramostra }|.
+    ENDIF.
+    cs_u200_h-ladapptm = |{ lv_lab_date } { lv_lab_time }|.
+
     cs_u200_h-truckid = ls_moni_descarga-vehicle.
     cs_u200_h-cartid = ls_moni_descarga-vehid.
     cs_u200_h-batchids = ls_moni_descarga-charg.
